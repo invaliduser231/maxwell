@@ -1,0 +1,177 @@
+import type { Actor } from '@maxwell/core';
+import type { BackupStore } from '@maxwell/core/stores/backups';
+import { ChannelKind, type Overwrite, type Platform } from '../../platform/types.js';
+import { audit } from './copy.js';
+import { withNamedPermissions } from './permissions.js';
+import {
+  CHANNEL_LIMIT,
+  EVERYONE,
+  fetchTemplate,
+  type ImportPlan,
+  isImportPlan,
+  mapTemplate,
+  type PlanOverwrite,
+  parseTemplateCode,
+  ROLE_LIMIT,
+  TemplateError,
+} from './template.js';
+
+export interface ImportResult {
+  roles: { key: string; id: string; name: string }[];
+  channels: { key: string; id: string; name: string }[];
+  everyone: { before: string; after: string } | null;
+  failed: { kind: 'role' | 'channel' | 'everyone'; name: string }[];
+}
+
+export interface ImportDeps {
+  platform: Platform;
+  store: BackupStore;
+  fetcher?: typeof fetch;
+  record(guildId: string, by: Actor, summary: string, result: ImportResult): Promise<void>;
+  onError(error: unknown, what: string): void;
+}
+
+export async function previewImport(
+  deps: ImportDeps,
+  guildId: string,
+  input: string,
+  by: Actor,
+  importId?: string,
+): Promise<string> {
+  const code = parseTemplateCode(input);
+  const id =
+    importId ?? (await deps.store.createImport(guildId, code ?? input.slice(0, 100), by.id));
+  if (!code) {
+    await deps.store.failImport(guildId, id, audit.templateInvalid);
+    return id;
+  }
+  try {
+    const template = await fetchTemplate(code, deps.fetcher);
+    const [roles, channels] = await Promise.all([
+      deps.platform.roles(guildId),
+      deps.platform.channels(guildId),
+    ]);
+    const plan = mapTemplate(template, {
+      roles: Math.max(ROLE_LIMIT - roles.length, 0),
+      channels: Math.max(CHANNEL_LIMIT - channels.length, 0),
+    });
+    await deps.store.setImportPlan(guildId, id, plan);
+  } catch (error) {
+    if (error instanceof TemplateError) {
+      await deps.store.failImport(guildId, id, error.message);
+      return id;
+    }
+    deps.onError(error, 'preview');
+    await deps.store.failImport(guildId, id, audit.templateUnavailable);
+  }
+  return id;
+}
+
+function toOverwrites(
+  guildId: string,
+  list: readonly PlanOverwrite[],
+  roles: ReadonlyMap<string, string>,
+): Overwrite[] {
+  const out: Overwrite[] = [];
+  for (const overwrite of list) {
+    const id = overwrite.target === EVERYONE ? guildId : roles.get(overwrite.target);
+    if (!id) continue;
+    out.push({ id, type: 'role', allow: overwrite.allow, deny: overwrite.deny });
+  }
+  return out;
+}
+
+export async function applyImport(
+  deps: ImportDeps,
+  guildId: string,
+  importId: string,
+  by: Actor,
+): Promise<ImportResult | null> {
+  const row = await deps.store.claimImport(guildId, importId);
+  if (!row) return null;
+  if (!isImportPlan(row.plan)) {
+    await deps.store.failImport(guildId, importId, audit.templateInvalid);
+    return null;
+  }
+  const plan: ImportPlan = row.plan;
+  const reason = audit.importReason(plan.source.name);
+  const result: ImportResult = { roles: [], channels: [], everyone: null, failed: [] };
+  const roleIds = new Map<string, string>();
+  const channelIds = new Map<string, string>();
+  let crashed = false;
+
+  try {
+    if (Array.isArray(plan.everyone)) {
+      try {
+        const live = (await deps.platform.roles(guildId)).find((role) => role.id === guildId);
+        if (live) {
+          const after = withNamedPermissions(live.permissions, plan.everyone);
+          if (after !== live.permissions) {
+            await deps.platform.editRole(guildId, guildId, { permissionBits: after }, reason);
+            result.everyone = { before: live.permissions, after };
+          }
+        }
+      } catch (error) {
+        deps.onError(error, 'everyone');
+        result.failed.push({ kind: 'everyone', name: '@everyone' });
+      }
+    }
+
+    for (const role of plan.roles) {
+      try {
+        const id = await deps.platform.createRole(
+          guildId,
+          {
+            name: role.name,
+            color: role.color,
+            permissions: role.permissions,
+            hoist: role.hoist,
+            mentionable: role.mentionable,
+          },
+          reason,
+        );
+        roleIds.set(role.key, id);
+        result.roles.push({ key: role.key, id, name: role.name });
+      } catch (error) {
+        deps.onError(error, 'role');
+        result.failed.push({ kind: 'role', name: role.name });
+      }
+    }
+
+    for (const channel of plan.channels) {
+      const parentId =
+        channel.type === ChannelKind.Category || !channel.parentKey
+          ? null
+          : (channelIds.get(channel.parentKey) ?? null);
+      try {
+        const id = await deps.platform.createChannel(
+          guildId,
+          {
+            name: channel.name,
+            type: channel.type,
+            parentId,
+            topic: channel.topic ?? undefined,
+            userLimit: channel.userLimit ?? undefined,
+            overwrites: toOverwrites(guildId, channel.overwrites, roleIds),
+          },
+          reason,
+        );
+        channelIds.set(channel.key, id);
+        result.channels.push({ key: channel.key, id, name: channel.name });
+      } catch (error) {
+        deps.onError(error, 'channel');
+        result.failed.push({ kind: 'channel', name: channel.name });
+      }
+    }
+  } catch (error) {
+    crashed = true;
+    deps.onError(error, 'apply');
+  }
+
+  if (result.roles.length > 0 || result.channels.length > 0 || result.everyone) {
+    await deps.record(guildId, by, audit.auditImport(plan.source.name), result);
+  }
+  if (crashed) await deps.store.failImport(guildId, importId, audit.importFailed);
+  else await deps.store.finishImport(guildId, importId, result);
+  return result;
+}
