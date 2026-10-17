@@ -1,0 +1,350 @@
+import type { Sql } from '../db/sql.js';
+import { CONFIG_CHANNEL } from '../guilds/modules.js';
+import type {
+  SnapshotChannel,
+  SnapshotData,
+  SnapshotModule,
+  SnapshotRole,
+} from '../modules/backups.js';
+
+export type SnapshotKind = 'daily' | 'manual';
+
+export interface SnapshotMeta {
+  id: string;
+  number: number;
+  guildId: string;
+  kind: SnapshotKind;
+  label: string | null;
+  createdBy: string | null;
+  roleCount: number;
+  channelCount: number;
+  moduleCount: number;
+  createdAt: Date;
+}
+
+export interface Snapshot extends SnapshotMeta {
+  data: SnapshotData;
+}
+
+export type ImportStatus = 'pending' | 'previewed' | 'applying' | 'applied' | 'failed';
+
+export interface ImportRow {
+  id: string;
+  guildId: string;
+  code: string;
+  status: ImportStatus;
+  plan: unknown;
+  result: unknown;
+  error: string | null;
+  createdBy: string | null;
+  createdAt: Date;
+  appliedAt: Date | null;
+}
+
+export class BackupStore {
+  constructor(private readonly sql: Sql) {}
+
+  async insert(
+    guildId: string,
+    kind: SnapshotKind,
+    data: SnapshotData,
+    options: { label?: string | null; by?: string | null } = {},
+  ): Promise<SnapshotMeta> {
+    return this.sql.begin(async (tx) => {
+      await tx`select pg_advisory_xact_lock(hashtext(${`backups:${guildId}`}))`;
+      const [row] = await tx<SnapshotMeta[]>`
+        insert into backups_snapshots (
+          guild_id, number, kind, label, created_by, role_count, channel_count, module_count, data
+        )
+        values (
+          ${guildId},
+          (select coalesce(max(number), 0) + 1 from backups_snapshots where guild_id = ${guildId}),
+          ${kind}, ${options.label ?? null}, ${options.by ?? null},
+          ${data.roles.length}, ${data.channels.length}, ${Object.keys(data.modules).length},
+          ${tx.json(data as never)}
+        )
+        returning id, number, guild_id as "guildId", kind, label, created_by as "createdBy",
+          role_count as "roleCount", channel_count as "channelCount", module_count as "moduleCount",
+          created_at as "createdAt"
+      `;
+      if (!row) throw new Error('snapshot insert returned nothing');
+      return row;
+    });
+  }
+
+  async list(guildId: string, limit = 50): Promise<SnapshotMeta[]> {
+    return this.sql<SnapshotMeta[]>`
+      select id, number, guild_id as "guildId", kind, label, created_by as "createdBy",
+        role_count as "roleCount", channel_count as "channelCount", module_count as "moduleCount",
+        created_at as "createdAt"
+      from backups_snapshots
+      where guild_id = ${guildId}
+      order by created_at desc, id desc
+      limit ${Math.min(Math.max(limit, 1), 200)}
+    `;
+  }
+
+  async get(guildId: string, id: string): Promise<Snapshot | null> {
+    if (!/^\d+$/.test(id)) return null;
+    const [row] = await this.sql<Snapshot[]>`
+      select id, number, guild_id as "guildId", kind, label, created_by as "createdBy",
+        role_count as "roleCount", channel_count as "channelCount", module_count as "moduleCount",
+        created_at as "createdAt", data
+      from backups_snapshots
+      where guild_id = ${guildId} and id = ${id}
+    `;
+    return row ?? null;
+  }
+
+  async byNumber(guildId: string, number: number): Promise<Snapshot | null> {
+    if (!Number.isSafeInteger(number) || number < 1 || number > 2_147_483_647) return null;
+    const [row] = await this.sql<Snapshot[]>`
+      select id, number, guild_id as "guildId", kind, label, created_by as "createdBy",
+        role_count as "roleCount", channel_count as "channelCount", module_count as "moduleCount",
+        created_at as "createdAt", data
+      from backups_snapshots
+      where guild_id = ${guildId} and number = ${number}
+    `;
+    return row ?? null;
+  }
+
+  async latest(guildId: string, kind?: SnapshotKind): Promise<Snapshot | null> {
+    const [row] = await this.sql<Snapshot[]>`
+      select id, number, guild_id as "guildId", kind, label, created_by as "createdBy",
+        role_count as "roleCount", channel_count as "channelCount", module_count as "moduleCount",
+        created_at as "createdAt", data
+      from backups_snapshots
+      where guild_id = ${guildId} ${kind ? this.sql`and kind = ${kind}` : this.sql``}
+      order by created_at desc, id desc
+      limit 1
+    `;
+    return row ?? null;
+  }
+
+  async latestAt(guildId: string, kind: SnapshotKind): Promise<Date | null> {
+    const [row] = await this.sql<{ at: Date | null }[]>`
+      select max(created_at) as at from backups_snapshots
+      where guild_id = ${guildId} and kind = ${kind}
+    `;
+    return row?.at ?? null;
+  }
+
+  async usage(guildId: string): Promise<{ count: number; bytes: number }> {
+    const [row] = await this.sql<{ count: number; bytes: number }[]>`
+      select count(*)::int as count, coalesce(sum(pg_column_size(data)), 0)::bigint::float8 as bytes
+      from backups_snapshots
+      where guild_id = ${guildId}
+    `;
+    return { count: row?.count ?? 0, bytes: row?.bytes ?? 0 };
+  }
+
+  async findRole(
+    guildId: string,
+    roleId: string,
+  ): Promise<{ snapshotId: string; role: SnapshotRole } | null> {
+    const [row] = await this.sql<{ snapshotId: string; role: SnapshotRole }[]>`
+      select s.id as "snapshotId", r.value as role
+      from backups_snapshots s
+      cross join lateral jsonb_array_elements(s.data -> 'roles') r
+      where s.guild_id = ${guildId} and r.value ->> 'id' = ${roleId}
+      order by s.created_at desc, s.id desc
+      limit 1
+    `;
+    return row ?? null;
+  }
+
+  async findChannel(
+    guildId: string,
+    channelId: string,
+  ): Promise<{ snapshotId: string; channel: SnapshotChannel } | null> {
+    const [row] = await this.sql<{ snapshotId: string; channel: SnapshotChannel }[]>`
+      select s.id as "snapshotId", c.value as channel
+      from backups_snapshots s
+      cross join lateral jsonb_array_elements(s.data -> 'channels') c
+      where s.guild_id = ${guildId} and c.value ->> 'id' = ${channelId}
+      order by s.created_at desc, s.id desc
+      limit 1
+    `;
+    return row ?? null;
+  }
+
+  async prune(
+    guildId: string,
+    options: { retentionDays: number; maxManual: number },
+  ): Promise<number> {
+    const cutoff = new Date(Date.now() - options.retentionDays * 86_400_000);
+    const daily = await this.sql`
+      delete from backups_snapshots
+      where guild_id = ${guildId} and kind = 'daily' and created_at < ${cutoff}
+        and id <> (
+          select id from backups_snapshots
+          where guild_id = ${guildId} and kind = 'daily'
+          order by created_at desc, id desc limit 1
+        )
+      returning 1
+    `;
+    const manual = await this.sql`
+      delete from backups_snapshots
+      where guild_id = ${guildId} and kind = 'manual' and id not in (
+        select id from backups_snapshots
+        where guild_id = ${guildId} and kind = 'manual'
+        order by created_at desc, id desc
+        limit ${options.maxManual}
+      )
+      returning 1
+    `;
+    return daily.length + manual.length;
+  }
+
+  async remove(guildId: string, id: string): Promise<boolean> {
+    const rows = await this.sql`
+      delete from backups_snapshots where guild_id = ${guildId} and id = ${id} returning 1
+    `;
+    return rows.length > 0;
+  }
+
+  async moduleStates(guildId: string): Promise<Record<string, SnapshotModule>> {
+    const rows = await this.sql<
+      { module: string; enabled: boolean | null; config: Record<string, unknown> }[]
+    >`
+      select module, enabled, config from guild_modules where guild_id = ${guildId} order by module
+    `;
+    return Object.fromEntries(
+      rows.map((row) => [row.module, { enabled: row.enabled, config: row.config ?? {} }]),
+    );
+  }
+
+  async writeModuleStates(
+    guildId: string,
+    states: Record<string, SnapshotModule>,
+    keepEnabled: readonly string[] = [],
+  ): Promise<void> {
+    const entries = Object.entries(states);
+    if (entries.length === 0) return;
+    await this.sql.begin(async (tx) => {
+      await tx`insert into guilds (id) values (${guildId}) on conflict (id) do nothing`;
+      for (const [module, state] of entries) {
+        if (keepEnabled.includes(module)) {
+          await tx`
+            insert into guild_modules (guild_id, module, config)
+            values (${guildId}, ${module}, ${tx.json(state.config as never)})
+            on conflict (guild_id, module) do update set config = excluded.config, updated_at = now()
+          `;
+        } else {
+          await tx`
+            insert into guild_modules (guild_id, module, enabled, config)
+            values (${guildId}, ${module}, ${state.enabled}, ${tx.json(state.config as never)})
+            on conflict (guild_id, module) do update set
+              enabled = excluded.enabled, config = excluded.config, updated_at = now()
+          `;
+        }
+        await tx`select pg_notify(${CONFIG_CHANNEL}, ${`${guildId}:${module}`})`;
+      }
+    });
+  }
+
+  async createImport(guildId: string, code: string, by: string | null): Promise<string> {
+    const [row] = await this.sql<{ id: string }[]>`
+      insert into backups_imports (guild_id, code, created_by)
+      values (${guildId}, ${code}, ${by})
+      returning id
+    `;
+    return row?.id ?? '';
+  }
+
+  async getImport(guildId: string, id: string): Promise<ImportRow | null> {
+    if (!/^\d+$/.test(id)) return null;
+    const [row] = await this.sql<ImportRow[]>`
+      select id, guild_id as "guildId", code, status, plan, result, error, created_by as "createdBy",
+        created_at as "createdAt", applied_at as "appliedAt"
+      from backups_imports where guild_id = ${guildId} and id = ${id}
+    `;
+    return row ?? null;
+  }
+
+  async listImports(guildId: string, limit = 10): Promise<ImportRow[]> {
+    return this.sql<ImportRow[]>`
+      select id, guild_id as "guildId", code, status, plan, result, error, created_by as "createdBy",
+        created_at as "createdAt", applied_at as "appliedAt"
+      from backups_imports where guild_id = ${guildId}
+      order by id desc
+      limit ${Math.min(Math.max(limit, 1), 50)}
+    `;
+  }
+
+  async setImportPlan(guildId: string, id: string, plan: unknown): Promise<void> {
+    await this.sql`
+      update backups_imports set status = 'previewed', plan = ${this.sql.json(plan as never)}, error = null
+      where guild_id = ${guildId} and id = ${id}
+    `;
+  }
+
+  async failImport(guildId: string, id: string, error: string): Promise<void> {
+    await this.sql`
+      update backups_imports set status = 'failed', error = ${error.slice(0, 500)}
+      where guild_id = ${guildId} and id = ${id}
+    `;
+  }
+
+  async claimImport(guildId: string, id: string): Promise<ImportRow | null> {
+    const [row] = await this.sql<ImportRow[]>`
+      update backups_imports set status = 'applying'
+      where guild_id = ${guildId} and id = ${id} and status = 'previewed'
+      returning id, guild_id as "guildId", code, status, plan, result, error, created_by as "createdBy",
+        created_at as "createdAt", applied_at as "appliedAt"
+    `;
+    return row ?? null;
+  }
+
+  async finishImport(guildId: string, id: string, result: unknown): Promise<void> {
+    await this.sql`
+      update backups_imports set status = 'applied', result = ${this.sql.json(result as never)},
+        applied_at = now()
+      where guild_id = ${guildId} and id = ${id}
+    `;
+  }
+
+  async createdBy(
+    guildId: string,
+    userId: string,
+  ): Promise<{
+    snapshots: {
+      id: string;
+      number: number;
+      kind: SnapshotKind;
+      label: string | null;
+      createdAt: Date;
+    }[];
+    imports: { id: string; code: string; status: ImportStatus; createdAt: Date }[];
+  }> {
+    const snapshots = await this.sql<
+      { id: string; number: number; kind: SnapshotKind; label: string | null; createdAt: Date }[]
+    >`
+      select id, number, kind, label, created_at as "createdAt" from backups_snapshots
+      where guild_id = ${guildId} and created_by = ${userId}
+      order by created_at desc
+    `;
+    const imports = await this.sql<
+      { id: string; code: string; status: ImportStatus; createdAt: Date }[]
+    >`
+      select id, code, status, created_at as "createdAt" from backups_imports
+      where guild_id = ${guildId} and created_by = ${userId}
+      order by created_at desc
+    `;
+    return { snapshots: [...snapshots], imports: [...imports] };
+  }
+
+  async forgetCreator(guildId: string, userId: string): Promise<number> {
+    const snapshots = await this.sql`
+      update backups_snapshots set created_by = null
+      where guild_id = ${guildId} and created_by = ${userId}
+      returning 1
+    `;
+    const imports = await this.sql`
+      update backups_imports set created_by = null
+      where guild_id = ${guildId} and created_by = ${userId}
+      returning 1
+    `;
+    return snapshots.length + imports.length;
+  }
+}
