@@ -1,0 +1,155 @@
+import { connect, migrate, type Sql } from '@maxwell/core';
+import definition, { gamesConfig } from '@maxwell/core/modules/games';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { z } from 'zod';
+import type { GuildContext } from '../../src/commands/types.js';
+import { createLogger } from '../../src/log.js';
+import { Wallets } from '../../src/modules/economy/wallets.js';
+import { Coinflip } from '../../src/modules/games/coinflip.js';
+import games from '../../src/modules/games/index.js';
+import { Games } from '../../src/modules/games/service.js';
+import { Trivia } from '../../src/modules/games/trivia.js';
+import type { IncomingMessage, Outgoing } from '../../src/platform/types.js';
+import { createContext } from '../../src/runtime/module.js';
+import { PrivacyRegistry } from '../../src/runtime/privacy.js';
+import type { Services } from '../../src/services.js';
+
+const url = process.env.TEST_DATABASE_URL;
+
+describe.skipIf(!url)('games module', () => {
+  let sql: Sql;
+  let services: Services;
+  let service: Games;
+  const guild = String(935_000_000_000_000n + BigInt(Math.floor(Math.random() * 1_000_000_000)));
+  const room = String(640_000_000_000_000_000n + BigInt(Math.floor(Math.random() * 1e9)));
+  const player = '650000000000000001';
+  const rival = '650000000000000002';
+  const privacy = new PrivacyRegistry();
+  const replies: string[] = [];
+  const sent: string[] = [];
+  const edits: string[] = [];
+  const scheduled: { kind: string; key?: string }[] = [];
+  const question = { question: 'Who thought up the demon?', answers: ['Maxwell'], choices: [] };
+  const config = gamesConfig.parse({ trivia: { questions: [question] } });
+
+  const text = (message: Outgoing) => (typeof message === 'string' ? message : message.content);
+  const schedule = async (kind: string, input: { dedupeKey?: string }) => {
+    scheduled.push({ kind, key: input.dedupeKey });
+    return null;
+  };
+  const said = (content: string, bot = false): IncomingMessage =>
+    ({
+      id: String(Date.now()),
+      channelId: room,
+      guildId: guild,
+      content,
+      author: { id: player, username: 'p', displayName: 'P', bot, avatarUrl: '' },
+      fromWebhook: false,
+    }) as unknown as IncomingMessage;
+  const command = (): GuildContext =>
+    ({
+      guildId: guild,
+      message: said('m!trivia'),
+      reply: async (message: Outgoing) => {
+        replies.push(text(message) ?? 'embed');
+        return '1';
+      },
+    }) as unknown as GuildContext;
+
+  beforeAll(async () => {
+    sql = connect(url as string);
+    await migrate(sql, createLogger('silent', false), [
+      { module: 'games', migrations: definition.migrations },
+    ]);
+    services = {
+      sql,
+      privacy,
+      log: createLogger('silent', false),
+      platform: {
+        on: () => {},
+        reply: async (_m: IncomingMessage, message: Outgoing) => {
+          replies.push(text(message) ?? '');
+          return '1';
+        },
+        send: async (_c: string, message: Outgoing) => {
+          sent.push(text(message) ?? '');
+          return '1';
+        },
+        edit: async (_c: string, _m: string, message: Outgoing) => {
+          edits.push(text(message) ?? '');
+        },
+        unreact: async () => {},
+      },
+      voice: { icon: () => '', icons: { inline: () => '', reaction: () => null } },
+      jobs: { handle: () => {}, enqueue: async () => null },
+      undo: { handle: () => {} },
+      settings: {
+        config: async (_g: string, key: string, schema: z.ZodType) =>
+          key === 'games' ? config : schema.parse({}),
+        enabled: async (_g: string, key: string) => key !== 'economy',
+      },
+    } as unknown as Services;
+    service = new Games(services, new Wallets(services));
+  });
+
+  afterAll(async () => {
+    for (const table of ['games_scores', 'games_duels', 'games_trivia']) {
+      await sql`delete from ${sql(table)} where guild_id = ${guild}`;
+    }
+    await sql.end();
+  });
+
+  it('registers privacy', async () => {
+    await games.setup?.(createContext(games.definition, services));
+    expect(privacy.modules()).toEqual(['games']);
+  });
+
+  it('keeps an open question across a restart', async () => {
+    await new Trivia(service, schedule).start(command());
+    expect((await service.store.trivia(room))?.question).toEqual(question);
+
+    const restarted = new Trivia(service, schedule);
+    await restarted.start(command());
+    expect(replies.at(-1)).toBe('A question is already open here.');
+
+    scheduled.length = 0;
+    expect(await restarted.load()).toBeGreaterThanOrEqual(1);
+    expect(scheduled.some((job) => job.kind === 'triviaEnd')).toBe(true);
+    await restarted.onMessage(said('maxwell', true));
+    await restarted.onMessage(said('newton'));
+    expect(await service.store.trivia(room)).not.toBeNull();
+    await restarted.onMessage(said('Maxwell!'));
+    expect(replies.at(-1)).toContain('**Maxwell**');
+    expect(await service.store.trivia(room)).toBeNull();
+    expect((await service.store.rank(guild, 'trivia', player, 'wins'))?.row.wins).toBe(1);
+  });
+
+  it('times out a question started before the restart', async () => {
+    await new Trivia(service, schedule).start(command());
+    const open = await service.store.trivia(room);
+    if (!open) throw new Error('no session');
+    await new Trivia(service, schedule).end(room, open.id);
+    expect(sent.at(-1)).toBe("Time's up. It was **Maxwell**.");
+    expect(await service.store.trivia(room)).toBeNull();
+  });
+
+  it('ignores reactions from bots on a duel', async () => {
+    const duel = await service.store.createDuel({
+      guildId: guild,
+      channelId: room,
+      challenger: player,
+      opponent: rival,
+      stake: 0,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    const messageId = String(BigInt(duel.id) + 990_000_000_000_000n);
+    await service.store.setDuelMessage(duel.id, messageId);
+    const coinflip = new Coinflip(service, schedule);
+    await coinflip.load();
+    const reaction = { guildId: guild, channelId: room, messageId, userId: rival, emoji: '❌' };
+    await coinflip.onReaction({ ...reaction, bot: true });
+    expect((await service.store.duel(duel.id))?.status).toBe('open');
+    await coinflip.onReaction({ ...reaction, bot: false });
+    expect((await service.store.duel(duel.id))?.status).toBe('declined');
+  });
+});
