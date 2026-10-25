@@ -19,7 +19,14 @@ import { auditReason, clip, humanDuration, renderTemplate } from './text.js';
 
 const DAY = 86_400_000;
 
-export type Source = 'command' | 'dashboard' | 'escalation' | 'external' | 'system' | 'automod';
+export type Source =
+  | 'command'
+  | 'dashboard'
+  | 'escalation'
+  | 'external'
+  | 'system'
+  | 'automod'
+  | 'security';
 
 export interface ActInput {
   guildId: string;
@@ -28,6 +35,7 @@ export interface ActInput {
   moderatorId: string | null;
   reason: string | null;
   durationMs?: number | null;
+  deleteMessageSeconds?: number | null;
   excerpt?: string | null;
   meta?: Record<string, unknown>;
   source: Source;
@@ -256,7 +264,7 @@ export class ModerationService {
         this.expected.expect(guildId, userId, 'ban');
         await platform.ban(guildId, userId, {
           reason: header,
-          deleteMessageSeconds: config.banDeleteMessageDays * 86_400,
+          deleteMessageSeconds: input.deleteMessageSeconds ?? config.banDeleteMessageDays * 86_400,
         });
         return;
       case 'unban':

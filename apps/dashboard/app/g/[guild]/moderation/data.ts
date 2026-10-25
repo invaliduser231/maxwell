@@ -30,6 +30,7 @@ export interface CaseView {
 export function moderatorName(row: CaseRow, names: Map<string, Person>): string {
   if (row.moderatorId) return personOf(names, row.moderatorId).name;
   if (row.meta.source === 'automod') return 'AutoMod';
+  if (row.meta.source === 'security') return 'Security';
   if (row.meta.external === true) return 'Unknown';
   return 'Maxwell';
 }

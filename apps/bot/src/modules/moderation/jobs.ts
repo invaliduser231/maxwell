@@ -21,7 +21,8 @@ export const actionPayload = z.object({
   moderatorId: snowflake.nullable().default(null),
   reason: z.string().max(1_500).nullable().default(null),
   durationSeconds: z.number().int().positive().max(63_072_000).nullable().default(null),
-  source: z.enum(['dashboard', 'automod']).default('dashboard'),
+  source: z.enum(['dashboard', 'automod', 'security']).default('dashboard'),
+  deleteMessageSeconds: z.number().int().min(0).max(604_800).nullable().default(null),
 });
 
 export const reviewPayload = z.object({
@@ -147,6 +148,7 @@ export function registerJobs(moderation: ModerationService, tools: ChannelTools)
         moderatorId: input.moderatorId,
         reason: input.reason,
         durationMs: input.durationSeconds !== null ? input.durationSeconds * 1_000 : null,
+        deleteMessageSeconds: input.deleteMessageSeconds,
         source: input.source,
         previousUntil,
       });
