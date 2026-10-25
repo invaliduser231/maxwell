@@ -29,6 +29,8 @@ export interface UserRef {
   displayName: string;
   bot: boolean;
   avatarUrl: string;
+  hasAvatar?: boolean;
+  globalName?: string | null;
 }
 
 export interface MemberRef {
@@ -375,6 +377,8 @@ export interface Platform {
   removeRole(guildId: string, userId: string, roleId: string, reason?: string): Promise<void>;
   setNickname(guildId: string, userId: string, nick: string | null, reason?: string): Promise<void>;
   moveVoice(guildId: string, userId: string, channelId: string | null): Promise<void>;
+  guildOwner(guildId: string): Promise<string | null>;
+  setInvitesPaused(guildId: string, paused: boolean, reason?: string): Promise<boolean>;
 
   createRole(guildId: string, input: RoleInput, reason?: string): Promise<string>;
   editRole(guildId: string, roleId: string, input: RoleEdit, reason?: string): Promise<void>;

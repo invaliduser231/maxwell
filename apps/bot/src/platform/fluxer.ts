@@ -52,6 +52,7 @@ const ignoredEvents = [
 
 const SUPPRESS_NOTIFICATIONS = 1 << 12;
 const TEXT_CHANNEL = 0;
+const INVITES_DISABLED = 'INVITES_DISABLED';
 
 interface MemberSearchResponse {
   members: {
@@ -695,6 +696,30 @@ export class FluxerPlatform implements Platform {
     });
   }
 
+  async guildOwner(guildId: string): Promise<string | null> {
+    try {
+      return (await this.#client.guilds.resolve(guildId)).ownerId ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  async setInvitesPaused(guildId: string, paused: boolean, reason?: string): Promise<boolean> {
+    const guild = await this.#client.guilds.resolve(guildId);
+    const current = (guild.features ?? []).map(String);
+    const has = current.includes(INVITES_DISABLED);
+    if (has === paused) return false;
+    const features = paused
+      ? [...current, INVITES_DISABLED]
+      : current.filter((feature) => feature !== INVITES_DISABLED);
+    await this.#client.rest.patch(Routes.guild(guildId), {
+      body: { features },
+      headers: auditReason(reason),
+    });
+    (guild as { features: unknown[] }).features = features;
+    return true;
+  }
+
   async moveVoice(guildId: string, userId: string, channelId: string | null): Promise<void> {
     await this.#client.rest.patch(Routes.guildMember(guildId, userId), {
       body: { channel_id: channelId },
@@ -920,6 +945,8 @@ function toUserRef(user: User): UserRef {
     displayName: user.globalName ?? user.username,
     bot: user.bot,
     avatarUrl: user.displayAvatarURL({ size: 256 }),
+    hasAvatar: user.avatar !== null,
+    globalName: user.globalName ?? null,
   };
 }
 
