@@ -1,0 +1,136 @@
+{{- if .Values.dashboard.enabled }}
+{{- $d := .Values.dashboard }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "maxwell.name" . }}-dashboard
+  labels:
+    {{- include "maxwell.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dashboard
+spec:
+  replicas: {{ $d.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "maxwell.selector" . | nindent 6 }}
+      app.kubernetes.io/component: dashboard
+  template:
+    metadata:
+      labels:
+        {{- include "maxwell.selector" . | nindent 8 }}
+        app.kubernetes.io/component: dashboard
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- if not .Values.existingSecret }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: dashboard
+          image: {{ include "maxwell.image" $d | quote }}
+          imagePullPolicy: {{ $d.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "maxwell.configName" . }}
+          env:
+            - name: PORT
+              value: "3000"
+            {{- include "maxwell.secretEnv" . | nindent 12 }}
+            {{- include "maxwell.databaseEnv" . | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 3000
+          startupProbe:
+            httpGet:
+              path: /livez
+              port: http
+            periodSeconds: 3
+            failureThreshold: 40
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: http
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /livez
+              port: http
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            {{- toYaml $d.resources | nindent 12 }}
+      {{- with $d.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $d.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "maxwell.name" . }}-dashboard
+  labels:
+    {{- include "maxwell.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dashboard
+spec:
+  selector:
+    {{- include "maxwell.selector" . | nindent 4 }}
+    app.kubernetes.io/component: dashboard
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+{{- if .Values.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "maxwell.name" . }}-dashboard
+  labels:
+    {{- include "maxwell.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dashboard
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ required "dashboard.host is required for the ingress" $d.host | quote }}
+      secretName: {{ default (printf "%s-dashboard-tls" (include "maxwell.name" .)) .Values.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ required "dashboard.host is required for the ingress" $d.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "maxwell.name" . }}-dashboard
+                port:
+                  name: http
+{{- end }}
+{{- end }}

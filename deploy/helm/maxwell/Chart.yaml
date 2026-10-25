@@ -1,0 +1,6 @@
+apiVersion: v2
+name: maxwell
+description: Maxwell bot, dashboard and database for Fluxer
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

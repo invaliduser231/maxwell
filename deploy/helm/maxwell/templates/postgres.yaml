@@ -1,0 +1,85 @@
+{{- if .Values.postgres.enabled }}
+{{- $p := .Values.postgres }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "maxwell.postgresHost" . }}
+  labels:
+    {{- include "maxwell.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  selector:
+    {{- include "maxwell.selector" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "maxwell.postgresHost" . }}
+  labels:
+    {{- include "maxwell.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  serviceName: {{ include "maxwell.postgresHost" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "maxwell.selector" . | nindent 6 }}
+      app.kubernetes.io/component: postgres
+  template:
+    metadata:
+      labels:
+        {{- include "maxwell.selector" . | nindent 8 }}
+        app.kubernetes.io/component: postgres
+    spec:
+      securityContext:
+        fsGroup: 999
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: postgres
+          image: "{{ $p.image.repository }}:{{ $p.image.tag }}"
+          imagePullPolicy: {{ $p.image.pullPolicy }}
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: {{ $p.user | quote }}
+            - name: POSTGRES_DB
+              value: {{ $p.database | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "maxwell.secretName" . }}
+                  key: POSTGRES_PASSWORD
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", {{ $p.user | quote }}, "-d", {{ $p.database | quote }}]
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", {{ $p.user | quote }}, "-d", {{ $p.database | quote }}]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 6
+          resources:
+            {{- toYaml $p.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- with $p.storage.storageClassName }}
+        storageClassName: {{ . }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ $p.storage.size }}
+{{- end }}

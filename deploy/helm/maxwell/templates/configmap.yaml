@@ -1,0 +1,33 @@
+{{- $c := .Values.config }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "maxwell.configName" . }}
+  labels:
+    {{- include "maxwell.labels" . | nindent 4 }}
+data:
+  NODE_ENV: production
+  DEFAULT_PREFIX: {{ $c.defaultPrefix | quote }}
+  LOG_LEVEL: {{ $c.logLevel | quote }}
+  FLUXER_WEB_URL: {{ $c.fluxerWebUrl | quote }}
+  {{- with include "maxwell.dashboardUrl" . }}
+  DASHBOARD_URL: {{ . | quote }}
+  {{- end }}
+  {{- with $c.ownerIds }}
+  OWNER_IDS: {{ . | toString | quote }}
+  {{- end }}
+  {{- with $c.iconEmojis }}
+  ICON_EMOJIS: {{ . | quote }}
+  {{- end }}
+  {{- with $c.voteUrl }}
+  VOTE_URL: {{ . | quote }}
+  {{- end }}
+  {{- with $c.fluxerlistBotId }}
+  FLUXERLIST_BOT_ID: {{ . | toString | quote }}
+  {{- end }}
+  {{- with $c.twitchClientId }}
+  TWITCH_CLIENT_ID: {{ . | quote }}
+  {{- end }}
+  {{- with $c.fluxerApi }}
+  FLUXER_API: {{ . | quote }}
+  {{- end }}

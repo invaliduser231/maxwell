@@ -1,0 +1,93 @@
+imagePullSecrets:
+  - name: ghcr
+
+existingSecret: ""
+
+secrets:
+  fluxerToken: ""
+  fluxerClientId: ""
+  fluxerClientSecret: ""
+  sessionSecret: ""
+  fluxerlistApiKey: ""
+  twitchClientSecret: ""
+  postgresPassword: ""
+
+config:
+  defaultPrefix: "m!"
+  logLevel: info
+  ownerIds: ""
+  iconEmojis: ""
+  voteUrl: ""
+  fluxerlistBotId: ""
+  twitchClientId: ""
+  fluxerApi: ""
+  fluxerWebUrl: https://fluxer.app
+
+bot:
+  enabled: true
+  image:
+    repository: ghcr.io/invaliduser231/maxwell-bot
+    tag: ""
+    pullPolicy: IfNotPresent
+  healthPort: 8080
+  terminationGracePeriodSeconds: 30
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 768Mi
+  nodeSelector: {}
+  tolerations: []
+
+dashboard:
+  enabled: true
+  replicas: 1
+  image:
+    repository: ghcr.io/invaliduser231/maxwell-dashboard
+    tag: ""
+    pullPolicy: IfNotPresent
+  host: ""
+  resources:
+    requests:
+      cpu: 50m
+      memory: 192Mi
+    limits:
+      memory: 512Mi
+  nodeSelector: {}
+  tolerations: []
+
+ingress:
+  enabled: true
+  className: ""
+  annotations: {}
+  tls:
+    enabled: true
+    secretName: ""
+
+postgres:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "18.6"
+    pullPolicy: IfNotPresent
+  database: maxwell
+  user: maxwell
+  storage:
+    size: 5Gi
+    storageClassName: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+  externalUrl: ""
+
+backup:
+  enabled: true
+  schedule: "17 3 * * *"
+  keepDays: 14
+  storage:
+    size: 5Gi
+    storageClassName: ""

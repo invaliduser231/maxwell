@@ -1,0 +1,8 @@
+Maxwell {{ .Chart.AppVersion }} is installed as {{ .Release.Name }} in {{ .Release.Namespace }}.
+
+Bot logs:        kubectl -n {{ .Release.Namespace }} logs deploy/{{ include "maxwell.name" . }}-bot -f
+Dashboard logs:  kubectl -n {{ .Release.Namespace }} logs deploy/{{ include "maxwell.name" . }}-dashboard -f
+{{- with include "maxwell.dashboardUrl" . }}
+Dashboard:       {{ . }}
+OAuth redirect:  {{ . }}/auth/callback
+{{- end }}

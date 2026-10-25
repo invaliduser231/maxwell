@@ -1,0 +1,33 @@
+secrets:
+  fluxerToken: "<bot token>"
+  fluxerClientId: "<oauth client id>"
+  fluxerClientSecret: "<oauth client secret>"
+  sessionSecret: ""
+  fluxerlistApiKey: ""
+  twitchClientSecret: ""
+  postgresPassword: ""
+
+config:
+  ownerIds: "<your user id>"
+  iconEmojis: "<ICON_EMOJIS from .env>"
+  voteUrl: ""
+  fluxerlistBotId: ""
+  twitchClientId: ""
+
+dashboard:
+  host: "<dashboard domain>"
+
+ingress:
+  className: "<ingress class>"
+  annotations: {}
+  tls:
+    enabled: true
+    secretName: ""
+
+postgres:
+  storage:
+    storageClassName: ""
+
+backup:
+  storage:
+    storageClassName: ""
