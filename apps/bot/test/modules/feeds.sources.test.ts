@@ -12,6 +12,7 @@ import {
 import {
   blueskyActor,
   blueskyItems,
+  channelIdFromPage,
   githubFeed,
   loadSource,
   redditFeed,
@@ -20,6 +21,7 @@ import {
   twitchCredentials,
   twitchLogin,
   youtubeFeed,
+  youtubePage,
 } from '../../src/modules/feeds/sources.js';
 
 const feed = (patch: Record<string, unknown>) =>
@@ -46,6 +48,56 @@ describe('source resolution', () => {
     expect(youtubeFeed(`https://www.youtube.com/channel/${id}`)).toBe(expected);
     expect(youtubeFeed('https://www.youtube.com/@handle')).toBeNull();
     expect(youtubeFeed('https://evil.example/channel/UC_x5XG1OV2P6uZZ5FSM9Ttw')).toBeNull();
+  });
+
+  it('finds the channel page for handles and custom urls', () => {
+    expect(youtubePage('https://www.youtube.com/@LetsHugoGaming')).toBe(
+      'https://www.youtube.com/@LetsHugoGaming',
+    );
+    expect(youtubePage('https://youtube.com/@LetsHugoGaming/videos')).toBe(
+      'https://www.youtube.com/@LetsHugoGaming',
+    );
+    expect(youtubePage('@LetsHugoGaming')).toBe('https://www.youtube.com/@LetsHugoGaming');
+    expect(youtubePage('https://www.youtube.com/c/Something')).toBe(
+      'https://www.youtube.com/c/Something',
+    );
+    expect(youtubePage('https://evil.example/@handle')).toBeNull();
+    expect(youtubePage('plain words')).toBeNull();
+  });
+
+  it('reads the channel id from a channel page', () => {
+    const id = 'UCfDLplO_xeVw-E-oPEmGCQg';
+    expect(
+      channelIdFromPage(`<link rel="canonical" href="https://www.youtube.com/channel/${id}">`),
+    ).toBe(id);
+    expect(channelIdFromPage(`{"externalId":"${id}"}`)).toBe(id);
+    expect(channelIdFromPage('<html></html>')).toBeNull();
+  });
+
+  it('loads a YouTube feed from a handle with the consent cookie', async () => {
+    const id = 'UCfDLplO_xeVw-E-oPEmGCQg';
+    const calls: { url: string; cookie: string | undefined }[] = [];
+    const fetcher = async (url: string, init: RequestInit) => {
+      const headers = init.headers as Record<string, string>;
+      calls.push({ url, cookie: headers.cookie });
+      if (url.includes('/@')) {
+        return new Response(`<link rel="canonical" href="https://www.youtube.com/channel/${id}">`);
+      }
+      return new Response(
+        '<feed xmlns="http://www.w3.org/2005/Atom"><entry><id>yt:video:6LptNMjDIWc</id><title>New</title><link href="https://www.youtube.com/watch?v=6LptNMjDIWc"/><published>2026-10-22T09:00:18+00:00</published></entry></feed>',
+      );
+    };
+    const result = await loadSource(
+      feed({ type: 'youtube', source: 'https://www.youtube.com/@HandleOnlyTest' }),
+      { etag: null, lastModified: null },
+      { twitch: null, fetcher, checkUrl: async () => true },
+    );
+    expect(calls[0]).toEqual({
+      url: 'https://www.youtube.com/@HandleOnlyTest',
+      cookie: 'SOCS=CAI',
+    });
+    expect(calls[1]?.url).toBe(`https://www.youtube.com/feeds/videos.xml?channel_id=${id}`);
+    expect(result.items[0]?.url).toBe('https://www.youtube.com/watch?v=6LptNMjDIWc');
   });
 
   it('accepts subreddit names in several shapes', () => {

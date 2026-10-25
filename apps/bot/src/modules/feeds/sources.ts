@@ -59,6 +59,53 @@ export function youtubeFeed(input: string): string | null {
   return null;
 }
 
+export function youtubePage(input: string): string | null {
+  const value = input.trim();
+  const bare = /^@([\w.-]{3,30})$/.exec(value)?.[1];
+  if (bare) return `https://www.youtube.com/@${bare}`;
+  try {
+    const url = new URL(value);
+    if (!/(^|\.)youtube\.com$/i.test(url.hostname)) return null;
+    const match = /^\/(@[\w.-]{3,30}|c\/[\w.-]{1,100}|user\/[\w.-]{1,100})(?:\/|$)/.exec(
+      url.pathname,
+    );
+    return match?.[1] ? `https://www.youtube.com/${match[1]}` : null;
+  } catch {
+    return null;
+  }
+}
+
+const CHANNEL_TTL = 24 * 60 * 60_000;
+const channelIds = new Map<string, { id: string; at: number }>();
+
+export function channelIdFromPage(html: string): string | null {
+  return (
+    /<link rel="canonical" href="https:\/\/www\.youtube\.com\/channel\/(UC[\w-]{22})"/.exec(
+      html,
+    )?.[1] ??
+    /"externalId":"(UC[\w-]{22})"/.exec(html)?.[1] ??
+    null
+  );
+}
+
+async function youtubeChannelFeed(page: string, deps: SourceDeps): Promise<string> {
+  const cached = channelIds.get(page);
+  let id = cached && Date.now() - cached.at < CHANNEL_TTL ? cached.id : null;
+  if (!id) {
+    const result = await fetchText(
+      page,
+      { accept: 'text/html', headers: { cookie: 'SOCS=CAI' } },
+      deps.fetcher,
+      deps.checkUrl,
+    );
+    id = channelIdFromPage(result.body);
+    if (!id) throw new FeedError('invalid_source');
+    if (channelIds.size > 5_000) channelIds.clear();
+    channelIds.set(page, { id, at: Date.now() });
+  }
+  return `https://www.youtube.com/feeds/videos.xml?channel_id=${id}`;
+}
+
 export function redditFeed(input: string): string | null {
   const path = stripUrl(input, /(^|\.)reddit\.com$/i);
   const name = /^(?:r\/)?([A-Za-z0-9_]{2,21})(?:\/.*)?$/.exec(path)?.[1];
@@ -286,7 +333,11 @@ export async function loadSource(
   cache: Cache,
   deps: SourceDeps,
 ): Promise<SourceResult> {
-  const resolved = resolveSource(feed.type, feed.source);
+  let resolved = resolveSource(feed.type, feed.source);
+  if (!resolved && feed.type === 'youtube') {
+    const page = youtubePage(feed.source);
+    if (page) resolved = await youtubeChannelFeed(page, deps);
+  }
   if (!resolved) throw new FeedError('invalid_source');
 
   if (feed.type === 'twitch') {
