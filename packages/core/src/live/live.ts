@@ -49,6 +49,9 @@ export const liveTables: LiveTable[] = [
   { table: 'roles_menu_messages', module: 'roles' },
   { table: 'roles_temporary', module: 'roles' },
   { table: 'scheduler_reminders', module: 'scheduler' },
+  { table: 'security_checks', module: 'security' },
+  { table: 'security_events', module: 'security' },
+  { table: 'security_raids', module: 'security' },
   { table: 'starboard_posts', module: 'starboard' },
   { table: 'suggestions_items', module: 'suggestions' },
   {

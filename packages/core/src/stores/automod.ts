@@ -78,7 +78,7 @@ export interface Incident {
   held: number;
 }
 
-export type HoldReason = 'raid' | 'lockdown' | 'account_age';
+export type HoldReason = 'raid' | 'lockdown' | 'account_age' | 'verify' | 'honeypot';
 export type HoldOutcome = 'let_in' | 'banned' | 'left';
 
 export interface HeldMember {

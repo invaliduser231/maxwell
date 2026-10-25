@@ -17,6 +17,7 @@ import logs from './logs.js';
 import moderation from './moderation.js';
 import roles from './roles.js';
 import scheduler from './scheduler.js';
+import security from './security.js';
 import starboard from './starboard.js';
 import suggestions from './suggestions.js';
 import tickets from './tickets.js';
@@ -27,6 +28,7 @@ import welcome from './welcome.js';
 export const catalog: readonly ModuleDefinition[] = [
   moderation,
   automod,
+  security,
   logs,
   backups,
   welcome,
