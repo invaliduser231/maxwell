@@ -1,7 +1,8 @@
 import 'server-only';
 import { userProfile } from './fluxer';
+import { getT } from './i18n/server';
 
-export const FORMER_MEMBER = 'Former member';
+export const FORMER_MEMBER = 'Former member' as const;
 
 export interface Person {
   id: string;
@@ -83,7 +84,13 @@ export async function people(
     const batch = await Promise.all(missing.slice(start, start + BATCH).map(lookup));
     for (const person of batch) found.set(person.id, person);
   }
-  return new Map(unique.map((id) => [id, personOf(found, id)]));
+  const t = await getT();
+  return new Map(
+    unique.map((id) => {
+      const person = personOf(found, id);
+      return [id, person.known ? person : { ...person, name: t(FORMER_MEMBER) }];
+    }),
+  );
 }
 
 export async function namesOf(

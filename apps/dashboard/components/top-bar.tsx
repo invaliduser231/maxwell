@@ -1,14 +1,17 @@
 import Link from 'next/link';
 import { logout } from '@/lib/actions';
+import { getT } from '@/lib/i18n/server';
+import { LanguageSwitch } from './language-switch';
 import { Avatar, Logo } from './ui';
 
-export function TopBar({
+export async function TopBar({
   user,
   overlay = false,
 }: {
   user?: { name: string; avatarUrl: string } | null;
   overlay?: boolean;
 }) {
+  const t = await getT();
   return (
     <header
       className="mx-between"
@@ -28,17 +31,22 @@ export function TopBar({
           Maxwell
         </span>
       </Link>
-      {user ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Avatar src={user.avatarUrl} name={user.name} size={26} />
-          <span style={{ fontWeight: 500 }}>{user.name}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {user ? (
+          <>
+            <Avatar src={user.avatarUrl} name={user.name} size={26} />
+            <span style={{ fontWeight: 500 }}>{user.name}</span>
+          </>
+        ) : null}
+        <LanguageSwitch />
+        {user ? (
           <form action={logout}>
             <button type="submit" className="mx-btn mx-btn-ghost">
-              Log out
+              {t('Log out')}
             </button>
           </form>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </header>
   );
 }

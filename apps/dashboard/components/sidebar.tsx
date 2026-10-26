@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { logout } from '@/lib/actions';
 import { lockedCount, type PageGroup, POLE_COLOR } from '@/lib/pages';
 import { CommunitySwitcher, type SwitcherCommunity } from './community-switcher';
+import { useT } from './i18n';
+import { LanguageSwitch } from './language-switch';
 import { Avatar, LockIcon, Logo, ModuleIcon } from './ui';
 
 export interface SidebarProps {
@@ -21,6 +23,7 @@ export interface SidebarProps {
 
 export function Sidebar(props: SidebarProps) {
   const pathname = usePathname();
+  const t = useT();
   const base = `/g/${props.guildId}`;
   const active =
     pathname === base ? 'overview' : (pathname.slice(base.length + 1).split('/')[0] ?? '');
@@ -28,7 +31,7 @@ export function Sidebar(props: SidebarProps) {
   return (
     <nav
       className="mx-side-nav"
-      aria-label="Dashboard"
+      aria-label={t('Dashboard')}
       style={{
         width: '100%',
         padding: '14px 10px 16px',
@@ -70,7 +73,7 @@ export function Sidebar(props: SidebarProps) {
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {props.groups.map((group) => (
           <div key={group.title || 'top'} style={{ display: 'flex', flexDirection: 'column' }}>
-            {group.title ? <span className="mx-nav-group">{group.title}</span> : null}
+            {group.title ? <span className="mx-nav-group">{t(group.title)}</span> : null}
             {group.pages.map((page) => (
               <Link
                 key={page.key}
@@ -80,8 +83,10 @@ export function Sidebar(props: SidebarProps) {
                 aria-current={page.key === active ? 'page' : undefined}
               >
                 <ModuleIcon d={page.icon} fill="var(--pole)" />
-                <span style={{ flex: 1, minWidth: 0 }}>{page.name}</span>
-                {page.locked && !props.voted ? <LockIcon /> : null}
+                <span style={{ flex: 1, minWidth: 0 }}>{t(page.name)}</span>
+                {page.locked && !props.voted ? (
+                  <LockIcon label={t('Locked until you vote')} />
+                ) : null}
               </Link>
             ))}
           </div>
@@ -104,10 +109,10 @@ export function Sidebar(props: SidebarProps) {
           }}
         >
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--mx-north)' }}>
-            Vote on fluxerlist
+            {t('Vote on fluxerlist')}
           </span>
           <span style={{ fontSize: 12, color: 'var(--mx-muted)' }}>
-            Unlocks {lockedCount} modules for you
+            {t('Unlocks {count} modules for you', { count: lockedCount })}
           </span>
         </a>
       ) : null}
@@ -125,13 +130,14 @@ export function Sidebar(props: SidebarProps) {
         <span className="mx-ellipsis" style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>
           {props.user.name}
         </span>
+        <LanguageSwitch />
         <form action={logout}>
           <button
             type="submit"
             className="mx-btn mx-btn-ghost"
             style={{ fontSize: 12, minHeight: 28, padding: '4px 8px' }}
           >
-            Log out
+            {t('Log out')}
           </button>
         </form>
       </div>

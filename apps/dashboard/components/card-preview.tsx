@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { useT } from './i18n';
 
 export const DEFAULT_ACCENT = '#F26B3A';
 
@@ -187,8 +188,9 @@ export function WelcomeCard({
   avatarUrl: string | null;
   subtitle: string;
 }) {
+  const t = useT();
   return (
-    <Frame ratio="1000 / 420" radius={14} label={`Welcome card for ${name}`}>
+    <Frame ratio="1000 / 420" radius={14} label={t('Welcome card for {name}', { name })}>
       <Backdrop
         look={look}
         width={1000}
@@ -237,7 +239,7 @@ export function WelcomeCard({
           fontSize: '6cqw',
         }}
       >
-        Welcome, {name}
+        {t('Welcome, {name}', { name })}
       </div>
       <div
         className="mx-ellipsis"
@@ -277,6 +279,7 @@ export function RankCard({
   into: number;
   needed: number;
 }) {
+  const t = useT();
   const share = needed > 0 ? Math.min(100, Math.round((into / needed) * 100)) : 100;
   const stat: CSSProperties = {
     fontFamily: DISPLAY,
@@ -285,7 +288,11 @@ export function RankCard({
     lineHeight: 1,
   };
   return (
-    <Frame ratio="1000 / 300" radius={12} label={`Rank card for ${name}, level ${level}`}>
+    <Frame
+      ratio="1000 / 300"
+      radius={12}
+      label={t('Rank card for {name}, level {level}', { name, level })}
+    >
       <Backdrop
         look={look}
         width={1000}
@@ -337,11 +344,11 @@ export function RankCard({
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '2.2cqw', color: MUTED }}>Rank</span>
+          <span style={{ fontSize: '2.2cqw', color: MUTED }}>{t('Rank')}</span>
           <span style={stat}>#{rank}</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '2.2cqw', color: MUTED }}>Level</span>
+          <span style={{ fontSize: '2.2cqw', color: MUTED }}>{t('Level')}</span>
           <span style={{ ...stat, color: look.accent }}>{level}</span>
         </div>
       </div>
@@ -358,7 +365,7 @@ export function RankCard({
         }}
       >
         <span>
-          {into.toLocaleString('en-US')} / {needed.toLocaleString('en-US')} XP
+          {t.count(into)} / {t.count(needed)} XP
         </span>
         <span>{share}%</span>
       </div>
@@ -395,8 +402,13 @@ export function LevelUpCard({
   level: number;
   reward: { name: string; color: string } | null;
 }) {
+  const t = useT();
   return (
-    <Frame ratio="1000 / 300" radius={10} label={`Level-up card for ${name}, level ${level}`}>
+    <Frame
+      ratio="1000 / 300"
+      radius={10}
+      label={t('Level-up card for {name}, level {level}', { name, level })}
+    >
       <Backdrop
         look={look}
         width={1000}
@@ -437,7 +449,7 @@ export function LevelUpCard({
           lineHeight: 1,
         }}
       >
-        Level <span style={{ color: look.accent }}>{level}</span>
+        {t('Level')} <span style={{ color: look.accent }}>{level}</span>
       </div>
       {reward ? (
         <div
@@ -451,7 +463,8 @@ export function LevelUpCard({
             color: MUTED,
           }}
         >
-          Unlocked <span style={{ fontWeight: 600, color: reward.color }}>{reward.name}</span>
+          {t('Unlocked')}{' '}
+          <span style={{ fontWeight: 600, color: reward.color }}>{reward.name}</span>
         </div>
       ) : null}
     </Frame>

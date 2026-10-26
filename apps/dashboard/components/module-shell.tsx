@@ -11,8 +11,10 @@ import {
   useTransition,
 } from 'react';
 import { saveModule, setModuleEnabled } from '@/lib/actions';
+import type { Key } from '@/lib/i18n';
 import { allPages, type PageInfo, POLE_COLOR, type Pole, pageByKey } from '@/lib/pages';
 import { useGuild } from './guild';
+import { useT } from './i18n';
 import { fingerprint, useRemote } from './live';
 import { failed, type Status, StatusText, sorted } from './status-text';
 import { ModuleIcon } from './ui';
@@ -76,6 +78,7 @@ export function PageHeader({
   badge?: ReactNode;
   children?: ReactNode;
 }) {
+  const t = useT();
   const info =
     (page ? pageByKey(page) : undefined) ?? allPages.find((entry) => entry.name === title);
   return (
@@ -89,7 +92,9 @@ export function PageHeader({
             className={pole === 'south' ? 'mx-switch mx-order' : 'mx-switch'}
             role="switch"
             aria-checked={enabled}
-            aria-label={`${title} ${enabled ? 'on' : 'off'}`}
+            aria-label={
+              enabled ? t('{name} on', { name: title }) : t('{name} off', { name: title })
+            }
             disabled={toggleDisabled}
             onClick={() => onToggle(!enabled)}
           />
@@ -118,16 +123,17 @@ export function DirtyActions({
   onSave: () => void;
   children?: ReactNode;
 }) {
+  const t = useT();
   return (
     <>
       <StatusText status={status} />
       {dirty ? (
         <>
           {status ? null : (
-            <span className="mx-sub">{stale ? 'Changed elsewhere' : 'Unsaved changes'}</span>
+            <span className="mx-sub">{stale ? t('Changed elsewhere') : t('Unsaved changes')}</span>
           )}
           <button type="button" className="mx-btn" disabled={pending} onClick={onDiscard}>
-            Discard
+            {t('Discard')}
           </button>
           <button
             type="button"
@@ -135,7 +141,7 @@ export function DirtyActions({
             disabled={pending}
             onClick={onSave}
           >
-            {pending ? 'Saving' : 'Save'}
+            {pending ? t('Saving') : t('Save')}
           </button>
         </>
       ) : (
@@ -164,7 +170,7 @@ export function useLeaveWarning(dirty: boolean): void {
 
 interface ShellProps {
   module: string;
-  title: string;
+  title: Key;
   pole: Pole;
   initial: Record<string, unknown>;
   enabled: boolean;
@@ -197,6 +203,8 @@ function Shell({
   children,
 }: ShellProps) {
   const { guildId } = useGuild();
+  const t = useT();
+  const name = t(title);
   const [baseline, setBaseline] = useState(initial);
   const [value, setValue] = useState(initial);
   const [on, setOn] = useState(enabled);
@@ -261,7 +269,7 @@ function Shell({
   return (
     <>
       <PageHeader
-        title={title}
+        title={name}
         page={
           allPages.find((entry) => entry.module === module && entry.name === title)?.key ?? module
         }
@@ -269,7 +277,7 @@ function Shell({
         enabled={toggleable ? on : undefined}
         onToggle={toggleable ? toggle : undefined}
         toggleDisabled={blocked || pending}
-        badge={badge ?? (readOnly ? 'View only' : undefined)}
+        badge={badge ?? (readOnly ? t('View only') : undefined)}
       >
         <DirtyActions
           dirty={dirty}
@@ -288,7 +296,7 @@ function Shell({
             {body}
           </div>
           <div className="mx-lock-cover">
-            <VoteLock module={title} />
+            <VoteLock module={name} />
           </div>
         </div>
       ) : (

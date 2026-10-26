@@ -2,12 +2,14 @@
 
 import { canUndo, enqueue, moduleByKey } from '@maxwell/core';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { guildAccess, levelOf } from './access';
 import { db } from './db';
 import { editor } from './guard';
-import { destroySession, getSession } from './session';
+import { isLang, LANG_COOKIE } from './i18n';
+import { destroySession, getSession, secureCookies } from './session';
 
 export type Result<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -142,6 +144,18 @@ export async function saveAccess(guildId: string, grants: unknown): Promise<Resu
   });
   revalidatePath(`/g/${guildId}`, 'layout');
   return { ok: true };
+}
+
+export async function setLanguage(lang: string): Promise<void> {
+  if (!isLang(lang)) return;
+  const store = await cookies();
+  store.set(LANG_COOKIE, lang, {
+    path: '/',
+    sameSite: 'lax',
+    maxAge: 365 * 24 * 60 * 60,
+    secure: secureCookies(),
+  });
+  revalidatePath('/', 'layout');
 }
 
 export async function logout(): Promise<void> {

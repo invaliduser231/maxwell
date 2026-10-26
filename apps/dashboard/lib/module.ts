@@ -4,11 +4,12 @@ import { notFound } from 'next/navigation';
 import type { z } from 'zod';
 import { type GuildAccess, levelOf, requirePage, voteBlocked } from './access';
 import { db } from './db';
+import type { Key } from './i18n';
 import { type Pole, pageByKey } from './pages';
 
 export interface ShellProps {
   module: string;
-  title: string;
+  title: Key;
   pole: Pole;
   initial: Record<string, unknown>;
   enabled: boolean;

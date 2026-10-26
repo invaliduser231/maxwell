@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
+import { useT } from './i18n';
 
 export interface SwitcherCommunity {
   id: string;
@@ -69,6 +70,7 @@ export function CommunitySwitcher({
   current: SwitcherCommunity;
   others: SwitcherCommunity[];
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const root = useRef<HTMLDivElement>(null);
@@ -116,7 +118,7 @@ export function CommunitySwitcher({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
-        aria-label={`Switch community, current: ${current.name}`}
+        aria-label={t('Switch community, current: {name}', { name: current.name })}
         onClick={() => setOpen((value) => !value)}
       >
         <GuildIcon community={current} size={28} />
@@ -134,7 +136,7 @@ export function CommunitySwitcher({
           </span>
           {current.members !== null ? (
             <span style={{ fontSize: 11, color: 'var(--mx-muted)' }}>
-              {current.members.toLocaleString('en')} members
+              {t.plural(current.members, '{n} member', '{n} members')}
             </span>
           ) : null}
         </span>
@@ -157,13 +159,13 @@ export function CommunitySwitcher({
       </button>
 
       {open ? (
-        <div id={menuId} role="menu" aria-label="Communities" className="mx-popover">
+        <div id={menuId} role="menu" aria-label={t('Communities')} className="mx-popover">
           {others.length >= SEARCH_FROM ? (
             <input
               className="mx-input"
               type="search"
-              placeholder="Search"
-              aria-label="Search communities"
+              placeholder={t('Search')}
+              aria-label={t('Search communities')}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               style={{ minHeight: 32, padding: '6px 9px', fontSize: 13 }}
@@ -203,7 +205,7 @@ export function CommunitySwitcher({
             ))}
             {invitable.length > 0 ? (
               <span className="mx-sub" style={{ padding: '10px 9px 4px' }}>
-                Without Maxwell
+                {t('Without Maxwell')}
               </span>
             ) : null}
             {invitable.map((entry) => (
@@ -217,17 +219,17 @@ export function CommunitySwitcher({
                 <span className="mx-ellipsis" style={{ flex: 1, color: 'var(--mx-muted)' }}>
                   {entry.name}
                 </span>
-                <span className="mx-sub">Invite</span>
+                <span className="mx-sub">{t('Invite')}</span>
               </a>
             ))}
             {needle && list.length === 0 ? (
               <span className="mx-sub" style={{ padding: '8px 9px' }}>
-                No community called "{query.trim()}".
+                {t('No community called "{name}".', { name: query.trim() })}
               </span>
             ) : null}
           </div>
           <Link role="menuitem" className="mx-popover-item mx-popover-footer" href="/">
-            All communities
+            {t('All communities')}
           </Link>
         </div>
       ) : null}

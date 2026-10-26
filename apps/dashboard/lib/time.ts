@@ -1,3 +1,5 @@
+import type { Translator } from './i18n';
+
 export const MINUTE = 60_000;
 export const HOUR = 60 * MINUTE;
 export const DAY = 24 * HOUR;
@@ -20,10 +22,10 @@ export function plural(value: number, one: string, many = `${one}s`): string {
   return `${count(value)} ${value === 1 ? one : many}`;
 }
 
-export function bytes(value: number): string {
+export function bytes(t: Translator, value: number): string {
   if (value <= 0) return '0 KB';
   if (value < 1024 * 1024) return `${Math.max(1, Math.round(value / 1024))} KB`;
-  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(value / (1024 * 1024)).toLocaleString(t.locale, { maximumFractionDigits: 1, minimumFractionDigits: 1 })} MB`;
 }
 
 export function snowflakeTime(id: string): number | null {
@@ -71,8 +73,8 @@ function year(at: Moment, timeZone: string): string {
   );
 }
 
-function weekday(at: Moment, timeZone: string, style: 'short' | 'long'): string {
-  return formatter('en-GB', { timeZone: zone(timeZone), weekday: style }).format(
+function weekday(t: Translator, at: Moment, timeZone: string, style: 'short' | 'long'): string {
+  return formatter(t.locale, { timeZone: zone(timeZone), weekday: style }).format(
     new Date(toMs(at)),
   );
 }
@@ -86,8 +88,8 @@ export function clock(at: Moment, timeZone: string): string {
   }).format(new Date(toMs(at)));
 }
 
-export function shortDate(at: Moment, timeZone = 'UTC', now?: Moment): string {
-  return formatter('en-GB', {
+export function shortDate(t: Translator, at: Moment, timeZone = 'UTC', now?: Moment): string {
+  return formatter(t.locale, {
     timeZone: zone(timeZone),
     day: 'numeric',
     month: 'short',
@@ -95,8 +97,8 @@ export function shortDate(at: Moment, timeZone = 'UTC', now?: Moment): string {
   }).format(new Date(toMs(at)));
 }
 
-export function date(at: Moment, timeZone: string): string {
-  return formatter('en-GB', {
+export function date(t: Translator, at: Moment, timeZone: string): string {
+  return formatter(t.locale, {
     timeZone: zone(timeZone),
     day: 'numeric',
     month: 'short',
@@ -104,8 +106,8 @@ export function date(at: Moment, timeZone: string): string {
   }).format(new Date(toMs(at)));
 }
 
-export function fullDate(at: Moment, timeZone: string): string {
-  return formatter('en-GB', {
+export function fullDate(t: Translator, at: Moment, timeZone: string): string {
+  return formatter(t.locale, {
     timeZone: zone(timeZone),
     day: 'numeric',
     month: 'short',
@@ -116,9 +118,9 @@ export function fullDate(at: Moment, timeZone: string): string {
   }).format(new Date(toMs(at)));
 }
 
-export function longDate(at: Moment, timeZone: string): string {
+export function longDate(t: Translator, at: Moment, timeZone: string): string {
   const parts: Record<string, string> = {};
-  for (const part of formatter('en-GB', {
+  for (const part of formatter(t.locale, {
     timeZone: zone(timeZone),
     weekday: 'short',
     day: 'numeric',
@@ -126,112 +128,153 @@ export function longDate(at: Moment, timeZone: string): string {
   }).formatToParts(new Date(toMs(at)))) {
     parts[part.type] = part.value;
   }
-  return `${parts.weekday} ${parts.day} ${parts.month}, ${clock(at, timeZone)}`;
+  const day = t.lang === 'de' ? `${parts.day}.` : parts.day;
+  return `${parts.weekday} ${day} ${parts.month}, ${clock(at, timeZone)}`;
 }
 
 function offsetDay(now: Moment, timeZone: string, days: number): string {
   return dayKey(toMs(now) + days * DAY, timeZone);
 }
 
-export function dayName(at: Moment, now: Moment, timeZone: string): string {
+export function dayName(t: Translator, at: Moment, now: Moment, timeZone: string): string {
   const key = dayKey(at, timeZone);
-  if (key === dayKey(now, timeZone)) return 'Today';
-  if (key === offsetDay(now, timeZone, 1)) return 'Tomorrow';
-  if (key === offsetDay(now, timeZone, -1)) return 'Yesterday';
-  return weekday(at, timeZone, 'long');
+  if (key === dayKey(now, timeZone)) return t('Today');
+  if (key === offsetDay(now, timeZone, 1)) return t('Tomorrow');
+  if (key === offsetDay(now, timeZone, -1)) return t('Yesterday');
+  return weekday(t, at, timeZone, 'long');
 }
 
-export function dayTime(at: Moment, now: Moment, timeZone: string): string {
+export function dayTime(t: Translator, at: Moment, now: Moment, timeZone: string): string {
   const time = clock(at, timeZone);
   const key = dayKey(at, timeZone);
-  if (key === dayKey(now, timeZone)) return `Today ${time}`;
-  if (key === offsetDay(now, timeZone, -1)) return `Yesterday ${time}`;
-  if (key === offsetDay(now, timeZone, 1)) return `Tomorrow ${time}`;
-  if (Math.abs(toMs(now) - toMs(at)) < 6 * DAY) return `${weekday(at, timeZone, 'short')} ${time}`;
-  return `${shortDate(at, timeZone, now)} ${time}`;
+  if (key === dayKey(now, timeZone)) return t('Today {time}', { time });
+  if (key === offsetDay(now, timeZone, -1)) return t('Yesterday {time}', { time });
+  if (key === offsetDay(now, timeZone, 1)) return t('Tomorrow {time}', { time });
+  if (Math.abs(toMs(now) - toMs(at)) < 6 * DAY) {
+    return `${weekday(t, at, timeZone, 'short')} ${time}`;
+  }
+  return `${shortDate(t, at, timeZone, now)} ${time}`;
 }
 
-export function when(at: Moment, now: Moment, timeZone: string): string {
+export function when(t: Translator, at: Moment, now: Moment, timeZone: string): string {
   const key = dayKey(at, timeZone);
   if (key === dayKey(now, timeZone)) return clock(at, timeZone);
-  if (key === offsetDay(now, timeZone, -1)) return 'Yesterday';
+  if (key === offsetDay(now, timeZone, -1)) return t('Yesterday');
   const diff = toMs(now) - toMs(at);
-  if (diff >= 0 && diff < 6 * DAY) return weekday(at, timeZone, 'long');
-  return shortDate(at, timeZone, now);
+  if (diff >= 0 && diff < 6 * DAY) return weekday(t, at, timeZone, 'long');
+  return shortDate(t, at, timeZone, now);
 }
 
-export function until(at: Moment, now: Moment, timeZone: string): string {
+export function until(t: Translator, at: Moment, now: Moment, timeZone: string): string {
   if (dayKey(at, timeZone) === dayKey(now, timeZone)) return clock(at, timeZone);
-  return shortDate(at, timeZone);
+  return shortDate(t, at, timeZone);
 }
 
-export function ago(at: Moment, now: Moment, timeZone?: string): string {
+function minutes(t: Translator, value: number): string {
+  return t.plural(value, '{n} minute', '{n} minutes');
+}
+
+function hours(t: Translator, value: number): string {
+  return t.plural(value, '{n} hour', '{n} hours');
+}
+
+function days(t: Translator, value: number): string {
+  return t.plural(value, '{n} day', '{n} days');
+}
+
+type Unit = 'minute' | 'hour' | 'day';
+
+function past(t: Translator, unit: Unit, value: number): string {
+  if (unit === 'minute') return t.plural(value, '{n} minute ago', '{n} minutes ago');
+  if (unit === 'hour') return t.plural(value, '{n} hour ago', '{n} hours ago');
+  return t.plural(value, '{n} day ago', '{n} days ago');
+}
+
+function future(t: Translator, unit: Unit, value: number): string {
+  if (unit === 'minute') return t.plural(value, 'in {n} minute', 'in {n} minutes');
+  if (unit === 'hour') return t.plural(value, 'in {n} hour', 'in {n} hours');
+  return t.plural(value, 'in {n} day', 'in {n} days');
+}
+
+export function ago(t: Translator, at: Moment, now: Moment, timeZone?: string): string {
   const diff = Math.max(0, toMs(now) - toMs(at));
-  if (diff < MINUTE) return 'Just now';
-  if (diff < HOUR) return `${plural(Math.floor(diff / MINUTE), 'minute')} ago`;
+  if (diff < MINUTE) return t('Just now');
+  if (diff < HOUR) return past(t, 'minute', Math.floor(diff / MINUTE));
   if (timeZone === undefined) {
-    if (diff < DAY) return `${plural(Math.floor(diff / HOUR), 'hour')} ago`;
-    const days = Math.floor(diff / DAY);
-    if (days === 1) return 'Yesterday';
-    if (days < 30) return `${days} days ago`;
-    return shortDate(at, 'UTC', now);
+    if (diff < DAY) return past(t, 'hour', Math.floor(diff / HOUR));
+    const count = Math.floor(diff / DAY);
+    if (count === 1) return t('Yesterday');
+    if (count < 30) return past(t, 'day', count);
+    return shortDate(t, at, 'UTC', now);
   }
   const key = dayKey(at, timeZone);
-  if (key === dayKey(now, timeZone)) return `${plural(Math.floor(diff / HOUR), 'hour')} ago`;
-  if (key === offsetDay(now, timeZone, -1)) return 'Yesterday';
-  if (diff < 6 * DAY) return weekday(at, timeZone, 'long');
-  return shortDate(at, timeZone, now);
+  if (key === dayKey(now, timeZone)) return past(t, 'hour', Math.floor(diff / HOUR));
+  if (key === offsetDay(now, timeZone, -1)) return t('Yesterday');
+  if (diff < 6 * DAY) return weekday(t, at, timeZone, 'long');
+  return shortDate(t, at, timeZone, now);
 }
 
-export function relative(at: Moment, now: Moment): string {
+export function relative(t: Translator, at: Moment, now: Moment): string {
   const diff = toMs(at) - toMs(now);
   const abs = Math.abs(diff);
-  for (const [size, unit] of [
+  const sizes: [number, Unit][] = [
     [DAY, 'day'],
     [HOUR, 'hour'],
     [MINUTE, 'minute'],
-  ] as const) {
+  ];
+  for (const [size, unit] of sizes) {
     if (abs >= size) {
-      const label = plural(Math.round(abs / size), unit);
-      return diff >= 0 ? `in ${label}` : `${label} ago`;
+      const value = Math.round(abs / size);
+      return diff >= 0 ? future(t, unit, value) : past(t, unit, value);
     }
   }
-  return diff >= 0 ? 'in a moment' : 'just now';
+  return diff >= 0 ? t('in a moment') : t('just now');
 }
 
-export function inSentence(text: string): string {
-  return text.replace(/^(Today|Tomorrow|Yesterday|Just now)/, (word) => word.toLowerCase());
+export function inSentence(t: Translator, text: string): string {
+  const words = [t('Today'), t('Tomorrow'), t('Yesterday'), t('Just now')];
+  const word = words.find((entry) => text.startsWith(entry));
+  return word ? word.toLowerCase() + text.slice(word.length) : text;
 }
 
-export function span(ms: number): string {
+export function span(t: Translator, ms: number): string {
   if (ms < HOUR) return `${Math.max(1, Math.round(ms / MINUTE))} min`;
   if (ms < DAY) return `${Math.round(ms / HOUR)} h`;
-  const days = Math.round(ms / DAY);
-  return days === 1 ? '1 day' : `${days} days`;
+  return days(t, Math.round(ms / DAY));
 }
 
-export function waited(at: Moment, now: Moment): string {
+export function since(t: Translator, ms: number): string {
+  if (ms < HOUR) return past(t, 'minute', Math.max(1, Math.floor(ms / MINUTE)));
+  if (ms < 2 * DAY) return past(t, 'hour', Math.floor(ms / HOUR));
+  if (ms < 60 * DAY) return past(t, 'day', Math.floor(ms / DAY));
+  if (ms < 730 * DAY) {
+    return t.plural(Math.floor(ms / (30 * DAY)), '{n} month ago', '{n} months ago');
+  }
+  return t.plural(Math.floor(ms / (365 * DAY)), '{n} year ago', '{n} years ago');
+}
+
+export function waited(t: Translator, at: Moment, now: Moment): string {
   const diff = Math.max(0, toMs(now) - toMs(at));
-  if (diff < HOUR) return plural(Math.max(1, Math.round(diff / MINUTE)), 'minute');
-  if (diff < DAY) return plural(Math.round(diff / HOUR), 'hour');
-  return plural(Math.round(diff / DAY), 'day');
+  if (diff < HOUR) return minutes(t, Math.max(1, Math.round(diff / MINUTE)));
+  if (diff < DAY) return hours(t, Math.round(diff / HOUR));
+  return days(t, Math.round(diff / DAY));
 }
 
-const units: [string, number][] = [
-  ['year', 365 * DAY],
-  ['week', 7 * DAY],
-  ['day', DAY],
-  ['hour', HOUR],
-  ['minute', MINUTE],
+const units: [(t: Translator, value: number) => string, number][] = [
+  [(t, value) => t.plural(value, '{n} year', '{n} years'), 365 * DAY],
+  [(t, value) => t.plural(value, '{n} week', '{n} weeks'), 7 * DAY],
+  [days, DAY],
+  [hours, HOUR],
+  [minutes, MINUTE],
 ];
 
-export function duration(ms: number): string {
+export function duration(t: Translator, ms: number): string {
   let left = Math.max(ms, MINUTE);
   const out: string[] = [];
   for (const [label, size] of units) {
     const value = Math.floor(left / size);
     if (value > 0) {
-      out.push(plural(value, label));
+      out.push(label(t, value));
       left -= value * size;
     }
     if (out.length === 2) break;
@@ -239,21 +282,21 @@ export function duration(ms: number): string {
   return out.join(' ');
 }
 
-export function age(ms: number): string {
-  if (ms < HOUR) return plural(Math.max(1, Math.floor(ms / MINUTE)), 'minute');
-  if (ms < 2 * DAY) return plural(Math.floor(ms / HOUR), 'hour');
-  if (ms < 60 * DAY) return plural(Math.floor(ms / DAY), 'day');
-  if (ms < 730 * DAY) return plural(Math.floor(ms / (30 * DAY)), 'month');
-  return plural(Math.floor(ms / (365 * DAY)), 'year');
+export function age(t: Translator, ms: number): string {
+  if (ms < HOUR) return minutes(t, Math.max(1, Math.floor(ms / MINUTE)));
+  if (ms < 2 * DAY) return hours(t, Math.floor(ms / HOUR));
+  if (ms < 60 * DAY) return days(t, Math.floor(ms / DAY));
+  if (ms < 730 * DAY) return t.plural(Math.floor(ms / (30 * DAY)), '{n} month', '{n} months');
+  return t.plural(Math.floor(ms / (365 * DAY)), '{n} year', '{n} years');
 }
 
-export function minutesLabel(minutes: number): string {
-  if (minutes % 1440 === 0) return plural(minutes / 1440, 'day');
-  if (minutes % 60 === 0) return plural(minutes / 60, 'hour');
-  if (minutes > 60) return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
-  return plural(minutes, 'minute');
+export function minutesLabel(t: Translator, value: number): string {
+  if (value % 1440 === 0) return days(t, value / 1440);
+  if (value % 60 === 0) return hours(t, value / 60);
+  if (value > 60) return `${Math.floor(value / 60)} h ${value % 60} min`;
+  return minutes(t, value);
 }
 
-export function hoursLabel(hours: number): string {
-  return minutesLabel(hours * 60);
+export function hoursLabel(t: Translator, value: number): string {
+  return minutesLabel(t, value * 60);
 }

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { IBM_Plex_Mono, IBM_Plex_Sans, Space_Grotesk } from 'next/font/google';
+import { I18nProvider } from '@/components/i18n';
+import { getLang, tableFor } from '@/lib/i18n/server';
 import './globals.css';
 import './theme.css';
 
@@ -23,10 +25,15 @@ export const metadata: Metadata = {
   title: { default: 'Maxwell', template: '%s | Maxwell' },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const lang = await getLang();
   return (
-    <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
-      <body>{children}</body>
+    <html lang={lang} className={`${display.variable} ${body.variable} ${mono.variable}`}>
+      <body>
+        <I18nProvider lang={lang} table={tableFor(lang)}>
+          {children}
+        </I18nProvider>
+      </body>
     </html>
   );
 }

@@ -13,6 +13,7 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { useT } from './i18n';
 
 export interface ListOption {
   value: string;
@@ -87,7 +88,7 @@ export function Listbox({
   options,
   onChange,
   label,
-  placeholder = 'Choose',
+  placeholder: given,
   disabled = false,
   searchable,
   style,
@@ -105,6 +106,8 @@ export function Listbox({
   compact?: boolean;
   trigger?: ReactNode;
 }) {
+  const t = useT();
+  const placeholder = given ?? t('Choose');
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
@@ -277,8 +280,8 @@ export function Listbox({
                 <input
                   ref={search}
                   className="mx-listbox-search"
-                  placeholder="Search"
-                  aria-label="Search"
+                  placeholder={t('Search')}
+                  aria-label={t('Search')}
                   aria-controls={listId}
                   aria-activedescendant={visible[active] ? `${listId}-${active}` : undefined}
                   value={query}
@@ -298,7 +301,9 @@ export function Listbox({
                 className="mx-listbox-options"
                 style={{ maxHeight: place.maxHeight - (withSearch ? 44 : 0) }}
               >
-                {visible.length === 0 ? <div className="mx-option-empty">Nothing found</div> : null}
+                {visible.length === 0 ? (
+                  <div className="mx-option-empty">{t('Nothing found')}</div>
+                ) : null}
                 {visible.map((option, index) => {
                   const header = option.group && option.group !== lastGroup ? option.group : null;
                   lastGroup = option.group;

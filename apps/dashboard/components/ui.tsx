@@ -261,9 +261,9 @@ export function ModuleIcon({
   );
 }
 
-export function LockIcon() {
+export function LockIcon({ label }: { label: string }) {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" role="img" aria-label="Locked until you vote">
+    <svg width="13" height="13" viewBox="0 0 24 24" role="img" aria-label={label}>
       <path
         d="M7 11V8a5 5 0 0 1 10 0v3"
         fill="none"

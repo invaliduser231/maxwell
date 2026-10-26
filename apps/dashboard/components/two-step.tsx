@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useT } from './i18n';
 import { useReadOnly } from './module-shell';
 import { Row } from './ui';
 
@@ -10,7 +11,7 @@ export function TwoStep({
   primary,
   ghost,
   disabled,
-  confirm = 'Click again to confirm',
+  confirm,
   ariaLabel,
   run,
 }: {
@@ -23,6 +24,7 @@ export function TwoStep({
   ariaLabel?: string;
   run: () => void;
 }) {
+  const t = useT();
   const [armed, setArmed] = useState(false);
   const tone = danger
     ? ' mx-btn-danger'
@@ -36,7 +38,7 @@ export function TwoStep({
       type="button"
       className={`mx-btn${tone}`}
       disabled={disabled}
-      aria-label={ariaLabel && armed ? `Confirm: ${ariaLabel}` : ariaLabel}
+      aria-label={ariaLabel && armed ? t('Confirm: {name}', { name: ariaLabel }) : ariaLabel}
       onBlur={() => setArmed(false)}
       onClick={() => {
         if (!armed) {
@@ -47,7 +49,7 @@ export function TwoStep({
         run();
       }}
     >
-      {armed ? confirm : label}
+      {armed ? (confirm ?? t('Click again to confirm')) : label}
     </button>
   );
 }
@@ -63,6 +65,7 @@ export function DangerRow({
   done?: string;
   run: () => Promise<{ ok: true } | { ok: false; error: string }>;
 }) {
+  const t = useT();
   const readOnly = useReadOnly();
   const [note, setNote] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -75,7 +78,7 @@ export function DangerRow({
         run={() =>
           start(async () => {
             const result = await run();
-            setNote(result.ok ? (done ?? null) : result.error);
+            setNote(result.ok ? (done ?? null) : t.raw(result.error));
           })
         }
       />

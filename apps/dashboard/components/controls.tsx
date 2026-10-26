@@ -2,6 +2,7 @@
 
 import { type CSSProperties, type ReactNode, useEffect, useState } from 'react';
 import { ChannelType, useGuild } from './guild';
+import { useT } from './i18n';
 import { Listbox, type ListOption } from './listbox';
 import { useReadOnly } from './module-shell';
 import { CloseIcon, roleColor } from './ui';
@@ -155,8 +156,8 @@ export function TextInput({
 export function SearchInput({
   value,
   onChange,
-  placeholder = 'Search',
-  label = 'Search',
+  placeholder,
+  label,
   style,
 }: {
   value: string;
@@ -165,6 +166,7 @@ export function SearchInput({
   label?: string;
   style?: CSSProperties;
 }) {
+  const t = useT();
   return (
     <div className="mx-search" style={style}>
       <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
@@ -176,8 +178,8 @@ export function SearchInput({
         type="text"
         role="searchbox"
         value={value}
-        placeholder={placeholder}
-        aria-label={label}
+        placeholder={placeholder ?? t('Search')}
+        aria-label={label ?? t('Search')}
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === 'Escape' && value) onChange('');
@@ -187,7 +189,7 @@ export function SearchInput({
         <button
           type="button"
           className="mx-chip-x"
-          aria-label="Clear search"
+          aria-label={t('Clear search')}
           onClick={() => onChange('')}
         >
           <CloseIcon />
@@ -404,9 +406,9 @@ export function ChannelSelect({
   value,
   onChange,
   kinds = TEXT_KINDS,
-  none = 'None',
+  none,
   label,
-  placeholder = 'Pick a channel',
+  placeholder,
 }: {
   value: string | null;
   onChange: (next: string | null) => void;
@@ -415,12 +417,14 @@ export function ChannelSelect({
   label?: string;
   placeholder?: string;
 }) {
+  const t = useT();
   const readOnly = useReadOnly();
   const options = useChannelOptions(kinds);
+  const empty = none === undefined ? t('No channel') : none;
   const missing = value !== null && value !== '' && !options.some((o) => o.value === value);
   const all: ListOption[] = [
-    ...(none !== null ? [{ value: '', label: none, muted: true }] : []),
-    ...(missing ? [{ value, label: 'Deleted channel', muted: true }] : []),
+    ...(empty !== null ? [{ value: '', label: empty, muted: true }] : []),
+    ...(missing ? [{ value, label: t('Deleted channel'), muted: true }] : []),
     ...options,
   ];
   return (
@@ -429,7 +433,7 @@ export function ChannelSelect({
       options={all}
       onChange={(next) => onChange(next || null)}
       label={label}
-      placeholder={placeholder}
+      placeholder={placeholder ?? t('Pick a channel')}
       disabled={readOnly}
     />
   );
@@ -438,9 +442,9 @@ export function ChannelSelect({
 export function RoleSelect({
   value,
   onChange,
-  none = 'None',
+  none,
   label,
-  placeholder = 'Pick a role',
+  placeholder,
 }: {
   value: string | null;
   onChange: (next: string | null) => void;
@@ -448,12 +452,14 @@ export function RoleSelect({
   label?: string;
   placeholder?: string;
 }) {
+  const t = useT();
   const readOnly = useReadOnly();
   const options = useRoleOptions();
+  const empty = none === undefined ? t('No role') : none;
   const missing = value !== null && value !== '' && !options.some((o) => o.value === value);
   const all: ListOption[] = [
-    ...(none !== null ? [{ value: '', label: none, muted: true }] : []),
-    ...(missing ? [{ value, label: 'Deleted role', muted: true }] : []),
+    ...(empty !== null ? [{ value: '', label: empty, muted: true }] : []),
+    ...(missing ? [{ value, label: t('Deleted role'), muted: true }] : []),
     ...options,
   ];
   return (
@@ -462,7 +468,7 @@ export function RoleSelect({
       options={all}
       onChange={(next) => onChange(next || null)}
       label={label}
-      placeholder={placeholder}
+      placeholder={placeholder ?? t('Pick a role')}
       disabled={readOnly}
     />
   );
@@ -515,6 +521,7 @@ function ChipPicker({
   addLabel: string;
   render: (id: string) => ReactNode;
 }) {
+  const t = useT();
   const readOnly = useReadOnly();
   const available = options.filter((option) => !items.includes(option.value));
   return (
@@ -526,7 +533,9 @@ function ChipPicker({
             <button
               type="button"
               className="mx-chip-x"
-              aria-label={`Remove ${options.find((option) => option.value === item)?.label ?? item}`}
+              aria-label={t('Remove {name}', {
+                name: options.find((option) => option.value === item)?.label ?? item,
+              })}
               onClick={() => onChange(items.filter((entry) => entry !== item))}
             >
               <CloseIcon />
@@ -549,21 +558,22 @@ export function ChannelMulti({
   value,
   onChange,
   kinds = TEXT_KINDS,
-  addLabel = 'Add channel',
+  addLabel,
 }: {
   value: string[];
   onChange: (next: string[]) => void;
   kinds?: number[];
   addLabel?: string;
 }) {
+  const t = useT();
   const options = useChannelOptions(kinds);
   return (
     <ChipPicker
       items={value}
       options={options}
       onChange={onChange}
-      addLabel={addLabel}
-      render={(id) => options.find((option) => option.value === id)?.label ?? 'Deleted channel'}
+      addLabel={addLabel ?? t('Add channel')}
+      render={(id) => options.find((option) => option.value === id)?.label ?? t('Deleted channel')}
     />
   );
 }
@@ -571,12 +581,13 @@ export function ChannelMulti({
 export function RoleMulti({
   value,
   onChange,
-  addLabel = 'Add role',
+  addLabel,
 }: {
   value: string[];
   onChange: (next: string[]) => void;
   addLabel?: string;
 }) {
+  const t = useT();
   const { roles } = useGuild();
   const options = useRoleOptions();
   return (
@@ -584,13 +595,13 @@ export function RoleMulti({
       items={value}
       options={options}
       onChange={onChange}
-      addLabel={addLabel}
+      addLabel={addLabel ?? t('Add role')}
       render={(id) => {
         const role = roles.find((entry) => entry.id === id);
         return (
           <>
             <span className="mx-dot" style={{ background: roleColor(role?.color ?? 0) }} />
-            {role?.name ?? 'Deleted role'}
+            {role?.name ?? t('Deleted role')}
           </>
         );
       }}
@@ -601,7 +612,7 @@ export function RoleMulti({
 export function WordList({
   value,
   onChange,
-  placeholder = 'Add and press Enter',
+  placeholder,
   mono,
 }: {
   value: string[];
@@ -609,6 +620,7 @@ export function WordList({
   placeholder?: string;
   mono?: boolean;
 }) {
+  const t = useT();
   const readOnly = useReadOnly();
   return (
     <div className="mx-chips">
@@ -619,7 +631,7 @@ export function WordList({
             <button
               type="button"
               className="mx-chip-x"
-              aria-label={`Remove ${word}`}
+              aria-label={t('Remove {name}', { name: word })}
               onClick={() => onChange(value.filter((entry) => entry !== word))}
             >
               <CloseIcon />
@@ -630,7 +642,7 @@ export function WordList({
       {readOnly ? null : (
         <input
           className={mono ? 'mx-input mx-input-inline mx-mono' : 'mx-input mx-input-inline'}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t('Add and press Enter')}
           onKeyDown={(event) => {
             if (event.key !== 'Enter') return;
             event.preventDefault();
@@ -680,7 +692,9 @@ type TimezoneProps =
 
 export function TimezoneSelect(props: TimezoneProps) {
   const { timezones } = useGuild();
-  const { value, label = 'Timezone' } = props;
+  const t = useT();
+  const { value } = props;
+  const label = props.label ?? t('Timezone');
   const list = !value || timezones.includes(value) ? timezones : [value, ...timezones];
   const options = list.map((zone) => ({
     value: zone,

@@ -1,8 +1,10 @@
+import type { Key } from './i18n';
+
 export type Pole = 'north' | 'south' | 'neutral';
 
 export interface PageInfo {
   key: string;
-  name: string;
+  name: Key;
   module: string | null;
   pole: Pole;
   locked: boolean;
@@ -11,7 +13,7 @@ export interface PageInfo {
 }
 
 export interface PageGroup {
-  title: string;
+  title: Key | '';
   pages: PageInfo[];
 }
 
@@ -26,6 +28,7 @@ const icons: Record<string, string> = {
   moderation: 'M80 36l38 14v28c0 25-17 42-38 48-21-6-38-23-38-48V50z',
   members: 'M80 40a18 18 0 1 0 0 36 18 18 0 1 0 0-36zM46 122c4-20 18-32 34-32s30 12 34 32',
   automod: 'M90 36 56 88h26l-12 36 36-54H80z',
+  security: 'M54 78h52v42H54zM64 78V62a16 16 0 0 1 32 0v16M80 94v10',
   logs: 'M46 54h68M46 80h68M46 106h44',
   backups: 'M48 54c0-8 64-8 64 0v52c0 8-64 8-64 0zM48 54c0 8 64 8 64 0M48 80c0 8 64 8 64 0',
   welcome:
@@ -67,7 +70,7 @@ const LOCKED = new Set([
 
 function page(
   key: string,
-  name: string,
+  name: Key,
   pole: Pole,
   module: string | null = key,
   adminOnly = false,
@@ -83,6 +86,7 @@ export const pageGroups: PageGroup[] = [
       page('moderation', 'Moderation', 'south'),
       page('members', 'Member files', 'south', 'moderation'),
       page('automod', 'AutoMod', 'south'),
+      page('security', 'Security', 'south'),
       page('logs', 'Logs', 'south'),
       page('backups', 'Backups', 'south'),
     ],
