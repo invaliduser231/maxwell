@@ -131,9 +131,11 @@ export class FeedPoller {
       return;
     }
 
-    const selection = selectNew(result.items, new Set(state.seen), state.primedAt);
-    const wanted = selection.post.filter((item) => passesFilters(item, feed.include, feed.exclude));
-    const delivered = await this.#deliver(guildId, feed, label, wanted);
+    const candidates = result.items.filter((item) =>
+      passesFilters(item, feed.include, feed.exclude),
+    );
+    const selection = selectNew(candidates, new Set(state.seen), state.primedAt);
+    const delivered = await this.#deliver(guildId, feed, label, selection.post);
 
     await this.store.saveOutcome(guildId, feedId, {
       sourceKey: key,

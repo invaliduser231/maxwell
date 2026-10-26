@@ -72,7 +72,12 @@ describe.skipIf(!url)('feeds store and poller', () => {
     sql = connect(url as string);
     await migrate(sql, silentLogger, [{ module: 'feeds', migrations: definition.migrations }]);
     store = new FeedStore(sql);
-    poller = new FeedPoller(ctx, store, { fetcher, checkUrl: async () => true, twitch: null });
+    poller = new FeedPoller(ctx, store, {
+      fetcher,
+      checkUrl: async () => true,
+      twitch: null,
+      sharedTtl: 0,
+    });
     config = feedsConfig.parse({
       feeds: [{ id: 'f1', type: 'rss', source: 'https://example.org/feed', channelId: channel }],
     });
@@ -125,6 +130,33 @@ describe.skipIf(!url)('feeds store and poller', () => {
     const resumed = await store.state(guild, 'f1');
     expect(resumed?.pausedAt).toBeNull();
     expect(resumed?.failures).toBe(0);
+  });
+
+  it('filters before the per check limit so older matches still post', async () => {
+    config = feedsConfig.parse({
+      feeds: [
+        ...config.feeds,
+        {
+          id: 'f2',
+          type: 'rss',
+          source: 'https://example.org/filtered',
+          channelId: channel,
+          include: ['keep'],
+        },
+      ],
+    });
+    body = rss(['seed']);
+    await poller.poll(guild, 'f2');
+    const before = sent.length;
+    body = rss(['n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'keep1', 'keep2', 'seed']);
+    await poller.poll(guild, 'f2');
+    expect(sent.slice(before).map((entry) => entry.message.embeds?.[0]?.title)).toEqual([
+      'Post keep2',
+      'Post keep1',
+    ]);
+    const state = await store.state(guild, 'f2');
+    expect(state?.seen).toContain('n1');
+    config = feedsConfig.parse({ feeds: config.feeds.filter((feed) => feed.id !== 'f2') });
   });
 
   it('queues due feeds from the tick and forgets removed ones', async () => {
