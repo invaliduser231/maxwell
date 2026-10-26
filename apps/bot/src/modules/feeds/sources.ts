@@ -1,10 +1,20 @@
-import type { FeedSource, FeedType } from '@maxwell/core/modules/feeds';
+import { type FeedSource, resolveSource, youtubePage } from '@maxwell/core/modules/feeds';
 import type { Config } from '../../config.js';
 import { copy } from './copy.js';
 import { type Fetcher, fetchText, USER_AGENT } from './http.js';
 import { FeedError, type FeedItem, parseFeed } from './parse.js';
 
-export const FLUXER_BLOG_FEED = 'https://fluxer.app/blog/rss.xml';
+export {
+  blueskyActor,
+  FLUXER_BLOG_FEED,
+  githubFeed,
+  redditFeed,
+  resolveSource,
+  rssFeed,
+  twitchLogin,
+  youtubeFeed,
+  youtubePage,
+} from '@maxwell/core/modules/feeds';
 
 export interface SourceResult {
   status: 'ok' | 'unchanged';
@@ -24,57 +34,6 @@ export interface Cache {
   lastModified: string | null;
 }
 
-function stripUrl(input: string, host: RegExp): string {
-  const value = input.trim();
-  try {
-    const url = new URL(value);
-    if (!host.test(url.hostname)) return '';
-    return url.pathname.replace(/^\/+|\/+$/g, '');
-  } catch {
-    return value.replace(/^@/, '').replace(/^\/+|\/+$/g, '');
-  }
-}
-
-export function youtubeFeed(input: string): string | null {
-  const value = input.trim();
-  const direct = /^(UC[\w-]{22})$/.exec(value)?.[1];
-  if (direct) return `https://www.youtube.com/feeds/videos.xml?channel_id=${direct}`;
-  const playlist = /^(PL[\w-]{10,40})$/.exec(value)?.[1];
-  if (playlist) return `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlist}`;
-  try {
-    const url = new URL(value);
-    if (!/(^|\.)youtube\.com$/i.test(url.hostname)) return null;
-    const channel =
-      /\/channel\/(UC[\w-]{22})/.exec(url.pathname)?.[1] ?? url.searchParams.get('channel_id');
-    if (channel && /^UC[\w-]{22}$/.test(channel)) {
-      return `https://www.youtube.com/feeds/videos.xml?channel_id=${channel}`;
-    }
-    const list = url.searchParams.get('list') ?? url.searchParams.get('playlist_id');
-    if (list && /^PL[\w-]{10,40}$/.test(list)) {
-      return `https://www.youtube.com/feeds/videos.xml?playlist_id=${list}`;
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-export function youtubePage(input: string): string | null {
-  const value = input.trim();
-  const bare = /^@([\w.-]{3,30})$/.exec(value)?.[1];
-  if (bare) return `https://www.youtube.com/@${bare}`;
-  try {
-    const url = new URL(value);
-    if (!/(^|\.)youtube\.com$/i.test(url.hostname)) return null;
-    const match = /^\/(@[\w.-]{3,30}|c\/[\w.-]{1,100}|user\/[\w.-]{1,100})(?:\/|$)/.exec(
-      url.pathname,
-    );
-    return match?.[1] ? `https://www.youtube.com/${match[1]}` : null;
-  } catch {
-    return null;
-  }
-}
-
 const CHANNEL_TTL = 24 * 60 * 60_000;
 const channelIds = new Map<string, { id: string; at: number }>();
 
@@ -84,6 +43,7 @@ export function channelIdFromPage(html: string): string | null {
       html,
     )?.[1] ??
     /"externalId":"(UC[\w-]{22})"/.exec(html)?.[1] ??
+    /"externalChannelId":"(UC[\w-]{22})"/.exec(html)?.[1] ??
     null
   );
 }
@@ -104,63 +64,6 @@ async function youtubeChannelFeed(page: string, deps: SourceDeps): Promise<strin
     channelIds.set(page, { id, at: Date.now() });
   }
   return `https://www.youtube.com/feeds/videos.xml?channel_id=${id}`;
-}
-
-export function redditFeed(input: string): string | null {
-  const path = stripUrl(input, /(^|\.)reddit\.com$/i);
-  const name = /^(?:r\/)?([A-Za-z0-9_]{2,21})(?:\/.*)?$/.exec(path)?.[1];
-  return name ? `https://www.reddit.com/r/${name}/new/.rss` : null;
-}
-
-export function githubFeed(input: string): string | null {
-  const path = stripUrl(input, /^(www\.)?github\.com$/i);
-  const match = /^([A-Za-z0-9-]{1,39})\/([A-Za-z0-9._-]{1,100})(?:\/.*)?$/.exec(path);
-  if (!match?.[1] || !match[2]) return null;
-  const repo = match[2].replace(/\.git$/, '');
-  return `https://github.com/${match[1]}/${repo}/releases.atom`;
-}
-
-export function blueskyActor(input: string): string | null {
-  const path = stripUrl(input, /^(www\.)?bsky\.app$/i);
-  const actor = path.replace(/^profile\//, '').split('/')[0] ?? '';
-  if (/^did:plc:[a-z2-7]{24}$/.test(actor)) return actor;
-  if (/^([a-z0-9-]{1,63}\.)+[a-z]{2,63}$/i.test(actor)) return actor.toLowerCase();
-  return null;
-}
-
-export function twitchLogin(input: string): string | null {
-  const path = stripUrl(input, /(^|\.)twitch\.tv$/i);
-  const login = path.split('/')[0] ?? '';
-  return /^[A-Za-z0-9_]{3,25}$/.test(login) ? login.toLowerCase() : null;
-}
-
-export function rssFeed(input: string): string | null {
-  const value = input.trim();
-  try {
-    const url = new URL(value);
-    return url.protocol === 'https:' ? url.toString() : null;
-  } catch {
-    return null;
-  }
-}
-
-export function resolveSource(type: FeedType, source: string): string | null {
-  switch (type) {
-    case 'rss':
-      return rssFeed(source);
-    case 'youtube':
-      return youtubeFeed(source);
-    case 'reddit':
-      return redditFeed(source);
-    case 'github':
-      return githubFeed(source);
-    case 'fluxer':
-      return FLUXER_BLOG_FEED;
-    case 'bluesky':
-      return blueskyActor(source);
-    case 'twitch':
-      return twitchLogin(source);
-  }
 }
 
 export function sourceKey(feed: Pick<FeedSource, 'type' | 'source'>): string {

@@ -1,4 +1,4 @@
-import { feedsConfig } from '@maxwell/core/modules/feeds';
+import { feedSourceValid, feedsConfig } from '@maxwell/core/modules/feeds';
 import { describe, expect, it } from 'vitest';
 import { fetchText } from '../../src/modules/feeds/http.js';
 import { FeedError, type FeedItem } from '../../src/modules/feeds/parse.js';
@@ -61,6 +61,21 @@ describe('source resolution', () => {
     expect(youtubePage('https://www.youtube.com/c/Something')).toBe(
       'https://www.youtube.com/c/Something',
     );
+    expect(youtubePage('https://www.youtube.com/watch?v=6LptNMjDIWc&t=30')).toBe(
+      'https://www.youtube.com/watch?v=6LptNMjDIWc',
+    );
+    expect(youtubePage('https://youtu.be/6LptNMjDIWc?si=abc')).toBe(
+      'https://www.youtube.com/watch?v=6LptNMjDIWc',
+    );
+    expect(youtubePage('https://www.youtube.com/shorts/Y8IJi7iP5vk')).toBe(
+      'https://www.youtube.com/watch?v=Y8IJi7iP5vk',
+    );
+    expect(youtubePage('https://youtube.com/watch?v=short')).toBeNull();
+    expect(
+      youtubeFeed(
+        'https://www.youtube.com/watch?v=6LptNMjDIWc&list=PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI',
+      ),
+    ).toBeNull();
     expect(youtubePage('https://evil.example/@handle')).toBeNull();
     expect(youtubePage('plain words')).toBeNull();
   });
@@ -71,6 +86,11 @@ describe('source resolution', () => {
       channelIdFromPage(`<link rel="canonical" href="https://www.youtube.com/channel/${id}">`),
     ).toBe(id);
     expect(channelIdFromPage(`{"externalId":"${id}"}`)).toBe(id);
+    expect(
+      channelIdFromPage(
+        `<link rel="canonical" href="https://www.youtube.com/watch?v=x">{"channelId":"UCGrEhW-D986zSjijnnhq5hg","externalChannelId":"${id}"}`,
+      ),
+    ).toBe(id);
     expect(channelIdFromPage('<html></html>')).toBeNull();
   });
 
@@ -98,6 +118,20 @@ describe('source resolution', () => {
     });
     expect(calls[1]?.url).toBe(`https://www.youtube.com/feeds/videos.xml?channel_id=${id}`);
     expect(result.items[0]?.url).toBe('https://www.youtube.com/watch?v=6LptNMjDIWc');
+  });
+
+  it('tells the dashboard which sources can work', () => {
+    expect(feedSourceValid('youtube', 'https://www.youtube.com/@LetsHugoGaming')).toBe(true);
+    expect(feedSourceValid('youtube', 'https://youtu.be/6LptNMjDIWc')).toBe(true);
+    expect(feedSourceValid('youtube', 'UCfDLplO_xeVw-E-oPEmGCQg')).toBe(true);
+    expect(feedSourceValid('youtube', 'LetsHugoGaming')).toBe(false);
+    expect(feedSourceValid('rss', 'http://insecure.example/feed')).toBe(false);
+    expect(feedSourceValid('rss', 'https://blog.rust-lang.org/feed.xml')).toBe(true);
+    expect(feedSourceValid('reddit', 'r/rust')).toBe(true);
+    expect(feedSourceValid('github', 'nodejs')).toBe(false);
+    expect(feedSourceValid('bluesky', 'not a handle')).toBe(false);
+    expect(feedSourceValid('twitch', 'x')).toBe(false);
+    expect(feedSourceValid('fluxer', '')).toBe(true);
   });
 
   it('accepts subreddit names in several shapes', () => {
