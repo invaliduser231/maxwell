@@ -1,5 +1,6 @@
 import type { Sql } from '@maxwell/core';
 import { automodConfig } from '@maxwell/core/modules/automod';
+import { securityConfig } from '@maxwell/core/modules/security';
 import { AutomodStore } from '@maxwell/core/stores/automod';
 import { RolesStore } from '@maxwell/core/stores/roles';
 import type { Logger } from '../../log.js';
@@ -67,9 +68,12 @@ export class AutomodHolds implements Holds {
   }
 
   async watching(guildId: string): Promise<boolean> {
-    if (!(await this.settings.enabled(guildId, 'automod'))) return false;
     const raid = await this.#raid(guildId);
-    return raid.enabled && raid.gateRoleId !== null;
+    if (raid.gateRoleId === null) return false;
+    if (raid.enabled && (await this.settings.enabled(guildId, 'automod'))) return true;
+    if (!(await this.settings.enabled(guildId, 'security'))) return false;
+    const security = await this.settings.config(guildId, 'security', securityConfig);
+    return security.verification.enabled || security.raid.enabled;
   }
 
   async gateRole(guildId: string): Promise<string | null> {

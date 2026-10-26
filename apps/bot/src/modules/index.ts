@@ -18,6 +18,7 @@ import logs from './logs/index.js';
 import moderation from './moderation/index.js';
 import roles from './roles/index.js';
 import scheduler from './scheduler/index.js';
+import security from './security/index.js';
 import starboard from './starboard/index.js';
 import suggestions from './suggestions/index.js';
 import tickets from './tickets/index.js';
@@ -29,6 +30,7 @@ export const botModules: BotModule[] = [
   invites,
   moderation,
   automod,
+  security,
   logs,
   backups,
   welcome,

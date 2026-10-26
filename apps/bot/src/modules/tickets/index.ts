@@ -3,6 +3,7 @@ import definition from '@maxwell/core/modules/tickets';
 import { inGuild } from '../../i18n/language.js';
 import { defineBotModule } from '../../runtime/module.js';
 import { formInboxFor } from '../forms/inbox.js';
+import { verifyInboxFor } from '../security/verification.js';
 import { ticketCommands } from './commands.js';
 import { MODULE } from './config.js';
 import { ticketsCopy as copy, ticketsAudit } from './copy.js';
@@ -33,6 +34,7 @@ export default defineBotModule({
     const ratings = new Ratings(service);
     const modmail = new Modmail(service);
     const inbox = formInboxFor(services);
+    const verifyInbox = verifyInboxFor(services);
     ctx.privacy(ticketPrivacy(service));
 
     ctx.on('message', async (message) => {
@@ -42,6 +44,7 @@ export default defineBotModule({
       }
       if (message.author.bot || message.fromWebhook) return;
       if (inbox.hasUser(message.author.id)) return;
+      if (verifyInbox.has(message.author.id)) return;
       await service.store.rememberDm(message.author.id, message.channelId);
       const prefix = await services.guilds.prefix(null);
       if (message.content.toLowerCase().startsWith(prefix.toLowerCase())) return;

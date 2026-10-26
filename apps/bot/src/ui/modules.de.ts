@@ -6,6 +6,10 @@ const de: ModuleCopy = {
     description: 'Fälle, Verwarnungen, Timeouts, Kicks und Bans.',
   },
   automod: { name: 'AutoMod', description: 'Filter und der Raid-Schutz.' },
+  security: {
+    name: 'Sicherheit',
+    description: 'Risikoprüfung, Captcha, Schutz vor Raids und Nukes, Honigtöpfe.',
+  },
   logs: { name: 'Logs', description: 'Logs für Nachrichten, Mitglieder, Rollen und Kanäle.' },
   backups: { name: 'Backups', description: 'Sicherungen von Rollen, Kanälen und Einstellungen.' },
   welcome: { name: 'Begrüßung', description: 'Nachrichten, Karten und Rollen für Neue.' },

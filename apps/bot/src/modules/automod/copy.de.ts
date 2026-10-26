@@ -23,6 +23,8 @@ const de: AutomodCopy = {
     raid: 'Raid',
     lockdown: 'Lockdown',
     account_age: 'neues Konto',
+    verify: 'Captcha',
+    honeypot: 'Honigtopf',
   },
   details: {
     spam: (count: number, seconds: number) => `${count} Nachrichten in ${seconds} s`,

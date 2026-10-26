@@ -27,6 +27,8 @@ const en = {
     raid: 'raid',
     lockdown: 'lockdown',
     account_age: 'new account',
+    verify: 'captcha',
+    honeypot: 'honeypot',
   } as Record<HoldReason, string>,
   details: {
     spam: (count: number, seconds: number) => `${count} messages in ${seconds}s`,
