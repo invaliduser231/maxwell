@@ -13,9 +13,11 @@ import {
   blueskyActor,
   blueskyItems,
   channelIdFromPage,
+  cleanRedditSummary,
   githubFeed,
   loadSource,
   redditFeed,
+  sharedFetch,
   sourceKey,
   sourceLabel,
   twitchCredentials,
@@ -132,6 +134,56 @@ describe('source resolution', () => {
     expect(feedSourceValid('bluesky', 'not a handle')).toBe(false);
     expect(feedSourceValid('twitch', 'x')).toBe(false);
     expect(feedSourceValid('fluxer', '')).toBe(true);
+  });
+
+  it('drops the reddit footer from summaries', () => {
+    expect(
+      cleanRedditSummary('A post about Rust.\n\nsubmitted by /u/madonuko\n[link] [comments]'),
+    ).toBe('A post about Rust.');
+    expect(cleanRedditSummary('submitted by /u/[deleted] [link] [comments]')).toBe('');
+    expect(cleanRedditSummary('Plain text')).toBe('Plain text');
+  });
+
+  it('shares one fetch per feed url between communities', async () => {
+    let calls = 0;
+    const fetcher = async () => {
+      calls++;
+      return new Response('<rss><channel></channel></rss>', {
+        headers: { etag: '"v1"' },
+      });
+    };
+    const deps = { fetcher, checkUrl: async () => true, twitch: null };
+    const fresh = { etag: null, lastModified: null };
+    const first = await sharedFetch('https://example.org/shared', fresh, deps, 1_000);
+    const second = await sharedFetch('https://example.org/shared', fresh, deps, 30_000);
+    expect(calls).toBe(1);
+    expect(second.body).toBe(first.body);
+    const same = await sharedFetch(
+      'https://example.org/shared',
+      { etag: '"v1"', lastModified: null },
+      deps,
+      40_000,
+    );
+    expect(same.status).toBe('unchanged');
+    await sharedFetch('https://example.org/shared', fresh, deps, 62_000);
+    expect(calls).toBe(2);
+  });
+
+  it('holds back after a rate limit for every community', async () => {
+    let calls = 0;
+    const fetcher = async () => {
+      calls++;
+      return new Response('', { status: 429 });
+    };
+    const deps = { fetcher, checkUrl: async () => true, twitch: null };
+    const fresh = { etag: null, lastModified: null };
+    await expect(sharedFetch('https://example.org/busy', fresh, deps, 1_000)).rejects.toMatchObject(
+      { code: 'rate_limited' },
+    );
+    await expect(sharedFetch('https://example.org/busy', fresh, deps, 5_000)).rejects.toMatchObject(
+      { code: 'rate_limited' },
+    );
+    expect(calls).toBe(1);
   });
 
   it('accepts subreddit names in several shapes', () => {

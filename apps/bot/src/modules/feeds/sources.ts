@@ -1,7 +1,7 @@
 import { type FeedSource, resolveSource, youtubePage } from '@maxwell/core/modules/feeds';
 import type { Config } from '../../config.js';
 import { copy } from './copy.js';
-import { type Fetcher, fetchText, USER_AGENT } from './http.js';
+import { type Fetcher, type FetchResult, fetchText, USER_AGENT } from './http.js';
 import { FeedError, type FeedItem, parseFeed } from './parse.js';
 
 export {
@@ -27,6 +27,7 @@ export interface SourceDeps {
   fetcher?: Fetcher;
   checkUrl?: (url: string) => Promise<boolean>;
   twitch: TwitchClient | null;
+  sharedTtl?: number;
 }
 
 export interface Cache {
@@ -273,7 +274,7 @@ export async function loadSource(
     };
   }
 
-  const result = await fetchText(resolved, cache, deps.fetcher, deps.checkUrl);
+  const result = await sharedFetch(resolved, cache, deps);
   if (result.status === 'unchanged') {
     return { status: 'unchanged', items: [], etag: result.etag, lastModified: result.lastModified };
   }
@@ -281,5 +282,80 @@ export async function loadSource(
   if (feed.type === 'youtube' && !feed.shorts) {
     items = items.filter((item) => !item.url?.includes('/shorts/'));
   }
+  if (feed.type === 'reddit') {
+    items = items.map((item) => ({ ...item, summary: cleanRedditSummary(item.summary) }));
+  }
   return { status: 'ok', items, etag: result.etag, lastModified: result.lastModified };
+}
+
+export function cleanRedditSummary(summary: string): string {
+  return summary.replace(/\s*submitted by\s+\/u\/\S+\s*\[link\]\s*\[comments\]\s*$/i, '').trim();
+}
+
+const SHARED_TTL = 60_000;
+const SHARED_MAX = 500;
+
+type SharedEntry =
+  | { at: number; result: FetchResult }
+  | { at: number; current: { etag: string | null; lastModified: string | null } }
+  | { at: number; error: FeedError };
+
+const sharedCaches = new WeakMap<Fetcher, Map<string, SharedEntry>>();
+const defaultShared = new Map<string, SharedEntry>();
+
+function sharedFor(deps: SourceDeps): Map<string, SharedEntry> {
+  if (!deps.fetcher) return defaultShared;
+  let map = sharedCaches.get(deps.fetcher);
+  if (!map) {
+    map = new Map();
+    sharedCaches.set(deps.fetcher, map);
+  }
+  return map;
+}
+
+function matches(cache: Cache, etag: string | null, lastModified: string | null): boolean {
+  return (
+    (cache.etag !== null && cache.etag === etag) ||
+    (cache.lastModified !== null && cache.lastModified === lastModified)
+  );
+}
+
+export async function sharedFetch(
+  url: string,
+  cache: Cache,
+  deps: SourceDeps,
+  now = Date.now(),
+): Promise<FetchResult> {
+  const shared = sharedFor(deps);
+  const ttl = deps.sharedTtl ?? SHARED_TTL;
+  const hit = shared.get(url);
+  if (hit && now - hit.at < ttl) {
+    if ('error' in hit) throw hit.error;
+    const tag = 'result' in hit ? hit.result : hit.current;
+    if (matches(cache, tag.etag, tag.lastModified)) {
+      return { status: 'unchanged', body: '', etag: tag.etag, lastModified: tag.lastModified };
+    }
+    if ('result' in hit) return hit.result;
+  }
+  if (shared.size >= SHARED_MAX) {
+    for (const [key, entry] of shared) {
+      if (now - entry.at >= ttl) shared.delete(key);
+    }
+    if (shared.size >= SHARED_MAX) shared.clear();
+  }
+  try {
+    const result = await fetchText(url, cache, deps.fetcher, deps.checkUrl);
+    shared.set(
+      url,
+      result.status === 'ok'
+        ? { at: now, result }
+        : { at: now, current: { etag: result.etag, lastModified: result.lastModified } },
+    );
+    return result;
+  } catch (error) {
+    if (error instanceof FeedError && error.code === 'rate_limited') {
+      shared.set(url, { at: now, error });
+    }
+    throw error;
+  }
 }
