@@ -13,6 +13,7 @@ export const PERMISSION = {
   ViewAuditLog: 1n << 7n,
   ManageMessages: 1n << 13n,
   ManageRoles: 1n << 28n,
+  ManageWebhooks: 1n << 29n,
   ModerateMembers: 1n << 40n,
 } as const;
 
@@ -335,6 +336,15 @@ export async function guildRoles(guildId: string): Promise<GuildRole[]> {
       permissions: role.permissions ?? '0',
     }))
     .sort((a, b) => b.position - a.position);
+}
+
+export async function botRoleIds(guildId: string): Promise<string[] | null> {
+  try {
+    const member = await bot<{ roles?: string[] }>(`/guilds/${guildId}/members/@me`);
+    return member.roles ?? [];
+  } catch {
+    return null;
+  }
 }
 
 export async function botPermissions(guildId: string): Promise<bigint | null> {
