@@ -14,7 +14,7 @@ export const common = {
   'View only': 'Nur ansehen',
   'Turn on': 'Einschalten',
   '{name} is off. Nothing runs until you turn it on.':
-    '{name} ist aus. Nichts läuft, bis du es einschaltest.',
+    'Das Modul {name} ist aus. Nichts läuft, bis du es einschaltest.',
   'Sorted.': 'Erledigt.',
   'No vote found yet': 'Noch kein Vote gefunden',
   'I voted, check again': 'Ich habe gevotet, nochmal prüfen',
