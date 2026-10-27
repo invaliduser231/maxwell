@@ -7,6 +7,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useTransition,
 } from 'react';
@@ -24,6 +25,8 @@ interface DraftContext {
   value: Record<string, unknown>;
   update: (fn: (previous: Record<string, unknown>) => Record<string, unknown>) => void;
   readOnly: boolean;
+  dirty: boolean;
+  save: () => Promise<boolean>;
 }
 
 const Draft = createContext<DraftContext | null>(null);
@@ -38,6 +41,8 @@ export function useDraft<T extends object>(): {
   set: (patch: Partial<T>) => void;
   update: (fn: (previous: T) => T) => void;
   readOnly: boolean;
+  dirty: boolean;
+  save: () => Promise<boolean>;
 } {
   const context = useContext(Draft);
   if (!context) throw new Error('useDraft outside ModuleShell');
@@ -47,6 +52,8 @@ export function useDraft<T extends object>(): {
     update: (fn) =>
       context.update((previous) => fn(previous as T) as unknown as Record<string, unknown>),
     readOnly: context.readOnly,
+    dirty: context.dirty,
+    save: context.save,
   };
 }
 
@@ -234,18 +241,23 @@ function Shell({
     [blocked],
   );
 
+  const persist = async (): Promise<boolean> => {
+    const result = await saveModule(guildId, module, value);
+    if (result.ok) {
+      const saved = result.data ?? value;
+      setBaseline(saved);
+      setValue(saved);
+      setStatus(sorted());
+      onSaved?.(saved);
+      return true;
+    }
+    setStatus(failed(result.error));
+    return false;
+  };
+
   const save = () =>
     start(async () => {
-      const result = await saveModule(guildId, module, value);
-      if (result.ok) {
-        const saved = result.data ?? value;
-        setBaseline(saved);
-        setValue(saved);
-        setStatus(sorted());
-        onSaved?.(saved);
-      } else {
-        setStatus(failed(result.error));
-      }
+      await persist();
     });
 
   const toggle = (next: boolean) =>
@@ -258,7 +270,14 @@ function Shell({
       }
     });
 
-  const context = useMemo(() => ({ value, update, readOnly: blocked }), [value, update, blocked]);
+  const persistRef = useRef(persist);
+  persistRef.current = persist;
+  const saveNow = useCallback(() => persistRef.current(), []);
+
+  const context = useMemo(
+    () => ({ value, update, readOnly: blocked, dirty, save: saveNow }),
+    [value, update, blocked, dirty, saveNow],
+  );
 
   const body = (
     <Draft.Provider value={context}>
