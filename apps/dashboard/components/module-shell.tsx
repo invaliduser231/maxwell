@@ -17,7 +17,7 @@ import { useGuild } from './guild';
 import { useT } from './i18n';
 import { fingerprint, useRemote } from './live';
 import { failed, type Status, StatusText, sorted } from './status-text';
-import { ModuleIcon } from './ui';
+import { Callout, ModuleIcon } from './ui';
 import { VoteLock } from './vote-lock';
 
 interface DraftContext {
@@ -290,6 +290,25 @@ function Shell({
           {actions}
         </DirtyActions>
       </PageHeader>
+      {toggleable && !on && !locked ? (
+        <Callout
+          tone="warn"
+          action={
+            readOnly ? null : (
+              <button
+                type="button"
+                className="mx-btn mx-btn-primary"
+                disabled={pending}
+                onClick={() => toggle(true)}
+              >
+                {t('Turn on')}
+              </button>
+            )
+          }
+        >
+          {t('{name} is off. Nothing runs until you turn it on.', { name })}
+        </Callout>
+      ) : null}
       {locked ? (
         <div className="mx-lock-wrap">
           <div aria-hidden="true" inert>
