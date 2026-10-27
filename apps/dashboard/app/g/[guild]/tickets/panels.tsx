@@ -553,7 +553,7 @@ function FirstPanel() {
     <Panel id="t-panels">
       <Empty mood="thinking">
         <div className="mx-stack" style={{ alignItems: 'center' }}>
-          <span>{t('No panels yet. Members open tickets from one.')}</span>
+          <span>{t('No panels yet.')}</span>
           {readOnly ? null : (
             <button type="button" className="mx-btn mx-btn-primary" onClick={add}>
               {t('New panel')}

@@ -196,7 +196,6 @@ function Board({
 }) {
   const t = useT();
   const { guildId } = useGuild();
-  const { value } = useDraft<SuggestionsConfig>();
   const router = useRouter();
   const pathname = usePathname();
   const [items, setItems] = useState(initial);
@@ -285,11 +284,7 @@ function Board({
         status ? (
           <Empty>{t('Nothing with this status.')}</Empty>
         ) : (
-          <Empty mood="sleeping">
-            {value.channelId
-              ? t('No suggestions yet.')
-              : t('No suggestions yet. Pick a channel to collect them.')}
-          </Empty>
+          <Empty mood="sleeping">{t('No suggestions yet.')}</Empty>
         )
       ) : null}
       {items.map((item) => (

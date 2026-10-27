@@ -46,10 +46,10 @@ export function VoteLock({ module }: { module: string }) {
         {t('{module} opens with a vote', { module })}
       </h2>
       <p style={{ margin: 0, color: 'var(--mx-text-2)', lineHeight: 1.5 }}>
-        {t(
-          'Vote for Maxwell on fluxerlist once. {module} and the other {count} locked modules stay open for you after that.',
-          { module, count: lockedCount - 1 },
-        )}
+        {t('One vote on fluxerlist unlocks {module} and {count} more modules.', {
+          module,
+          count: lockedCount - 1,
+        })}
       </p>
       <div className="mx-inline" style={{ justifyContent: 'center', paddingTop: 4 }}>
         {voteUrl ? (

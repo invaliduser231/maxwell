@@ -23,8 +23,6 @@ export const suggestions = {
   All: 'Alle',
   'Nothing with this status.': 'Nichts mit diesem Status.',
   'No suggestions yet.': 'Noch keine Vorschläge.',
-  'No suggestions yet. Pick a channel to collect them.':
-    'Noch keine Vorschläge. Wähl einen Kanal, um sie zu sammeln.',
   'Show more': 'Mehr zeigen',
   'Thread for each suggestion': 'Thread für jeden Vorschlag',
   'Message the author on status changes': 'Autor bei Statusänderungen benachrichtigen',

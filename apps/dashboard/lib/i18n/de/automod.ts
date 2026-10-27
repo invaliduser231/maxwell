@@ -45,8 +45,6 @@ export const automod = {
   '{n} accounts waiting at the gate': '{n} Konten warten am Einlass',
   'Held since {when}.': 'Wartet seit {when}.',
   'New joins wait until {time}.': 'Neue Beitritte warten bis {time}.',
-  'They have the gate role and see no channels.':
-    'Sie haben die Einlassrolle und sehen keine Kanäle.',
   'Lockdown until {time}': 'Lockdown bis {time}',
   'Nobody joined since it started.': 'Seit dem Start ist niemand beigetreten.',
   'Hide list': 'Liste ausblenden',

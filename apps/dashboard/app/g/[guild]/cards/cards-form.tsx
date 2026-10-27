@@ -161,9 +161,6 @@ function ImageControls({
           </>
         )}
       </div>
-      {!version && !status ? (
-        <span className="mx-hint">{t('Field lines show until you add an image.')}</span>
-      ) : null}
       <StatusText status={status} />
     </div>
   );

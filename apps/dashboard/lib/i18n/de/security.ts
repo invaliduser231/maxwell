@@ -50,18 +50,15 @@ export const security = {
   'Raid mode is on': 'Raid-Modus ist an',
   'Every new member gets a captcha.': 'Jedes neue Mitglied bekommt ein Captcha.',
   'Set up gate role': 'Gate-Rolle einrichten',
-  'Security needs a gate role to hold people back. Maxwell creates one that sees no channels.':
-    'Security braucht eine Gate-Rolle, um Leute zurückzuhalten. Maxwell legt eine an, die keine Kanäle sieht.',
-  'Maxwell sits below {roles}. It cannot stop members with these roles. Move the Maxwell role higher.':
-    'Maxwell steht unter {roles}. Mitglieder mit diesen Rollen kann Maxwell nicht stoppen. Zieh die Maxwell-Rolle nach oben.',
+  'No gate role yet.': 'Noch keine Gate-Rolle.',
+  'Maxwell is below {roles}. Move its role higher.':
+    'Maxwell steht unter {roles}. Zieh seine Rolle nach oben.',
   'Joined, last 24 hours': 'Beigetreten, letzte 24 Stunden',
   Flagged: 'Markiert',
   'Passed the captcha': 'Captcha bestanden',
   'Waiting now': 'Wartet gerade',
   Captcha: 'Captcha',
   'Check new members': 'Neue Mitglieder prüfen',
-  'Risky accounts wait at the gate until they solve a picture captcha by DM.':
-    'Riskante Konten warten am Gate, bis sie per DM ein Bild-Captcha lösen.',
   'Captcha from risk score': 'Captcha ab Risikowert',
   Tries: 'Versuche',
   'Time to answer': 'Zeit zum Antworten',
@@ -80,8 +77,6 @@ export const security = {
   'Spam words in names': 'Spam-Wörter in Namen',
   Raids: 'Raids',
   'Watch for raids': 'Auf Raids achten',
-  'Join bursts, waves of similar accounts and new members posting the same thing.':
-    'Beitrittswellen, ähnliche Konten auf einmal und neue Mitglieder, die dasselbe posten.',
   Joins: 'Beitritte',
   Within: 'Innerhalb von',
   'Similar accounts': 'Ähnliche Konten',
@@ -92,8 +87,6 @@ export const security = {
   'Start raid mode now': 'Raid-Modus jetzt starten',
   Nukes: 'Nukes',
   'Stop mass changes': 'Massenänderungen stoppen',
-  'When someone deletes, bans or hands out power too fast, Maxwell takes their dangerous roles away.':
-    'Wer zu schnell löscht, bannt oder Rechte verteilt, verliert seine gefährlichen Rollen.',
   'Time window': 'Zeitfenster',
   People: 'Menschen',
   Bots: 'Bots',
@@ -101,12 +94,9 @@ export const security = {
   'Trusted roles': 'Vertrauenswürdige Rollen',
   'Trusted user IDs': 'Vertrauenswürdige Nutzer-IDs',
   'Restore from the last backup': 'Aus dem letzten Backup wiederherstellen',
-  'Deleted channels and roles come back. Needs Backups.':
-    'Gelöschte Kanäle und Rollen kommen zurück. Braucht Backups.',
-  Honeypot: 'Honigtopf',
-  'Trap spam bots': 'Spam-Bots in die Falle locken',
-  'Anyone who posts in a trap channel or takes the trap role is removed.':
-    'Wer in einem Fallen-Kanal postet oder die Fallen-Rolle nimmt, fliegt raus.',
+  'Needs Backups.': 'Braucht Backups.',
+  Honeypot: 'Honeypot',
+  'Trap spam bots': 'Fallen für Spam-Bots',
   'Trap channels': 'Fallen-Kanäle',
   'Trap role': 'Fallen-Rolle',
   'No trap role': 'Keine Fallen-Rolle',

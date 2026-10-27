@@ -84,8 +84,6 @@ export const tickets = {
   'No ratings yet.': 'Noch keine Bewertungen.',
   '{n} star': '{n} Stern',
   '{n} stars': '{n} Sterne',
-  'No tickets yet. Members open them from a panel.':
-    'Noch keine Tickets. Mitglieder öffnen sie über ein Panel.',
   'No tickets yet.': 'Noch keine Tickets.',
   'Set up a panel': 'Panel einrichten',
   Support: 'Support',
@@ -146,8 +144,7 @@ export const tickets = {
   'to close.': 'zum Schließen.',
   'No team role yet. Only admins will see these tickets.':
     'Noch keine Teamrolle. Nur Admins sehen diese Tickets.',
-  'No panels yet. Members open tickets from one.':
-    'Noch keine Panels. Mitglieder öffnen Tickets über eines.',
+  'No panels yet.': 'Noch keine Panels.',
   Never: 'Nie',
   'Right away': 'Sofort',
   '{n} second': '{n} Sekunde',

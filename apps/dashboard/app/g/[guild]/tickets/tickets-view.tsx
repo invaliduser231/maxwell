@@ -551,7 +551,7 @@ function Closed({
                     {ticket.rating} / 5
                   </span>
                 ) : null}
-                <Link className="mx-btn mx-btn-ghost" href={`/g/${guildId}/tickets/${ticket.id}`}>
+                <Link className="mx-pick mx-sub" href={`/g/${guildId}/tickets/${ticket.id}`}>
                   {t('Transcript')}
                 </Link>
               </div>
@@ -714,11 +714,7 @@ export function TicketsView({
         <Panel id="t-open">
           <Empty mood="sleeping">
             <div className="mx-stack" style={{ alignItems: 'center' }}>
-              <span>
-                {value.panels.length === 0
-                  ? t('No tickets yet. Members open them from a panel.')
-                  : t('No tickets yet.')}
-              </span>
+              <span>{t('No tickets yet.')}</span>
               {value.panels.length === 0 && !readOnly ? (
                 <button
                   type="button"

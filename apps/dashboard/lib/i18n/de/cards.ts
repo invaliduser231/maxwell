@@ -17,7 +17,6 @@ export const cards = {
   'Upload image': 'Bild hochladen',
   Remove: 'Entfernen',
   'Click again to remove': 'Zum Entfernen nochmal klicken',
-  'Field lines show until you add an image.': 'Bis du ein Bild hinzufügst, erscheinen Feldlinien.',
   Style: 'Stil',
   'Welcome, goodbye, rank, level up, leaderboard': 'Begrüßung, Abschied, Rang, Level-up, Rangliste',
   'Accent color': 'Akzentfarbe',

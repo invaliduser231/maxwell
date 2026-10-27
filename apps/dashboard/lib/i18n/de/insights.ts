@@ -39,6 +39,4 @@ export const insights = {
   'Count bots': 'Bots mitzählen',
   'Count voice time': 'Sprachzeit mitzählen',
   'Nothing counted yet.': 'Noch nichts gezählt.',
-  'Charts fill in once people start talking.':
-    'Die Diagramme füllen sich, sobald geschrieben wird.',
 } as const;

@@ -173,7 +173,7 @@ function ShieldIcon({ color }: { color: string }) {
   );
 }
 
-function Gate({ initial, raid }: { initial: GateView; raid: Raid }) {
+function Gate({ initial }: { initial: GateView }) {
   const { guildId, timezone } = useGuild();
   const t = useT();
   const { readOnly } = useDraft<AutomodConfig>();
@@ -262,7 +262,6 @@ function Gate({ initial, raid }: { initial: GateView; raid: Raid }) {
         t('New joins wait until {time}.', { time: clock(gate.incident.endsAt, timezone) }),
       );
     }
-    if (raid.gateRoleId) parts.push(t('They have the gate role and see no channels.'));
     detail = parts.join(' ');
   } else if (active && gate.incident) {
     title = gate.incident.endsAt
@@ -777,7 +776,7 @@ export function AutomodForm({
 
   return (
     <div className="mx-stack" style={{ gap: 16 }}>
-      <Gate initial={gate} raid={raid} />
+      <Gate initial={gate} />
 
       <Tabs label="AutoMod" value={tab} options={translated(t, TABS)} onChange={setTab} />
 

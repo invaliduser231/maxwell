@@ -19,8 +19,8 @@ export const common = {
   'No vote found yet': 'Noch kein Vote gefunden',
   'I voted, check again': 'Ich habe gevotet, nochmal prüfen',
   '{module} opens with a vote': '{module} öffnet sich mit einem Vote',
-  'Vote for Maxwell on fluxerlist once. {module} and the other {count} locked modules stay open for you after that.':
-    'Vote einmal auf fluxerlist für Maxwell. Danach bleiben {module} und die anderen {count} gesperrten Module für dich offen.',
+  'One vote on fluxerlist unlocks {module} and {count} more modules.':
+    'Ein Vote auf fluxerlist schaltet {module} und {count} weitere Module frei.',
   Search: 'Suchen',
   'Clear search': 'Suche leeren',
   None: 'Keine',
