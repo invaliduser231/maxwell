@@ -13,6 +13,7 @@ const schema = z.object({
   FLUXERLIST_BOT_ID: z.string().optional(),
   FLUXERLIST_API_BASE: z.url().default('https://fluxerlist.com'),
   VOTE_URL: z.url().optional(),
+  SOURCE_URL: z.url().optional(),
   OWNER_IDS: z
     .string()
     .default('')

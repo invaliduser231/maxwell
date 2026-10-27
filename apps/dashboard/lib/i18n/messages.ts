@@ -16,6 +16,7 @@ import { general } from './de/general';
 import { giveaways } from './de/giveaways';
 import { insights } from './de/insights';
 import { invites } from './de/invites';
+import { landing } from './de/landing';
 import { levels } from './de/levels';
 import { logs } from './de/logs';
 import { members } from './de/members';
@@ -40,6 +41,7 @@ export const messages = {
   ...common,
   ...errors,
   ...start,
+  ...landing,
   ...overview,
   ...audit,
   ...access,
