@@ -91,6 +91,15 @@ describe.skipIf(!url)('feeds store and poller', () => {
     await sql.end();
   });
 
+  it('keeps test outcomes per request and community', async () => {
+    const requestId = `test-${guild}`;
+    expect(await store.testOutcome(guild, requestId)).toBeNull();
+    await store.recordTest(guild, 'f1', requestId, 'send_failed');
+    expect(await store.testOutcome(guild, requestId)).toBe('send_failed');
+    expect(await store.testOutcome('1', requestId)).toBeNull();
+    await sql`delete from feeds_tests where request_id = ${requestId}`;
+  });
+
   it('primes a new feed without posting the backlog', async () => {
     await poller.poll(guild, 'f1');
     expect(sent).toHaveLength(0);

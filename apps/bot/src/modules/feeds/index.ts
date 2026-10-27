@@ -47,6 +47,10 @@ export default defineBotModule({
       if (!job.guildId || !feedId) return;
       const outcome = await poller.test(job.guildId, feedId);
       log.info({ guild: job.guildId, feed: feedId, outcome }, 'feed test');
+      const requestId = job.payload.requestId;
+      if (typeof requestId === 'string' && /^[\w-]{8,64}$/.test(requestId)) {
+        await store.recordTest(job.guildId, feedId, requestId, outcome);
+      }
     });
 
     ctx.job('resume', async (job) => {

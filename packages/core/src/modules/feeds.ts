@@ -220,5 +220,19 @@ export default defineModule({
         create index feeds_posts_feed on feeds_posts (guild_id, feed_id, posted_at desc);
       `,
     },
+    {
+      id: '2-tests',
+      up: `
+        create table feeds_tests (
+          request_id text primary key,
+          guild_id bigint not null,
+          feed_id text not null,
+          outcome text not null,
+          created_at timestamptz not null default now()
+        );
+
+        create index feeds_tests_created on feeds_tests (created_at);
+      `,
+    },
   ],
 });

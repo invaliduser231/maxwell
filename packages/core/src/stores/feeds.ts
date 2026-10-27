@@ -235,6 +235,27 @@ export class FeedStore {
     `;
   }
 
+  async recordTest(
+    guildId: string,
+    feedId: string,
+    requestId: string,
+    outcome: string,
+  ): Promise<void> {
+    await this.sql`
+      insert into feeds_tests (request_id, guild_id, feed_id, outcome)
+      values (${requestId}, ${guildId}, ${feedId}, ${outcome.slice(0, 64)})
+      on conflict (request_id) do update set outcome = excluded.outcome
+    `;
+    await this.sql`delete from feeds_tests where created_at < now() - interval '1 hour'`;
+  }
+
+  async testOutcome(guildId: string, requestId: string): Promise<string | null> {
+    const [row] = await this.sql<{ outcome: string }[]>`
+      select outcome from feeds_tests where request_id = ${requestId} and guild_id = ${guildId}
+    `;
+    return row?.outcome ?? null;
+  }
+
   async recentPosts(guildId: string, feedId?: string, limit = 20): Promise<FeedPost[]> {
     const size = Math.min(Math.max(limit, 1), 100);
     return this.sql<FeedPost[]>`

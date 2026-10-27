@@ -31,6 +31,7 @@ import { Callout, Empty, Field, Fields, Grid, Panel, PanelBody } from '@/compone
 import { runAction } from '@/lib/actions';
 import type { Key, Translator } from '@/lib/i18n';
 import { ago } from '@/lib/time';
+import { feedTestOutcome } from './actions';
 
 export interface FeedStateView {
   lastPolledAt: string | null;
@@ -194,6 +195,31 @@ function newId(taken: readonly string[]): string {
 function errorOf(t: Translator, code: string): string {
   const key = errorText[code];
   return key ? t(key) : code;
+}
+
+const TEST_WAIT_MS = 30_000;
+
+async function waitForTest(
+  guildId: string,
+  requestId: string,
+  t: Translator,
+  channel: string,
+): Promise<Status> {
+  const until = Date.now() + TEST_WAIT_MS;
+  while (Date.now() < until) {
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+    const result = await feedTestOutcome(guildId, requestId);
+    if (!result.ok) return { message: result.error, error: true };
+    const { outcome } = result;
+    if (outcome === null) continue;
+    if (outcome === 'posted') {
+      return { message: t('Posted the newest item in {channel}.', { channel }), error: false };
+    }
+    if (outcome === 'empty') return { message: t('The feed has no items yet.'), error: true };
+    if (outcome === 'missing') return { message: t('Save the feed first.'), error: true };
+    return { message: errorOf(t, outcome), error: true };
+  }
+  return { message: t('Maxwell did not answer. Is the bot running?'), error: true };
 }
 
 function feedLabel(t: Translator, feed: FeedSource): string {
@@ -417,11 +443,16 @@ function Editor({
 
   const run = (action: 'test' | 'resume', done: string) =>
     start(async () => {
-      const result = await runAction(guildId, 'feeds', action, { feedId: feed.id });
+      const requestId = action === 'test' ? crypto.randomUUID() : undefined;
+      const result = await runAction(guildId, 'feeds', action, { feedId: feed.id, requestId });
       setStatus(
         result.ok ? { message: done, error: false } : { message: result.error, error: true },
       );
       if (result.ok && action === 'resume') setTimeout(() => router.refresh(), 2500);
+      if (result.ok && requestId) {
+        const channel = channelName(feed.channelId);
+        setStatus(await waitForTest(guildId, requestId, t, channel));
+      }
     });
 
   const insert = (token: string) => {
