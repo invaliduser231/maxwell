@@ -338,6 +338,22 @@ export async function guildRoles(guildId: string): Promise<GuildRole[]> {
     .sort((a, b) => b.position - a.position);
 }
 
+export interface GuildEmoji {
+  id: string;
+  name: string;
+  animated: boolean;
+}
+
+export async function guildEmojis(guildId: string): Promise<GuildEmoji[]> {
+  const emojis = await bot<{ id: string; name?: string | null; animated?: boolean }[]>(
+    `/guilds/${guildId}/emojis`,
+  );
+  return emojis
+    .filter((emoji) => emoji.name)
+    .map((emoji) => ({ id: emoji.id, name: emoji.name ?? '', animated: emoji.animated ?? false }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export async function botRoleIds(guildId: string): Promise<string[] | null> {
   try {
     const member = await bot<{ roles?: string[] }>(`/guilds/${guildId}/members/@me`);

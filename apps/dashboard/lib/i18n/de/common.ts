@@ -55,4 +55,9 @@ export const common = {
   Level: 'Level',
   'Level-up card for {name}, level {level}': 'Level-up-Karte für {name}, Level {level}',
   Unlocked: 'Freigeschaltet',
+  'This community': 'Diese Community',
+  'Could not load emojis.': 'Emojis konnten nicht geladen werden.',
+  Categories: 'Kategorien',
+  Loading: 'Lädt',
+  Default: 'Standard',
 } as const;

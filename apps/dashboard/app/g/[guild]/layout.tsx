@@ -7,7 +7,7 @@ import { canSee, requireGuild } from '@/lib/access';
 import { communities } from '@/lib/communities';
 import { db } from '@/lib/db';
 import { env } from '@/lib/env';
-import { guildChannels, guildRoles } from '@/lib/fluxer';
+import { guildChannels, guildEmojis, guildRoles } from '@/lib/fluxer';
 import { pageGroups } from '@/lib/pages';
 
 export async function generateMetadata({
@@ -29,9 +29,10 @@ export default async function GuildLayout({
 }) {
   const { guild: guildId } = await params;
   const access = await requireGuild(guildId);
-  const [channels, roles, general, all] = await Promise.all([
+  const [channels, roles, emojis, general, all] = await Promise.all([
     guildChannels(guildId).catch(() => []),
     guildRoles(guildId).catch(() => []),
+    guildEmojis(guildId).catch(() => []),
     db().modules.get(guildId, 'general', generalConfig),
     communities(access.user),
   ]);
@@ -50,6 +51,7 @@ export default async function GuildLayout({
         guildName: access.guild.name,
         channels,
         roles,
+        emojis,
         voted: access.voted,
         admin: access.admin,
         userId: access.user.id,

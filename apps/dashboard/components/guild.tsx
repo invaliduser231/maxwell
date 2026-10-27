@@ -17,11 +17,18 @@ export interface RoleOption {
   managed: boolean;
 }
 
+export interface EmojiOption {
+  id: string;
+  name: string;
+  animated: boolean;
+}
+
 export interface GuildData {
   guildId: string;
   guildName: string;
   channels: ChannelOption[];
   roles: RoleOption[];
+  emojis: EmojiOption[];
   voted: boolean;
   admin: boolean;
   userId: string;
