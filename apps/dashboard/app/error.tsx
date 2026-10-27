@@ -1,6 +1,9 @@
 'use client';
 
+import { useT } from '@/components/i18n';
+
 export default function ErrorPage({ reset }: { error: Error; reset: () => void }) {
+  const t = useT();
   return (
     <main
       style={{
@@ -15,9 +18,9 @@ export default function ErrorPage({ reset }: { error: Error; reset: () => void }
       }}
     >
       <img src="/mascot/error.svg" alt="" width={72} height={72} />
-      <h1 className="mx-h1">Something broke</h1>
+      <h1 className="mx-h1">{t('Something broke')}</h1>
       <button type="button" className="mx-btn" onClick={reset}>
-        Try again
+        {t('Try again')}
       </button>
     </main>
   );

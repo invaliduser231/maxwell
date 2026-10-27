@@ -13,6 +13,7 @@ import {
   ToggleRow,
 } from '@/components/controls';
 import { ChannelType, useChannelName, useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { EmbedPreview, Markdown, MessagePreview } from '@/components/message-preview';
 import { useDraft } from '@/components/module-shell';
 import { type Status, StatusText } from '@/components/status-text';
@@ -29,6 +30,7 @@ import {
   roleColor,
 } from '@/components/ui';
 import { runAction } from '@/lib/actions';
+import type { Key, Translator } from '@/lib/i18n';
 import { padNumber } from './format';
 
 export interface Published {
@@ -36,31 +38,32 @@ export interface Published {
   channelId: string;
 }
 
-const kinds: { value: TicketPanelKind; label: string }[] = [
+const kinds: { value: TicketPanelKind; label: Key }[] = [
   { value: 'support', label: 'Support' },
   { value: 'report', label: 'Report' },
   { value: 'appeal', label: 'Appeal' },
   { value: 'custom', label: 'Custom' },
 ];
 
-const panelDefaults: Record<TicketPanelKind, string> = {
+const panelDefaults: Record<TicketPanelKind, Key> = {
   support: 'Need help? React with {emoji} to open a ticket.',
   report: 'Something wrong in here? React with {emoji}. Only the team sees your ticket.',
   appeal: 'Want a decision looked at again? React with {emoji} to open an appeal.',
   custom: 'React with {emoji} to open a ticket.',
 };
 
-const openDefaults: Record<TicketPanelKind, string> = {
+const openDefaults: Record<TicketPanelKind, Key> = {
   support: 'Tell us what you need. The team will be with you shortly.',
   report: 'Tell us what happened and who was involved. Message links help.',
   appeal: 'Tell us which decision you want reviewed and why.',
   custom: 'The team will be with you shortly.',
 };
 
-const limits = [1, 2, 3, 5, 10].map((n) => ({
-  value: String(n),
-  label: n === 1 ? '1 open ticket' : `${n} open tickets`,
-}));
+function limitLabel(t: Translator, n: number): string {
+  return t.plural(n, '{n} open ticket', '{n} open tickets');
+}
+
+const limits = [1, 2, 3, 5, 10];
 
 const CATEGORY = [ChannelType.Category];
 
@@ -125,8 +128,9 @@ export function channelPreview(template: string, panelName: string, user: string
 }
 
 function EnvelopeIcon() {
+  const t = useT();
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" aria-label="Envelope" role="img">
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-label={t('Envelope')} role="img">
       <rect
         x="3"
         y="5"
@@ -143,8 +147,9 @@ function EnvelopeIcon() {
 }
 
 export function LockIcon() {
+  const t = useT();
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" aria-label="Lock" role="img">
+    <svg width="14" height="14" viewBox="0 0 24 24" aria-label={t('Lock')} role="img">
       <path d="M7 11V8a5 5 0 0 1 10 0v3" fill="none" stroke="#C9CCD2" strokeWidth="2.2" />
       <rect x="5" y="11" width="14" height="10" rx="2.5" fill="#C9CCD2" />
     </svg>
@@ -171,19 +176,20 @@ function PanelList({
   onSelect: (index: number) => void;
   published: Published[];
 }) {
+  const t = useT();
   const { value, update, readOnly } = useDraft<TicketsConfig>();
   const { roles } = useGuild();
   const channelName = useChannelName();
 
   const add = () => {
-    const panel = newPanel(value.panels.length === 0 ? 'Support' : 'New panel', value.panels);
+    const panel = newPanel(value.panels.length === 0 ? t('Support') : t('New panel'), value.panels);
     update((previous) => ({ ...previous, panels: [...previous.panels, panel] }));
     onSelect(value.panels.length);
   };
 
   return (
     <Panel
-      title="Panels"
+      title={t('Panels')}
       span={7}
       id="t-panels"
       actions={
@@ -194,7 +200,7 @@ function PanelList({
             disabled={value.panels.length >= 10}
             onClick={add}
           >
-            New panel
+            {t('New panel')}
           </button>
         )
       }
@@ -203,9 +209,9 @@ function PanelList({
         const team = roles.find((role) => role.id === panel.teamRoleIds[0]);
         const live = published.find((entry) => entry.panelId === panel.id);
         const detail = [
-          panel.channelId ? channelName(panel.channelId) : 'No channel',
-          panel.categoryId ? channelName(panel.categoryId).replace(/^#/, '') : 'No category',
-          live ? 'posted' : 'not posted',
+          panel.channelId ? channelName(panel.channelId) : t('No channel'),
+          panel.categoryId ? channelName(panel.categoryId).replace(/^#/, '') : t('No category'),
+          live ? t('posted') : t('not posted'),
         ].join(', ');
         return (
           <div key={panel.id} className="mx-row">
@@ -225,7 +231,7 @@ function PanelList({
                 {panel.teamRoleIds.length > 1 ? ` +${panel.teamRoleIds.length - 1}` : ''}
               </span>
             ) : (
-              <span className="mx-sub">No team role</span>
+              <span className="mx-sub">{t('No team role')}</span>
             )}
           </div>
         );
@@ -256,6 +262,7 @@ function PanelSetup({
   saved: TicketsConfig;
   published: Published[];
 }) {
+  const t = useT();
   const { panel, patch, readOnly } = usePanel(index);
   const { guildId } = useGuild();
   const channelName = useChannelName();
@@ -271,17 +278,20 @@ function PanelSetup({
 
   if (!panel) {
     return (
-      <Panel title="Panel" span={5} id="t-setup">
-        <Empty>Pick a panel.</Empty>
+      <Panel title={t('Panel')} span={5} id="t-setup">
+        <Empty>{t('Pick a panel.')}</Empty>
       </Panel>
     );
   }
 
-  const where = panel.channelId ? channelName(panel.channelId) : 'No channel';
+  const where = panel.channelId ? channelName(panel.channelId) : t('No channel');
   const live = published.find((entry) => entry.panelId === panel.id);
   const stored = saved.panels.find((entry) => entry.id === panel.id);
   const unsaved = !stored || JSON.stringify(stored) !== JSON.stringify(panel);
-  const description = panel.description || panelDefaults[panel.kind];
+  const description = panel.description || t(panelDefaults[panel.kind]);
+  const limitOptions = (
+    limits.includes(panel.maxOpenPerMember) ? limits : [...limits, panel.maxOpenPerMember]
+  ).map((n) => ({ value: String(n), label: limitLabel(t, n) }));
 
   const run = (action: 'panel.publish' | 'panel.remove', done: string) =>
     start(async () => {
@@ -296,57 +306,47 @@ function PanelSetup({
       title={panel.name}
       span={5}
       id="t-setup"
-      actions={<span className="mx-sub">in {where}</span>}
+      actions={<span className="mx-sub">{t('in {channel}', { channel: where })}</span>}
     >
       <PanelBody>
         <Fields>
-          <Field label="Channel">
+          <Field label={t('Channel')}>
             <ChannelSelect value={panel.channelId} onChange={(channelId) => patch({ channelId })} />
           </Field>
-          <Field label="Ticket category">
+          <Field label={t('Ticket category')}>
             <ChannelSelect
               value={panel.categoryId}
               kinds={CATEGORY}
-              none="No category"
+              none={t('No category')}
               onChange={(categoryId) => patch({ categoryId })}
             />
           </Field>
-          <Field label="Limit per member">
+          <Field label={t('Limit per member')}>
             <Select
               value={String(panel.maxOpenPerMember)}
-              options={
-                limits.some((entry) => entry.value === String(panel.maxOpenPerMember))
-                  ? limits
-                  : [
-                      ...limits,
-                      {
-                        value: String(panel.maxOpenPerMember),
-                        label: `${panel.maxOpenPerMember} open tickets`,
-                      },
-                    ]
-              }
+              options={limitOptions}
               onChange={(next) => patch({ maxOpenPerMember: Number(next) })}
             />
           </Field>
-          <Field label="Emoji">
+          <Field label={t('Emoji')}>
             <TextInput
               value={panel.emoji}
               maxLength={80}
-              placeholder="Envelope"
+              placeholder={t('Envelope')}
               onChange={(emoji) => patch({ emoji: emoji.trim() })}
             />
           </Field>
         </Fields>
         <div className="mx-field">
-          <span className="mx-label">Team roles</span>
+          <span className="mx-label">{t('Team roles')}</span>
           <RoleMulti
             value={panel.teamRoleIds}
             onChange={(teamRoleIds) => patch({ teamRoleIds: teamRoleIds.slice(0, 10) })}
           />
         </div>
         <ToggleRow
-          title="Ping the team"
-          sub="When a ticket opens"
+          title={t('Ping the team')}
+          sub={t('When a ticket opens')}
           checked={panel.pingTeam}
           onChange={(pingTeam) => patch({ pingTeam })}
         />
@@ -373,17 +373,19 @@ function PanelSetup({
               disabled={pending || unsaved || !panel.channelId}
               onClick={() => run('panel.publish', live ? 'Updating.' : 'Posting.')}
             >
-              {live && live.channelId === panel.channelId ? 'Update post' : `Post to ${where}`}
+              {live && live.channelId === panel.channelId
+                ? t('Update post')
+                : t('Post to {channel}', { channel: where })}
             </button>
             {live ? (
               <TwoStep
-                label="Remove post"
+                label={t('Remove post')}
                 danger
                 disabled={pending}
                 run={() => run('panel.remove', 'Removing.')}
               />
             ) : null}
-            {unsaved && !status ? <span className="mx-sub">Save to post</span> : null}
+            {unsaved && !status ? <span className="mx-sub">{t('Save to post')}</span> : null}
             <StatusText status={status} />
           </div>
         )}
@@ -393,11 +395,12 @@ function PanelSetup({
 }
 
 function PanelText({ index, onRemoved }: { index: number; onRemoved: () => void }) {
+  const t = useT();
   const { panel, patch, readOnly, update } = usePanel(index);
   if (!panel) return null;
   return (
     <Panel
-      title="Text"
+      title={t('Text')}
       span={7}
       id="t-text"
       actions={
@@ -413,17 +416,17 @@ function PanelText({ index, onRemoved }: { index: number; onRemoved: () => void 
               onRemoved();
             }}
           >
-            Delete panel
+            {t('Delete panel')}
           </button>
         )
       }
     >
       <PanelBody>
         <Fields>
-          <Field label="Name">
+          <Field label={t('Name')}>
             <TextInput value={panel.name} maxLength={80} onChange={(name) => patch({ name })} />
           </Field>
-          <Field label="Title">
+          <Field label={t('Title')}>
             <TextInput
               value={panel.title}
               maxLength={256}
@@ -433,37 +436,37 @@ function PanelText({ index, onRemoved }: { index: number; onRemoved: () => void 
           </Field>
         </Fields>
         <div className="mx-field">
-          <span className="mx-label">Kind</span>
+          <span className="mx-label">{t('Kind')}</span>
           <Seg
-            label="Kind"
+            label={t('Kind')}
             value={panel.kind}
-            options={kinds}
+            options={kinds.map((option) => ({ ...option, label: t(option.label) }))}
             onChange={(kind) => patch({ kind })}
           />
         </div>
-        <Field label="Panel text">
+        <Field label={t('Panel text')}>
           <TextArea
             value={panel.description}
             rows={2}
             maxLength={2000}
-            placeholder={panelDefaults[panel.kind]}
+            placeholder={t(panelDefaults[panel.kind])}
             onChange={(description) => patch({ description })}
           />
         </Field>
-        <Field label="First message in the ticket" hint="{user} {server} {number}">
+        <Field label={t('First message in the ticket')} hint="{user} {server} {number}">
           <TextArea
             value={panel.openMessage}
             rows={2}
             maxLength={2000}
-            placeholder={openDefaults[panel.kind]}
+            placeholder={t(openDefaults[panel.kind])}
             onChange={(openMessage) => patch({ openMessage })}
           />
         </Field>
         <Field
-          label="Channel name"
+          label={t('Channel name')}
           hint={
             <>
-              Preview:{' '}
+              {t('Preview:')}{' '}
               <span className="mx-mono">
                 {channelPreview(panel.channelName, panel.name, 'noor')}
               </span>
@@ -485,6 +488,7 @@ function PanelText({ index, onRemoved }: { index: number; onRemoved: () => void 
 const NOOR = { user: '@Noor', number: '219' };
 
 function OpeningPreview({ index }: { index: number }) {
+  const t = useT();
   const { panel } = usePanel(index);
   const { roles } = useGuild();
   if (!panel) return null;
@@ -495,7 +499,7 @@ function OpeningPreview({ index }: { index: number }) {
     : [];
   return (
     <Panel
-      title="New ticket"
+      title={t('New ticket')}
       span={5}
       id="t-opening"
       actions={
@@ -511,14 +515,14 @@ function OpeningPreview({ index }: { index: number }) {
             <EmbedPreview
               color="#F26B3A"
               title={`${panel.name} #${padNumber(219)}`}
-              description={panel.openMessage || openDefaults[panel.kind]}
+              description={panel.openMessage || t(openDefaults[panel.kind])}
               vars={NOOR}
             >
               <span
                 className="mx-sub"
                 style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}
               >
-                React with <LockIcon /> to close.
+                {t('React with')} <LockIcon /> {t('to close.')}
               </span>
             </EmbedPreview>
             <div style={{ display: 'flex', gap: 6 }}>
@@ -529,7 +533,9 @@ function OpeningPreview({ index }: { index: number }) {
           </MessagePreview>
         </div>
         {panel.teamRoleIds.length === 0 ? (
-          <Callout tone="warn">No team role yet. Only admins will see these tickets.</Callout>
+          <Callout tone="warn">
+            {t('No team role yet. Only admins will see these tickets.')}
+          </Callout>
         ) : null}
       </PanelBody>
     </Panel>
@@ -537,19 +543,20 @@ function OpeningPreview({ index }: { index: number }) {
 }
 
 function FirstPanel() {
+  const t = useT();
   const { value, update, readOnly } = useDraft<TicketsConfig>();
   const add = () => {
-    const panel = newPanel('Support', value.panels);
+    const panel = newPanel(t('Support'), value.panels);
     update((previous) => ({ ...previous, panels: [...previous.panels, panel] }));
   };
   return (
     <Panel id="t-panels">
       <Empty mood="thinking">
         <div className="mx-stack" style={{ alignItems: 'center' }}>
-          <span>No panels yet. Members open tickets from one.</span>
+          <span>{t('No panels yet. Members open tickets from one.')}</span>
           {readOnly ? null : (
             <button type="button" className="mx-btn mx-btn-primary" onClick={add}>
-              New panel
+              {t('New panel')}
             </button>
           )}
         </div>

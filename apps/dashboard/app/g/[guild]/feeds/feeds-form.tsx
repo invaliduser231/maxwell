@@ -6,6 +6,7 @@ import {
   type FeedsConfig,
   type FeedType,
   feedSourceHints,
+  feedSourceValid,
   feedTemplateVariables,
   feedTypes,
 } from '@maxwell/core/modules/feeds';
@@ -22,11 +23,13 @@ import {
   WordList,
 } from '@/components/controls';
 import { ChannelType, useChannelName, useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { EmbedPreview, MessagePreview } from '@/components/message-preview';
 import { useDraft, useReadOnly } from '@/components/module-shell';
 import { type Status, StatusText } from '@/components/status-text';
 import { Callout, Empty, Field, Fields, Grid, Panel, PanelBody } from '@/components/ui';
 import { runAction } from '@/lib/actions';
+import type { Key, Translator } from '@/lib/i18n';
 import { ago } from '@/lib/time';
 
 export interface FeedStateView {
@@ -47,7 +50,7 @@ export interface PostView {
   postedAt: string;
 }
 
-const typeNames: Record<FeedType, string> = {
+const typeNames: Record<FeedType, Key> = {
   rss: 'RSS',
   youtube: 'YouTube',
   twitch: 'Twitch',
@@ -57,7 +60,7 @@ const typeNames: Record<FeedType, string> = {
   fluxer: 'Fluxer blog',
 };
 
-const sourceLabels: Record<FeedType, string> = {
+const sourceLabels: Record<FeedType, Key> = {
   rss: 'Feed address',
   youtube: 'Channel ID or link',
   twitch: 'Channel',
@@ -67,7 +70,7 @@ const sourceLabels: Record<FeedType, string> = {
   fluxer: 'Blog',
 };
 
-const defaultTemplates: Record<FeedType, string> = {
+const defaultTemplates: Record<FeedType, Key> = {
   rss: '**{title}**\n{url}',
   youtube: '{author} posted a new video: **{title}**\n{url}',
   twitch: '{author} is live: **{title}**\n{url}',
@@ -79,7 +82,7 @@ const defaultTemplates: Record<FeedType, string> = {
 
 const samples: Record<
   FeedType,
-  { title: string; summary: string; author: string; url: string; feed: string }
+  { title: Key; summary: Key; author: string; url: string; feed: string }
 > = {
   rss: {
     title: 'Owls hunt by sound alone, new study finds',
@@ -132,7 +135,7 @@ const samples: Record<
   },
 };
 
-const errorText: Record<string, string> = {
+const errorText: Record<string, Key> = {
   invalid_source: 'The source is not a valid address or name.',
   blocked_url: 'The address is not a public https address.',
   not_found: 'The feed does not exist anymore.',
@@ -149,7 +152,7 @@ const errorText: Record<string, string> = {
   http: 'The feed answered with an error.',
 };
 
-const intervals = [
+const intervals: { value: string; label: Key }[] = [
   { value: '5', label: '5 minutes' },
   { value: '15', label: '15 minutes' },
   { value: '30', label: '30 minutes' },
@@ -158,8 +161,6 @@ const intervals = [
   { value: '720', label: '12 hours' },
   { value: '1440', label: '1 day' },
 ];
-
-const typeOptions = feedTypes.map((type) => ({ value: type, label: typeNames[type] }));
 
 const pickButton: CSSProperties = {
   font: 'inherit',
@@ -190,9 +191,14 @@ function newId(taken: readonly string[]): string {
   }
 }
 
-function feedLabel(feed: FeedSource): string {
+function errorOf(t: Translator, code: string): string {
+  const key = errorText[code];
+  return key ? t(key) : code;
+}
+
+function feedLabel(t: Translator, feed: FeedSource): string {
   if (feed.name.trim()) return feed.name.trim();
-  if (feed.type === 'fluxer') return 'Fluxer blog';
+  if (feed.type === 'fluxer') return t('Fluxer blog');
   if (feed.type === 'reddit' && feed.source.trim()) {
     const name = feed.source
       .trim()
@@ -201,7 +207,7 @@ function feedLabel(feed: FeedSource): string {
       .split('/')[0];
     if (name) return `r/${name}`;
   }
-  return feed.source.trim() || 'New source';
+  return feed.source.trim() || t('New source');
 }
 
 function safeUrl(url: string | null): string | null {
@@ -209,44 +215,47 @@ function safeUrl(url: string | null): string | null {
 }
 
 function lastText(
+  t: Translator,
   feed: FeedSource,
   state: FeedStateView | undefined,
   saved: boolean,
   now: number,
 ): { text: string; bad: boolean } {
-  if (!saved) return { text: 'Not saved yet', bad: false };
-  if (state?.paused) return { text: 'Paused after errors', bad: true };
+  if (!saved) return { text: t('Not saved yet'), bad: false };
+  if (state?.paused) return { text: t('Paused after errors'), bad: true };
   if (state?.lastError) {
-    return { text: `Failed: ${errorText[state.lastError] ?? state.lastError}`, bad: true };
+    return { text: t('Failed: {error}', { error: errorOf(t, state.lastError) }), bad: true };
   }
-  if (state?.lastPostedAt) return { text: ago(state.lastPostedAt, now), bad: false };
-  if (state?.lastPolledAt) return { text: 'Nothing new yet', bad: false };
-  return { text: feed.enabled ? 'Not checked yet' : 'Off', bad: false };
+  if (state?.lastPostedAt) return { text: ago(t, state.lastPostedAt, now), bad: false };
+  if (state?.lastPolledAt) return { text: t('Nothing new yet'), bad: false };
+  return { text: feed.enabled ? t('Not checked yet') : t('Off'), bad: false };
 }
 
 function Preview({ feed }: { feed: FeedSource }) {
+  const t = useT();
   const channelName = useChannelName();
   const sample = samples[feed.type];
   const label = feed.name.trim() || sample.feed;
+  const typeName = t(typeNames[feed.type]);
   const values = {
-    title: sample.title,
+    title: t(sample.title),
     url: sample.url,
     author: sample.author,
-    summary: sample.summary,
+    summary: t(sample.summary),
     feed: label,
-    date: new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(
+    date: new Intl.DateTimeFormat(t.locale, { dateStyle: 'medium', timeStyle: 'short' }).format(
       new Date(),
     ),
   };
-  const template = feed.template.trim() || (feed.embed ? '' : defaultTemplates[feed.type]);
+  const template = feed.template.trim() || (feed.embed ? '' : t(defaultTemplates[feed.type]));
   const body = template.trim();
   const ping = feed.pingRoleId ? `<@&${feed.pingRoleId}>` : null;
 
   return (
-    <div className="mx-preview" role="group" aria-label="Preview">
+    <div className="mx-preview" role="group" aria-label={t('Preview')}>
       <MessagePreview
         avatarSize={30}
-        time={channelName(feed.channelId) || 'No channel'}
+        time={channelName(feed.channelId) || t('No channel')}
         content={[ping, body].filter(Boolean).join(' ')}
         vars={values}
       >
@@ -254,10 +263,10 @@ function Preview({ feed }: { feed: FeedSource }) {
           <EmbedPreview
             color="#3A9EEA"
             author={sample.author}
-            title={<span style={{ color: '#6DB8F2' }}>{sample.title}</span>}
-            footer={label === typeNames[feed.type] ? label : `${label} / ${typeNames[feed.type]}`}
+            title={<span style={{ color: '#6DB8F2' }}>{values.title}</span>}
+            footer={label === typeName ? label : `${label} / ${typeName}`}
           >
-            <span className="mx-sub">{sample.summary}</span>
+            <span className="mx-sub">{values.summary}</span>
           </EmbedPreview>
         ) : null}
       </MessagePreview>
@@ -286,20 +295,23 @@ function Sources({
   onSelect: (id: string) => void;
   onToggle: (id: string, enabled: boolean) => void;
 }) {
+  const t = useT();
   const channelName = useChannelName();
   const readOnly = useReadOnly();
   const active = feeds.filter((feed) => feed.enabled).length;
   return (
     <Panel
-      title="Sources"
+      title={t('Sources')}
       span={7}
       id="feeds-sources"
       actions={
         <>
-          <span className="mx-sub">{`${active} of ${feeds.length} on`}</span>
+          <span className="mx-sub">
+            {t('{active} of {total} on', { active, total: feeds.length })}
+          </span>
           {readOnly || !canAdd ? null : (
             <button type="button" className="mx-btn" onClick={onAdd}>
-              New
+              {t('New')}
             </button>
           )}
         </>
@@ -309,18 +321,18 @@ function Sources({
         <table className="mx-table">
           <thead>
             <tr>
-              <th scope="col">Source</th>
-              <th scope="col">Channel</th>
-              <th scope="col">Last post</th>
+              <th scope="col">{t('Source')}</th>
+              <th scope="col">{t('Channel')}</th>
+              <th scope="col">{t('Last post')}</th>
               <th scope="col">
-                <span className="mx-sr">On</span>
+                <span className="mx-sr">{t('On')}</span>
               </th>
             </tr>
           </thead>
           <tbody>
             {feeds.map((feed) => {
-              const last = lastText(feed, states[feed.id], savedIds.includes(feed.id), now);
-              const label = feedLabel(feed);
+              const last = lastText(t, feed, states[feed.id], savedIds.includes(feed.id), now);
+              const label = feedLabel(t, feed);
               const picked = feed.id === selected;
               return (
                 <tr key={feed.id}>
@@ -333,7 +345,7 @@ function Sources({
                       style={pickButton}
                     >
                       <span className="mx-chip" style={{ minWidth: 74, justifyContent: 'center' }}>
-                        {typeNames[feed.type]}
+                        {t(typeNames[feed.type])}
                       </span>
                       <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                         <span style={{ fontWeight: 600 }}>{label}</span>
@@ -345,7 +357,7 @@ function Sources({
                       </span>
                     </button>
                   </td>
-                  <td className="mx-mono">{channelName(feed.channelId) || 'None'}</td>
+                  <td className="mx-mono">{channelName(feed.channelId) || t('None')}</td>
                   <td>
                     <span className={last.bad ? 'mx-down' : 'mx-muted'}>{last.text}</span>
                   </td>
@@ -353,7 +365,11 @@ function Sources({
                     <Switch
                       order
                       checked={feed.enabled}
-                      label={`${label} ${feed.enabled ? 'on' : 'off'}`}
+                      label={
+                        feed.enabled
+                          ? t('{name} on', { name: label })
+                          : t('{name} off', { name: label })
+                      }
                       onChange={(enabled) => onToggle(feed.id, enabled)}
                     />
                   </td>
@@ -392,6 +408,7 @@ function Editor({
   onDelete: () => void;
 }) {
   const { guildId } = useGuild();
+  const t = useT();
   const channelName = useChannelName();
   const readOnly = useReadOnly();
   const router = useRouter();
@@ -408,17 +425,18 @@ function Editor({
     });
 
   const insert = (token: string) => {
-    const base = feed.template || defaultTemplates[feed.type];
+    const base = feed.template || t(defaultTemplates[feed.type]);
     onChange({
       template: `${base}${base.endsWith('\n') || !base ? '' : ' '}${token}`.slice(0, 2000),
     });
   };
 
   const interval = String(feed.interval);
+  const intervalOptions = intervals.map((option) => ({ ...option, label: t(option.label) }));
 
   return (
     <Panel
-      title={feedLabel(feed)}
+      title={feedLabel(t, feed)}
       span={5}
       id="feeds-edit"
       actions={
@@ -430,14 +448,19 @@ function Editor({
                 className="mx-btn"
                 disabled={pending || !feed.channelId}
                 onClick={() =>
-                  run('test', `Posting the newest item in ${channelName(feed.channelId)}.`)
+                  run(
+                    'test',
+                    t('Posting the newest item in {channel}.', {
+                      channel: channelName(feed.channelId),
+                    }),
+                  )
                 }
               >
-                Test post
+                {t('Test post')}
               </button>
             ) : null}
             <button type="button" className="mx-btn mx-btn-danger" onClick={onDelete}>
-              Delete
+              {t('Delete')}
             </button>
           </>
         )
@@ -454,59 +477,71 @@ function Editor({
                   type="button"
                   className="mx-btn"
                   disabled={pending}
-                  onClick={() => run('resume', 'Resumed.')}
+                  onClick={() => run('resume', t('Resumed.'))}
                 >
-                  Resume
+                  {t('Resume')}
                 </button>
               )
             }
           >
-            Paused after {state.failures} failed checks.{' '}
-            {state.lastError ? (errorText[state.lastError] ?? state.lastError) : null}
+            {t.plural(
+              state.failures,
+              'Paused after {n} failed check.',
+              'Paused after {n} failed checks.',
+            )}{' '}
+            {state.lastError ? errorOf(t, state.lastError) : null}
           </Callout>
         ) : state?.lastError && saved ? (
-          <Callout tone="warn">{errorText[state.lastError] ?? state.lastError}</Callout>
+          <Callout tone="warn">{errorOf(t, state.lastError)}</Callout>
         ) : null}
         <Fields>
-          <Field label="Type">
+          <Field label={t('Type')}>
             <Select
               value={feed.type}
-              options={typeOptions}
+              options={feedTypes.map((type) => ({ value: type, label: t(typeNames[type]) }))}
               onChange={(type) => onChange({ type })}
             />
           </Field>
           {feed.type === 'fluxer' ? (
             <div className="mx-field">
-              <span className="mx-label">Blog</span>
+              <span className="mx-label">{t('Blog')}</span>
               <span style={{ minHeight: 36, display: 'flex', alignItems: 'center' }}>
                 fluxer.app/blog
               </span>
             </div>
           ) : (
-            <Field label={sourceLabels[feed.type]}>
+            <Field label={t(sourceLabels[feed.type])}>
               <TextInput
                 value={feed.source}
                 maxLength={500}
                 placeholder={feedSourceHints[feed.type]}
                 onChange={(source) => onChange({ source })}
               />
+              {feed.source.trim() && !feedSourceValid(feed.type, feed.source) ? (
+                <span className="mx-field-error">
+                  {t('The source is not a valid address or name.')}
+                </span>
+              ) : null}
             </Field>
           )}
-          <Field label="Name">
+          <Field label={t('Name')}>
             <TextInput
               value={feed.name}
               maxLength={80}
-              placeholder={feedLabel({ ...feed, name: '' })}
+              placeholder={feedLabel(t, { ...feed, name: '' })}
               onChange={(name) => onChange({ name })}
             />
           </Field>
-          <Field label="Check every">
+          <Field label={t('Check every')}>
             <Select
               value={interval}
               options={
                 intervals.some((option) => option.value === interval)
-                  ? intervals
-                  : [...intervals, { value: interval, label: `${interval} minutes` }]
+                  ? intervalOptions
+                  : [
+                      ...intervalOptions,
+                      { value: interval, label: t('{count} minutes', { count: feed.interval }) },
+                    ]
               }
               onChange={(next) => onChange({ interval: Number(next) })}
             />
@@ -514,29 +549,29 @@ function Editor({
         </Fields>
       </PanelBody>
 
-      <Section title="Post">
+      <Section title={t('Post')}>
         <Fields>
-          <Field label="Channel">
+          <Field label={t('Channel')}>
             <ChannelSelect
               value={feed.channelId}
-              none="Pick a channel"
+              none={t('Pick a channel')}
               onChange={(channelId) => onChange({ channelId })}
             />
           </Field>
-          <Field label="Ping">
+          <Field label={t('Ping')}>
             <RoleSelect
               value={feed.pingRoleId}
-              none="Nobody"
+              none={t('Nobody')}
               onChange={(pingRoleId) => onChange({ pingRoleId })}
             />
           </Field>
         </Fields>
-        <Field label="Message" aside={`${feed.template.length} / 2000`}>
+        <Field label={t('Message')} aside={`${feed.template.length} / 2000`}>
           <TextArea
             value={feed.template}
             rows={3}
             maxLength={2000}
-            placeholder={feed.embed ? 'Optional with an embed' : defaultTemplates[feed.type]}
+            placeholder={feed.embed ? t('Optional with an embed') : t(defaultTemplates[feed.type])}
             onChange={(template) => onChange({ template })}
           />
         </Field>
@@ -547,7 +582,7 @@ function Editor({
                 key={name}
                 type="button"
                 className="mx-kbd"
-                aria-label={`Insert ${name}`}
+                aria-label={t('Insert {token}', { token: name })}
                 style={tokenButton}
                 onClick={() => insert(`{${name}}`)}
               >
@@ -559,14 +594,14 @@ function Editor({
         <Fields>
           <ToggleRow
             order
-            title="Show as embed"
+            title={t('Show as embed')}
             checked={feed.embed}
             onChange={(embed) => onChange({ embed })}
           />
           {feed.type === 'youtube' ? (
             <ToggleRow
               order
-              title="Include Shorts"
+              title={t('Include Shorts')}
               checked={feed.shorts}
               onChange={(shorts) => onChange({ shorts })}
             />
@@ -574,7 +609,7 @@ function Editor({
           {feed.type === 'bluesky' ? (
             <ToggleRow
               order
-              title="Include reposts"
+              title={t('Include reposts')}
               checked={feed.reposts}
               onChange={(reposts) => onChange({ reposts })}
             />
@@ -582,28 +617,32 @@ function Editor({
         </Fields>
       </Section>
 
-      <Section title="Filters">
+      <Section title={t('Filters')}>
         <div className="mx-field">
-          <span className="mx-label">Only posts with</span>
+          <span className="mx-label">{t('Only posts with')}</span>
           <WordList
             value={feed.include}
-            placeholder="Any words"
+            placeholder={t('Any words')}
             onChange={(include) => onChange({ include: include.slice(0, 50) })}
           />
-          {readOnly && feed.include.length === 0 ? <span className="mx-sub">Any words</span> : null}
+          {readOnly && feed.include.length === 0 ? (
+            <span className="mx-sub">{t('Any words')}</span>
+          ) : null}
         </div>
         <div className="mx-field">
-          <span className="mx-label">Skip posts with</span>
+          <span className="mx-label">{t('Skip posts with')}</span>
           <WordList
             value={feed.exclude}
-            placeholder="None"
+            placeholder={t('None')}
             onChange={(exclude) => onChange({ exclude: exclude.slice(0, 50) })}
           />
-          {readOnly && feed.exclude.length === 0 ? <span className="mx-sub">None</span> : null}
+          {readOnly && feed.exclude.length === 0 ? (
+            <span className="mx-sub">{t('None')}</span>
+          ) : null}
         </div>
       </Section>
 
-      <Section title="Preview">
+      <Section title={t('Preview')}>
         <Preview feed={feed} />
       </Section>
     </Panel>
@@ -611,17 +650,18 @@ function Editor({
 }
 
 function Recent({ posts, feeds, now }: { posts: PostView[]; feeds: FeedSource[]; now: number }) {
+  const t = useT();
   const channelName = useChannelName();
   return (
-    <Panel title="Recent posts" span={12} id="feeds-recent">
+    <Panel title={t('Recent posts')} span={12} id="feeds-recent">
       <div className="mx-scroll">
         <table className="mx-table">
           <thead>
             <tr>
-              <th scope="col">Post</th>
-              <th scope="col">Source</th>
-              <th scope="col">Channel</th>
-              <th scope="col">Posted</th>
+              <th scope="col">{t('Post')}</th>
+              <th scope="col">{t('Source')}</th>
+              <th scope="col">{t('Channel')}</th>
+              <th scope="col">{t('Posted')}</th>
             </tr>
           </thead>
           <tbody>
@@ -639,10 +679,10 @@ function Recent({ posts, feeds, now }: { posts: PostView[]; feeds: FeedSource[];
                       post.title
                     )}
                   </td>
-                  <td>{feed ? feedLabel(feed) : 'Removed source'}</td>
+                  <td>{feed ? feedLabel(t, feed) : t('Removed source')}</td>
                   <td className="mx-mono">{channelName(post.channelId)}</td>
                   <td className="mx-muted" style={{ whiteSpace: 'nowrap' }}>
-                    {ago(post.postedAt, now)}
+                    {ago(t, post.postedAt, now)}
                   </td>
                 </tr>
               );
@@ -665,6 +705,7 @@ export function FeedsForm({
   states: Record<string, FeedStateView>;
   posts: PostView[];
 }) {
+  const t = useT();
   const { value, update, readOnly } = useDraft<FeedsConfig>();
   const { channels } = useGuild();
   const [selected, setSelected] = useState<string | null>(value.feeds[0]?.id ?? null);
@@ -742,12 +783,12 @@ export function FeedsForm({
             action={
               readOnly ? null : (
                 <button type="button" className="mx-btn mx-btn-primary" onClick={add}>
-                  Add a source
+                  {t('Add a source')}
                 </button>
               )
             }
           >
-            No feeds yet.
+            {t('No feeds yet.')}
           </Empty>
         </Panel>
       )}

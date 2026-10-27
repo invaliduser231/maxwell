@@ -4,14 +4,14 @@ import {
   suggestionsConfig,
 } from '@maxwell/core/modules/suggestions';
 import { SuggestionStore } from '@maxwell/core/stores/suggestions';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
 import { db } from '@/lib/db';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { loadPage, type Sort, toItems } from './load';
 import { SuggestionsView } from './suggestions-view';
 
-export const metadata: Metadata = { title: 'Suggestions' };
+export const generateMetadata = titled('Suggestions');
 
 export default async function SuggestionsPage({
   params,

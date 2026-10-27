@@ -5,11 +5,13 @@ import type { InviteSummary } from '@maxwell/core/stores/invites';
 import { type ReactNode, useEffect, useState, useTransition } from 'react';
 import { ChannelSelect, Seg, TextInput } from '@/components/controls';
 import { useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { useDraft } from '@/components/module-shell';
 import { failed, StatusText } from '@/components/status-text';
 import { Avatar, Empty, Field, Panel, PanelBody } from '@/components/ui';
+import type { Key, Translator } from '@/lib/i18n';
 import type { Person } from '@/lib/people';
-import { count } from '@/lib/time';
+import { since as timeAgo } from '@/lib/time';
 import { loadJoins, type RecentJoin } from './actions';
 
 interface Code {
@@ -34,7 +36,7 @@ interface Leader {
 
 type Filter = 'all' | 'campaigns' | 'flagged';
 
-const filters: { value: Filter; label: string }[] = [
+const filters: { value: Filter; label: Key }[] = [
   { value: 'all', label: 'All' },
   { value: 'campaigns', label: 'Campaigns' },
   { value: 'flagged', label: 'Flagged' },
@@ -53,7 +55,8 @@ function tone(percent: number): string {
 }
 
 function Quality({ percent }: { percent: number | null }) {
-  if (percent === null) return <span className="mx-sub">Too new</span>;
+  const t = useT();
+  if (percent === null) return <span className="mx-sub">{t('Too new')}</span>;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 120 }}>
       <div className="mx-bar" style={{ flex: 1 }}>
@@ -65,29 +68,30 @@ function Quality({ percent }: { percent: number | null }) {
 }
 
 function Stats({ summary, campaignJoins }: { summary: InviteSummary; campaignJoins: number }) {
+  const t = useT();
   const week = share(summary.stayed7, summary.eligible7);
   const month = share(summary.stayed30, summary.eligible30);
   const quiet = summary.joins30 === 0 && summary.fake30 === 0;
   const items = [
     {
-      label: 'Joins through invites, 30 days',
-      value: count(summary.joins30),
-      sub: campaignJoins > 0 ? `${count(campaignJoins)} through campaigns` : null,
+      label: t('Joins through invites, 30 days'),
+      value: t.count(summary.joins30),
+      sub: campaignJoins > 0 ? t('{count} through campaigns', { count: campaignJoins }) : null,
     },
     {
-      label: 'Still here after 7 days',
+      label: t('Still here after 7 days'),
       value: `${week ?? 0}%`,
-      sub: summary.eligible7 > 0 ? `Of ${count(summary.eligible7)} joins` : null,
+      sub: summary.eligible7 > 0 ? t('Of {count} joins', { count: summary.eligible7 }) : null,
     },
     {
-      label: 'Still here after 30 days',
+      label: t('Still here after 30 days'),
       value: `${month ?? 0}%`,
-      sub: summary.eligible30 > 0 ? `Of ${count(summary.eligible30)} joins` : null,
+      sub: summary.eligible30 > 0 ? t('Of {count} joins', { count: summary.eligible30 }) : null,
     },
     {
-      label: 'Fake joins, 30 days',
-      value: count(summary.fake30),
-      sub: 'Accounts under 1 day old',
+      label: t('Fake joins, 30 days'),
+      value: t.count(summary.fake30),
+      sub: t('Accounts under 1 day old'),
     },
   ];
   return (
@@ -106,10 +110,10 @@ function Stats({ summary, campaignJoins }: { summary: InviteSummary; campaignJoi
   );
 }
 
-function since(from: string, to: number): string {
+function since(t: Translator, from: string, to: number): string {
   const days = Math.floor((to - Date.parse(from)) / DAY);
-  if (days < 1) return 'less than a day';
-  return days === 1 ? '1 day' : `${days} days`;
+  if (days < 1) return t('less than a day');
+  return t.plural(days, '{n} day', '{n} days');
 }
 
 function Figure({ label, children }: { label: string; children: ReactNode }) {
@@ -122,7 +126,8 @@ function Figure({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function Percent({ value }: { value: number | null }) {
-  if (value === null) return <span className="mx-sub">Too new</span>;
+  const t = useT();
+  if (value === null) return <span className="mx-sub">{t('Too new')}</span>;
   return (
     <span className="mx-stat-value" style={{ fontSize: 18 }}>
       {value}%
@@ -142,6 +147,7 @@ function Detail({
   now: number;
 }) {
   const { guildId } = useGuild();
+  const t = useT();
   const [joins, setJoins] = useState<RecentJoin[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -172,20 +178,22 @@ function Detail({
               .catch(() => setCopied(false));
           }}
         >
-          {copied ? 'Copied' : 'Copy link'}
+          {copied ? t('Copied') : t('Copy link')}
         </button>
       }
     >
       <PanelBody>
         <span className="mx-sub">
-          {code.vanity || code.owner === 'Unknown' ? code.owner : `Created by ${code.owner}`}
+          {code.vanity || code.owner === 'Unknown'
+            ? t.raw(code.owner)
+            : t('Created by {name}', { name: code.owner })}
         </span>
-        <Field label="Campaign">
+        <Field label={t('Campaign')}>
           <TextInput
             value={campaign}
             maxLength={60}
-            placeholder="No campaign"
-            label="Campaign"
+            placeholder={t('No campaign')}
+            label={t('Campaign')}
             onChange={onCampaign}
           />
         </Field>
@@ -198,34 +206,36 @@ function Detail({
             padding: '10px 12px',
           }}
         >
-          <Figure label="Joined">
+          <Figure label={t('Joined')}>
             <span className="mx-stat-value" style={{ fontSize: 18 }}>
-              {count(code.joins)}
+              {t.count(code.joins)}
             </span>
           </Figure>
-          <Figure label="After 7 days">
+          <Figure label={t('After 7 days')}>
             <Percent value={share(code.stayed7, code.eligible7)} />
           </Figure>
-          <Figure label="After 30 days">
+          <Figure label={t('After 30 days')}>
             <Percent value={share(code.stayed30, code.eligible30)} />
           </Figure>
         </div>
         <div className="mx-field">
-          <span className="mx-label">Latest joins</span>
+          <span className="mx-label">{t('Latest joins')}</span>
           <StatusText status={error ? failed(error) : null} />
-          {joins === null && !error ? <span className="mx-sub">Loading</span> : null}
-          {joins?.length === 0 ? <span className="mx-sub">Nobody yet</span> : null}
+          {joins === null && !error ? <span className="mx-sub">{t('Loading')}</span> : null}
+          {joins?.length === 0 ? <span className="mx-sub">{t('Nobody yet')}</span> : null}
           {joins && joins.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {joins.map((join, i) => {
                 const state = join.fake
-                  ? { text: 'Fake account', className: 'mx-down' }
+                  ? { text: t('Fake account'), className: 'mx-down' }
                   : join.leftAt
                     ? {
-                        text: `Left after ${since(join.joinedAt, Date.parse(join.leftAt))}`,
+                        text: t('Left after {span}', {
+                          span: since(t, join.joinedAt, Date.parse(join.leftAt)),
+                        }),
                         className: 'mx-sub',
                       }
-                    : { text: 'Still here', className: 'mx-up' };
+                    : { text: t('Still here'), className: 'mx-up' };
                 return (
                   <div
                     key={`${join.person.id}:${join.joinedAt}`}
@@ -244,7 +254,9 @@ function Detail({
                     </span>
                     <span
                       className={state.className}
-                      title={`Joined ${since(join.joinedAt, now)} ago`}
+                      title={t('Joined {when}', {
+                        when: timeAgo(t, now - Date.parse(join.joinedAt)),
+                      })}
                     >
                       {state.text}
                     </span>
@@ -270,6 +282,7 @@ export function InvitesView({
   leaders: Leader[];
   now: number;
 }) {
+  const t = useT();
   const { value, set } = useDraft<InvitesConfig>();
   const [filter, setFilter] = useState<Filter>('all');
   const [selected, setSelected] = useState(codes[0]?.code ?? null);
@@ -298,13 +311,13 @@ export function InvitesView({
       <div className="mx-grid">
         <div className="mx-s8" style={column}>
           <Panel
-            title="Invites"
+            title={t('Invites')}
             actions={
               codes.length > 0 ? (
                 <Seg
-                  label="Filter invites"
+                  label={t('Filter invites')}
                   value={filter}
-                  options={filters}
+                  options={filters.map((entry) => ({ ...entry, label: t(entry.label) }))}
                   onChange={setFilter}
                   view
                 />
@@ -312,20 +325,20 @@ export function InvitesView({
             }
           >
             {codes.length === 0 ? (
-              <Empty mood="sleeping">No joins through invites in the last 90 days.</Empty>
+              <Empty mood="sleeping">{t('No joins through invites in the last 90 days.')}</Empty>
             ) : visible.length === 0 ? (
-              <Empty>Nothing matches this filter.</Empty>
+              <Empty>{t('Nothing matches this filter.')}</Empty>
             ) : (
               <div className="mx-scroll">
                 <table className="mx-table">
                   <thead>
                     <tr>
-                      <th scope="col">Invite</th>
-                      <th scope="col">Campaign</th>
-                      <th scope="col">Joined</th>
-                      <th scope="col">After 7 days</th>
-                      <th scope="col">After 30 days</th>
-                      <th scope="col">Flags</th>
+                      <th scope="col">{t('Invite')}</th>
+                      <th scope="col">{t('Campaign')}</th>
+                      <th scope="col">{t('Joined')}</th>
+                      <th scope="col">{t('After 7 days')}</th>
+                      <th scope="col">{t('After 30 days')}</th>
+                      <th scope="col">{t('Flags')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -356,10 +369,10 @@ export function InvitesView({
                             {code.code}
                           </button>
                           <br />
-                          <span className="mx-sub">{code.owner}</span>
+                          <span className="mx-sub">{t.raw(code.owner)}</span>
                         </td>
                         <td>{campaignOf(code.code)}</td>
-                        <td>{count(code.joins)}</td>
+                        <td>{t.count(code.joins)}</td>
                         <td>
                           <Quality percent={share(code.stayed7, code.eligible7)} />
                         </td>
@@ -369,7 +382,7 @@ export function InvitesView({
                         <td>
                           {code.fake > 0 ? (
                             <span className="mx-chip" style={{ color: '#EC5B78' }}>
-                              {code.fake} fake
+                              {t('{count} fake', { count: code.fake })}
                             </span>
                           ) : null}
                         </td>
@@ -382,7 +395,7 @@ export function InvitesView({
           </Panel>
 
           {leaders.length > 0 ? (
-            <Panel title="Top inviters">
+            <Panel title={t('Top inviters')}>
               {leaders.map((leader, i) => (
                 <div className="mx-row" key={leader.person.id}>
                   <span className="mx-mono mx-muted" style={{ width: 22 }}>
@@ -392,12 +405,15 @@ export function InvitesView({
                   <div className="mx-row-main">
                     <span className="mx-row-title">{leader.person.name}</span>
                     <span className="mx-sub">
-                      {`${count(leader.active)} of ${count(leader.total)} stayed`}
-                      {leader.fake > 0 ? `, ${count(leader.fake)} fake` : ''}
+                      {t('{active} of {total} stayed', {
+                        active: leader.active,
+                        total: leader.total,
+                      })}
+                      {leader.fake > 0 ? `, ${t('{count} fake', { count: leader.fake })}` : ''}
                     </span>
                   </div>
                   <span className="mx-stat-value" style={{ fontSize: 17 }}>
-                    {count(leader.active)}
+                    {t.count(leader.active)}
                   </span>
                 </div>
               ))}
@@ -414,12 +430,12 @@ export function InvitesView({
               now={now}
             />
           ) : null}
-          <Panel title="Settings">
+          <Panel title={t('Settings')}>
             <PanelBody>
-              <Field label="Join log">
+              <Field label={t('Join log')}>
                 <ChannelSelect
                   value={value.logChannelId}
-                  none="Off"
+                  none={t('Off')}
                   onChange={(logChannelId) => set({ logChannelId })}
                 />
               </Field>

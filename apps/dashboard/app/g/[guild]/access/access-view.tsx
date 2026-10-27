@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import { AddPicker, Seg } from '@/components/controls';
 import { useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import {
   DirtyActions,
   PageHeader,
@@ -13,6 +14,7 @@ import {
 import { failed, type Status, StatusText, sorted } from '@/components/status-text';
 import { Avatar, Chip, CloseIcon, Empty, Panel, Row, roleColor } from '@/components/ui';
 import { saveAccess } from '@/lib/actions';
+import type { Key, Translator } from '@/lib/i18n';
 import { type FoundPerson, searchMembers } from './actions';
 
 type Level = 'view' | 'edit';
@@ -41,11 +43,15 @@ interface Principal {
 const ALL = '*';
 const PERSON_COLOR = '#9A9EA6';
 
-const levels = [
+const levelKeys: { value: Level | 'none'; label: Key }[] = [
   { value: 'none', label: 'None' },
   { value: 'view', label: 'View' },
   { value: 'edit', label: 'Edit' },
-] as const;
+];
+
+function levelsFor(t: Translator) {
+  return levelKeys.map((level) => ({ value: level.value, label: t(level.label) }));
+}
 
 function cellKey(type: SubjectType, id: string, module: string): string {
   return `${type}:${id}:${module}`;
@@ -91,6 +97,7 @@ export function AccessView({
   groups: ModuleGroupRow[];
 }) {
   const { guildId, roles } = useGuild();
+  const t = useT();
   const [baseline, setBaseline] = useState(() => toMap(grants));
   const [cells, setCells] = useState(() => toMap(grants));
   const [principals, setPrincipals] = useState<Principal[]>(() => {
@@ -110,11 +117,11 @@ export function AccessView({
       }));
     const missing = [...roleIds]
       .filter((id) => !roles.some((role) => role.id === id))
-      .map((id) => ({ type: 'role' as const, id, name: 'Deleted role', color: PERSON_COLOR }));
+      .map((id) => ({ type: 'role' as const, id, name: t('Deleted role'), color: PERSON_COLOR }));
     const users = [...userIds].map((id) => ({
       type: 'user' as const,
       id,
-      name: people.find((person) => person.id === id)?.name ?? 'Unknown member',
+      name: people.find((person) => person.id === id)?.name ?? t('Unknown member'),
       color: PERSON_COLOR,
     }));
     return [...known, ...missing, ...users];
@@ -215,7 +222,7 @@ export function AccessView({
 
   const addPerson = (person: FoundPerson) => {
     if (principals.some((p) => p.type === 'user' && p.id === person.id)) {
-      setAddError('Already on the list.');
+      setAddError(t('Already on the list.'));
       return;
     }
     setPrincipals((previous) => [
@@ -256,7 +263,7 @@ export function AccessView({
   };
 
   const rows: { title: string; key: string }[][] = [
-    [{ title: 'All modules', key: ALL }],
+    [{ title: t('All modules'), key: ALL }],
     ...groups.map((group) =>
       group.modules.map((module) => ({ title: module.name, key: module.key })),
     ),
@@ -266,21 +273,26 @@ export function AccessView({
   const summary = (principal: Principal) => {
     const prefix = `${principal.type}:${principal.id}:`;
     const own = Object.entries(cells).filter(([key]) => key.startsWith(prefix));
-    if (own.length === 0) return 'no access yet';
-    if (cells[`${prefix}${ALL}`] === 'edit') return 'edits everything';
+    if (own.length === 0) return t('no access yet');
+    if (cells[`${prefix}${ALL}`] === 'edit') return t('edits everything');
     if (cells[`${prefix}${ALL}`] === 'view') {
       const edit = own.filter(([, level]) => level === 'edit').length;
-      return edit ? `sees everything, edits ${edit}` : 'sees everything';
+      return edit ? t('sees everything, edits {count}', { count: edit }) : t('sees everything');
     }
     const edit = own.filter(([, level]) => level === 'edit').length;
     const view = own.filter(([, level]) => level === 'view').length;
-    return [edit ? `edits ${edit}` : '', view ? `sees ${view}` : ''].filter(Boolean).join(', ');
+    return [
+      edit ? t('edits {count}', { count: edit }) : '',
+      view ? t('sees {count}', { count: view }) : '',
+    ]
+      .filter(Boolean)
+      .join(', ');
   };
 
   const addControls = (
     <>
       {roleOptions.length > 0 ? (
-        <AddPicker options={roleOptions} label="Add role" onPick={addRole} />
+        <AddPicker options={roleOptions} label={t('Add role')} onPick={addRole} />
       ) : null}
       <button
         type="button"
@@ -288,14 +300,14 @@ export function AccessView({
         aria-expanded={adding}
         onClick={() => (adding ? closeAdd() : setAdding(true))}
       >
-        Add person
+        {t('Add person')}
       </button>
     </>
   );
 
   return (
     <>
-      <PageHeader title="Dashboard access" page="access">
+      <PageHeader title={t('Dashboard access')} page="access">
         <DirtyActions
           dirty={dirty}
           pending={pending}
@@ -306,18 +318,21 @@ export function AccessView({
       </PageHeader>
 
       <Panel
-        title="Who can open the dashboard"
+        title={t('Who can open the dashboard')}
         id="access-who"
         actions={principals.length > 0 && !readOnly ? addControls : null}
       >
-        <Row title="Owner and admins" sub={`${ownerName} and everyone with Manage Community`}>
-          <Chip>Full access</Chip>
+        <Row
+          title={t('Owner and admins')}
+          sub={t('{owner} and everyone with Manage Community', { owner: ownerName })}
+        >
+          <Chip>{t('Full access')}</Chip>
         </Row>
         {principals.map((principal) => (
           <Row
             key={`${principal.type}:${principal.id}`}
             title={principal.name}
-            sub={`${principal.type === 'role' ? 'Role' : 'Member'}, ${summary(principal)}`}
+            sub={`${principal.type === 'role' ? t('Role') : t('Member')}, ${summary(principal)}`}
             leading={
               principal.type === 'role' ? (
                 <span className="mx-dot" style={{ background: principal.color }} />
@@ -328,7 +343,7 @@ export function AccessView({
               <button
                 type="button"
                 className="mx-btn mx-btn-ghost"
-                aria-label={`Remove ${principal.name}`}
+                aria-label={t('Remove {name}', { name: principal.name })}
                 onClick={() => remove(principal)}
               >
                 <CloseIcon />
@@ -344,10 +359,10 @@ export function AccessView({
                   className="mx-input"
                   type="text"
                   role="searchbox"
-                  aria-label="Find a member"
+                  aria-label={t('Find a member')}
                   value={query}
                   maxLength={64}
-                  placeholder="Name or ID"
+                  placeholder={t('Name or ID')}
                   style={{ flex: '1 1 220px', maxWidth: 320 }}
                   onChange={(event) => setQuery(event.target.value)}
                   onKeyDown={(event) => {
@@ -359,7 +374,7 @@ export function AccessView({
                   }}
                 />
                 <button type="button" className="mx-btn mx-btn-ghost" onClick={closeAdd}>
-                  Cancel
+                  {t('Cancel')}
                 </button>
                 <StatusText status={addError ? failed(addError) : null} />
               </div>
@@ -378,7 +393,7 @@ export function AccessView({
                     </button>
                   ))}
                   {found.length === 0 ? (
-                    <span className="mx-sub">{searching ? 'Searching' : 'Nobody found'}</span>
+                    <span className="mx-sub">{searching ? t('Searching') : t('Nobody found')}</span>
                   ) : null}
                 </div>
               ) : null}
@@ -388,7 +403,7 @@ export function AccessView({
         {principals.length === 0 && !adding ? (
           <Empty mood="sleeping">
             <div className="mx-stack" style={{ alignItems: 'center' }}>
-              <span>Nobody else has access yet.</span>
+              <span>{t('Nobody else has access yet.')}</span>
               {readOnly ? null : <div className="mx-inline">{addControls}</div>}
             </div>
           </Empty>
@@ -396,12 +411,12 @@ export function AccessView({
       </Panel>
 
       {principals.length > 0 ? (
-        <Panel title="Access per module" id="access-matrix">
+        <Panel title={t('Access per module')} id="access-matrix">
           <div className="mx-scroll">
             <table className="mx-table">
               <thead>
                 <tr>
-                  <th scope="col">Module</th>
+                  <th scope="col">{t('Module')}</th>
                   {principals.map((principal) => (
                     <th key={`${principal.type}:${principal.id}`} scope="col">
                       <span className="mx-inline" style={{ gap: 6, flexWrap: 'nowrap' }}>
@@ -450,6 +465,8 @@ function Group({
   cells: Record<string, Level>;
   onLevel: (principal: Principal, module: string, level: Level | 'none') => void;
 }) {
+  const t = useT();
+  const levels = levelsFor(t);
   return (
     <>
       {title ? (
@@ -488,7 +505,10 @@ function Group({
           {principals.map((principal) => (
             <td key={`${principal.type}:${principal.id}`} style={{ padding: '5px 16px' }}>
               <Seg
-                label={`${principal.name} access to ${module.title}`}
+                label={t('{name} access to {module}', {
+                  name: principal.name,
+                  module: module.title,
+                })}
                 value={cells[cellKey(principal.type, principal.id, module.key)] ?? 'none'}
                 options={levels}
                 onChange={(level) => onLevel(principal, module.key, level)}

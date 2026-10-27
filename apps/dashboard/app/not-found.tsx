@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import { getT } from '@/lib/i18n/server';
 
-export default function NotFound() {
+export default async function NotFound() {
+  const t = await getT();
   return (
     <main
       style={{
@@ -15,12 +17,12 @@ export default function NotFound() {
       }}
     >
       <img src="/mascot/skeptical.svg" alt="" width={72} height={72} />
-      <h1 className="mx-h1">Nothing here</h1>
+      <h1 className="mx-h1">{t('Nothing here')}</h1>
       <p className="mx-sub" style={{ margin: 0 }}>
-        The page is gone, or you have no access to it.
+        {t('The page is gone, or you have no access to it.')}
       </p>
       <Link className="mx-btn" href="/">
-        Choose a community
+        {t('Choose a community')}
       </Link>
     </main>
   );

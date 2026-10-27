@@ -1,3 +1,5 @@
+import type { Translator } from '@/lib/i18n';
+
 export interface DiffLine {
   sign: '+' | '-' | '';
   text: string;
@@ -43,23 +45,30 @@ function isGrant(value: unknown): value is {
   return isPlain(value) && 'subjectType' in value && 'subjectId' in value && 'level' in value;
 }
 
-function format(value: unknown, names: (module: string) => string): string {
-  if (value === null || value === undefined) return 'none';
-  if (typeof value === 'boolean') return value ? 'on' : 'off';
-  if (typeof value === 'number') return value.toLocaleString('en-US');
-  if (typeof value === 'string') return value === '' ? 'empty' : clip(value.replace(/\s+/g, ' '));
+interface Context {
+  t: Translator;
+  names: (module: string) => string;
+}
+
+function format(value: unknown, context: Context): string {
+  const { t, names } = context;
+  if (value === null || value === undefined) return t('none');
+  if (typeof value === 'boolean') return value ? t('on') : t('off');
+  if (typeof value === 'number') return t.count(value);
+  if (typeof value === 'string')
+    return value === '' ? t('empty') : clip(value.replace(/\s+/g, ' '));
   if (isGrant(value)) {
-    const who = value.subjectType === 'role' ? 'Role' : 'Person';
+    const who = value.subjectType === 'role' ? t('Role') : t('Person');
     return `${who} ${value.subjectId}, ${names(String(value.module))}: ${value.level}`;
   }
   if (Array.isArray(value)) {
-    if (value.length === 0) return 'none';
-    return clip(value.map((item) => format(item, names)).join(', '));
+    if (value.length === 0) return t('none');
+    return clip(value.map((item) => format(item, context)).join(', '));
   }
   if (isPlain(value)) {
     const parts = Object.entries(value).map(
       ([key, entry]) =>
-        `${label(key)} ${isPlain(entry) || Array.isArray(entry) ? stable(entry) : format(entry, names)}`,
+        `${label(key)} ${isPlain(entry) || Array.isArray(entry) ? stable(entry) : format(entry, context)}`,
     );
     return clip(parts.join(', '));
   }
@@ -71,7 +80,7 @@ function walk(
   after: unknown,
   path: string[],
   lines: DiffLine[],
-  names: (module: string) => string,
+  names: Context,
 ): void {
   if (lines.length > 500) return;
   if (stable(before) === stable(after)) return;
@@ -114,15 +123,19 @@ function walk(
 }
 
 export function diff(
+  t: Translator,
   before: unknown,
   after: unknown,
   names: (module: string) => string,
 ): DiffLine[] {
   const lines: DiffLine[] = [];
-  walk(before ?? undefined, after ?? undefined, [], lines, names);
+  walk(before ?? undefined, after ?? undefined, [], lines, { t, names });
   if (lines.length > MAX_LINES) {
     const rest = lines.length - MAX_LINES;
-    return [...lines.slice(0, MAX_LINES), { sign: '', text: `and ${rest} more` }];
+    return [
+      ...lines.slice(0, MAX_LINES),
+      { sign: '', text: t('and {count} more', { count: rest }) },
+    ];
   }
   return lines;
 }

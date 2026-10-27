@@ -1,14 +1,14 @@
 import { generalConfig } from '@maxwell/core';
 import { insightsConfig } from '@maxwell/core/modules/insights';
 import { InsightsStore, utcDay } from '@maxwell/core/stores/insights';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
 import { db } from '@/lib/db';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { people, personOf } from '@/lib/people';
 import { InsightsView, type RangeDays } from './insights-view';
 
-export const metadata: Metadata = { title: 'Insights' };
+export const generateMetadata = titled('Insights');
 
 const DAY = 86_400_000;
 const WEEKS = 8;

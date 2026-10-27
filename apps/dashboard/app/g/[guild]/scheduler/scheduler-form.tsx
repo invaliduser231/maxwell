@@ -29,6 +29,7 @@ import {
   ToggleRow,
 } from '@/components/controls';
 import { ChannelType, useChannelName, useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { EmbedPreview, MessagePreview } from '@/components/message-preview';
 import { useDraft, useReadOnly } from '@/components/module-shell';
 import { type Status, StatusText } from '@/components/status-text';
@@ -45,6 +46,7 @@ import {
   Row,
 } from '@/components/ui';
 import { runAction } from '@/lib/actions';
+import type { Key, Translator } from '@/lib/i18n';
 import { clock, dayTime, inSentence } from '@/lib/time';
 import { cancelReminder } from './actions';
 import { ruleLabel, timeOf, weekdayLabels } from './format';
@@ -71,31 +73,31 @@ type Tab = 'messages' | 'reminders';
 
 const MESSAGE_LIMIT = 25;
 
-const ruleTypes = [
+const ruleTypes: { value: RuleType; label: Key }[] = [
   { value: 'once', label: 'Once' },
   { value: 'daily', label: 'Daily' },
   { value: 'weekly', label: 'Weekly' },
   { value: 'interval', label: 'Every few hours' },
-] as const;
+];
 
-const tabs = [
+const tabs: { value: Tab; label: Key }[] = [
   { value: 'messages', label: 'Messages' },
   { value: 'reminders', label: 'Member reminders' },
-] as const;
+];
 
-const deliveries = [
+const deliveries: { value: 'dm' | 'channel'; label: Key }[] = [
   { value: 'dm', label: 'By DM' },
   { value: 'channel', label: 'In the channel' },
-] as const;
+];
 
 const sectionHead: CSSProperties = { borderTop: '1px solid var(--mx-line)', paddingTop: 14 };
 
-const longest = [
-  { value: '30', label: '30 days' },
-  { value: '90', label: '90 days' },
-  { value: '365', label: '1 year' },
-  { value: '730', label: '2 years' },
-];
+const longest = [30, 90, 365, 730];
+
+function longestLabel(t: Translator, days: number): string {
+  if (days % 365 === 0) return t.plural(days / 365, '{n} year', '{n} years');
+  return t.plural(days, '{n} day', '{n} days');
+}
 
 function newId(taken: readonly string[]): string {
   for (;;) {
@@ -154,11 +156,12 @@ function TimeInput({
 }
 
 function DayPicker({ days, onChange }: { days: Weekday[]; onChange: (next: Weekday[]) => void }) {
+  const t = useT();
   const readOnly = useReadOnly();
   return (
     <div className="mx-field">
       <span className="mx-label" id="scheduler-days">
-        Days
+        {t('Days')}
       </span>
       <div className="mx-seg" role="group" aria-labelledby="scheduler-days">
         {weekdays.map((day) => {
@@ -177,7 +180,7 @@ function DayPicker({ days, onChange }: { days: Weekday[]; onChange: (next: Weekd
                 )
               }
             >
-              {weekdayLabels[day]}
+              {t(weekdayLabels[day])}
             </button>
           );
         })}
@@ -197,14 +200,15 @@ function RuleEditor({
   now: number;
   tz: string;
 }) {
+  const t = useT();
   return (
     <>
       <div className="mx-field">
-        <span className="mx-label">Repeat</span>
+        <span className="mx-label">{t('Repeat')}</span>
         <Seg
-          label="Repeat"
+          label={t('Repeat')}
           value={rule.type}
-          options={ruleTypes}
+          options={ruleTypes.map((option) => ({ ...option, label: t(option.label) }))}
           onChange={(type) => onChange(switchRule(rule, type, now, tz))}
         />
       </div>
@@ -213,20 +217,20 @@ function RuleEditor({
       ) : null}
       <Fields>
         {rule.type === 'once' ? (
-          <Field label="Date and time">
+          <Field label={t('Date and time')}>
             <TimeInput
               type="datetime-local"
-              label="Date and time"
+              label={t('Date and time')}
               value={rule.at}
               onChange={(at) => onChange({ ...rule, at })}
             />
           </Field>
         ) : null}
         {rule.type === 'daily' || rule.type === 'weekly' ? (
-          <Field label="Time">
+          <Field label={t('Time')}>
             <TimeInput
               type="time"
-              label="Time"
+              label={t('Time')}
               value={rule.time}
               onChange={(time) => onChange({ ...rule, time })}
             />
@@ -234,22 +238,22 @@ function RuleEditor({
         ) : null}
         {rule.type === 'interval' ? (
           <>
-            <Field label="Every">
+            <Field label={t('Every')}>
               <NumberInput
-                label="Every"
+                label={t('Every')}
                 value={rule.hours}
                 min={1}
                 max={720}
-                suffix="hours"
+                suffix={t('hours')}
                 onChange={(hours) =>
                   onChange({ ...rule, hours: Math.min(720, Math.max(1, Math.round(hours))) })
                 }
               />
             </Field>
-            <Field label="Starting">
+            <Field label={t('Starting')}>
               <TimeInput
                 type="datetime-local"
-                label="Starting"
+                label={t('Starting')}
                 value={rule.start}
                 onChange={(start) => onChange({ ...rule, start })}
               />
@@ -262,11 +266,12 @@ function RuleEditor({
 }
 
 function Preview({ message, at }: { message: ScheduledMessage; at: string }) {
+  const t = useT();
   const channelName = useChannelName();
   const ping = message.pingRoleId ? `<@&${message.pingRoleId}>` : null;
   return (
-    <div className="mx-preview" role="group" aria-label="Preview">
-      <div className="mx-sub">{channelName(message.channelId) || 'No channel'}</div>
+    <div className="mx-preview" role="group" aria-label={t('Preview')}>
+      <div className="mx-sub">{channelName(message.channelId) || t('No channel')}</div>
       {message.embed ? (
         <MessagePreview time={at} content={ping}>
           <EmbedPreview color="#F26B3A" description={message.content || ' '} />
@@ -295,31 +300,32 @@ function MessageList({
   now: number;
   tz: string;
 }) {
+  const t = useT();
   const { value, set } = useDraft<SchedulerConfig>();
   const { timezone } = useGuild();
   const channelName = useChannelName();
   const readOnly = useReadOnly();
   return (
     <Panel
-      title="Scheduled messages"
+      title={t('Scheduled messages')}
       span={5}
       id="scheduler-list"
       actions={
         readOnly || messages.length >= MESSAGE_LIMIT ? null : (
           <button type="button" className="mx-btn" onClick={onAdd}>
-            New
+            {t('New')}
           </button>
         )
       }
     >
       {messages.map((message) => {
         const next = message.enabled ? upcomingRuns(message.rule, tz, now, 1)[0] : undefined;
-        const title = message.name.trim() || message.content.trim().slice(0, 60) || 'Untitled';
+        const title = message.name.trim() || message.content.trim().slice(0, 60) || t('Untitled');
         const nextText = !message.enabled
-          ? 'off'
+          ? t('off')
           : next === undefined
-            ? 'nothing planned'
-            : `next ${inSentence(dayTime(next, now, tz))}`;
+            ? t('nothing planned')
+            : t('next {when}', { when: inSentence(t, dayTime(t, next, now, tz)) });
         const picked = message.id === selected;
         return (
           <div key={message.id} className="mx-row">
@@ -331,25 +337,27 @@ function MessageList({
             >
               <span className="mx-row-title mx-ellipsis">{title}</span>
               <span className="mx-sub">
-                {channelName(message.channelId) || 'No channel'},{' '}
-                {ruleLabel(message.rule, weekdays)}, {nextText}
+                {channelName(message.channelId) || t('No channel')},{' '}
+                {ruleLabel(t, message.rule, weekdays)}, {nextText}
               </span>
             </button>
             <Switch
               order
               checked={message.enabled}
-              label={`${title} ${message.enabled ? 'on' : 'off'}`}
+              label={
+                message.enabled ? t('{name} on', { name: title }) : t('{name} off', { name: title })
+              }
               onChange={(enabled) => onToggle(message.id, enabled)}
             />
           </div>
         );
       })}
-      <Row title="Timezone">
+      <Row title={t('Timezone')}>
         <div style={{ width: 240, maxWidth: '55%' }}>
           <TimezoneSelect
             value={value.timezone}
-            none={`Same as General (${timezone.replaceAll('_', ' ')})`}
-            onChange={(next) => set({ timezone: next })}
+            none={t('Same as General ({zone})', { zone: timezone.replaceAll('_', ' ') })}
+            onChange={(next: string | null) => set({ timezone: next })}
           />
         </div>
       </Row>
@@ -385,6 +393,7 @@ function MessageEditor({
   onChange: (patch: Partial<ScheduledMessage>) => void;
   onDelete: () => void;
 }) {
+  const t = useT();
   const { guildId } = useGuild();
   const readOnly = useReadOnly();
   const [status, setStatus] = useState<Status>(null);
@@ -403,7 +412,7 @@ function MessageEditor({
 
   return (
     <Panel
-      title={message.name.trim() || 'Untitled message'}
+      title={message.name.trim() || t('Untitled message')}
       span={7}
       id="scheduler-edit"
       actions={
@@ -412,11 +421,11 @@ function MessageEditor({
             <StatusText status={status} />
             {saved ? (
               <button type="button" className="mx-btn" disabled={pending} onClick={postNow}>
-                Post now
+                {t('Post now')}
               </button>
             ) : null}
             <button type="button" className="mx-btn mx-btn-danger" onClick={onDelete}>
-              Delete
+              {t('Delete')}
             </button>
           </>
         )
@@ -424,33 +433,35 @@ function MessageEditor({
     >
       <PanelBody>
         {state?.lastError ? (
-          <Callout tone="warn">Last post failed. {state.lastError}</Callout>
+          <Callout tone="warn">
+            {t('Last post failed. {error}', { error: state.lastError })}
+          </Callout>
         ) : null}
-        <Field label="Name" aside={`${message.name.length} / 100`}>
+        <Field label={t('Name')} aside={`${message.name.length} / 100`}>
           <TextInput
             value={message.name}
             maxLength={100}
-            placeholder="Movie night reminder"
+            placeholder={t('Movie night reminder')}
             onChange={(name) => onChange({ name })}
           />
         </Field>
         <Fields>
-          <Field label="Channel">
+          <Field label={t('Channel')}>
             <ChannelSelect
               value={message.channelId || null}
-              none={message.channelId ? null : 'Pick a channel'}
+              none={message.channelId ? null : t('Pick a channel')}
               onChange={(channelId) => onChange({ channelId: channelId ?? '' })}
             />
           </Field>
-          <Field label="Ping">
+          <Field label={t('Ping')}>
             <RoleSelect
               value={message.pingRoleId}
-              none="Nobody"
+              none={t('Nobody')}
               onChange={(pingRoleId) => onChange({ pingRoleId })}
             />
           </Field>
         </Fields>
-        <Field label="Message" aside={`${message.content.length} / 2000`}>
+        <Field label={t('Message')} aside={`${message.content.length} / 2000`}>
           <TextArea
             value={message.content}
             rows={4}
@@ -460,29 +471,33 @@ function MessageEditor({
         </Field>
         <ToggleRow
           order
-          title="Send as embed"
+          title={t('Send as embed')}
           checked={message.embed}
           onChange={(embed) => onChange({ embed })}
         />
       </PanelBody>
 
-      <Section title="When">
+      <Section title={t('When')}>
         <RuleEditor rule={message.rule} now={now} tz={tz} onChange={(rule) => onChange({ rule })} />
         <span className="mx-hint">
           {runs.length > 0
-            ? `Next ${runs.map((run) => inSentence(dayTime(run, now, tz))).join(', ')}`
+            ? t('Next {when}', {
+                when: runs.map((run) => inSentence(t, dayTime(t, run, now, tz))).join(', '),
+              })
             : message.enabled
-              ? 'Nothing planned. The time has passed.'
-              : 'Off'}
-          {`. Times in ${tz.replaceAll('_', ' ')}`}
+              ? t('Nothing planned. The time has passed.')
+              : t('Off')}
+          {t('. Times in {zone}', { zone: tz.replaceAll('_', ' ') })}
         </span>
       </Section>
 
-      <Section title="Preview">
+      <Section title={t('Preview')}>
         <Preview message={message} at={runs[0] !== undefined ? clock(runs[0], tz) : ''} />
         {state?.lastSentAt ? (
           <span className="mx-sub">
-            Last posted {inSentence(dayTime(state.lastSentAt, now, tz))}
+            {t('Last posted {when}', {
+              when: inSentence(t, dayTime(t, state.lastSentAt, now, tz)),
+            })}
           </span>
         ) : null}
       </Section>
@@ -507,6 +522,7 @@ function Reminders({
   now: number;
   tz: string;
 }) {
+  const t = useT();
   const { guildId } = useGuild();
   const channelName = useChannelName();
   const readOnly = useReadOnly();
@@ -519,13 +535,13 @@ function Reminders({
 
   return (
     <Panel
-      title="Member reminders"
+      title={t('Member reminders')}
       span={7}
       id="scheduler-reminders"
       actions={
         <>
           <StatusText status={status} />
-          {count > 0 ? <span className="mx-sub">{`${count} active`}</span> : null}
+          {count > 0 ? <span className="mx-sub">{t('{count} active', { count })}</span> : null}
         </>
       }
     >
@@ -533,11 +549,11 @@ function Reminders({
         <Empty mood="sleeping">
           {on ? (
             <>
-              <p style={{ margin: '0 0 10px' }}>No reminders set.</p>
+              <p style={{ margin: '0 0 10px' }}>{t('No reminders set.')}</p>
               <span className="mx-kbd">{`${prefix}remind 2h stretch`}</span>
             </>
           ) : (
-            'Member reminders are off.'
+            t('Member reminders are off.')
           )}
         </Empty>
       ) : (
@@ -545,12 +561,12 @@ function Reminders({
           <table className="mx-table">
             <thead>
               <tr>
-                <th scope="col">Member</th>
-                <th scope="col">Reminder</th>
-                <th scope="col">Due</th>
-                <th scope="col">Where</th>
+                <th scope="col">{t('Member')}</th>
+                <th scope="col">{t('Reminder')}</th>
+                <th scope="col">{t('Due')}</th>
+                <th scope="col">{t('Where')}</th>
                 <th scope="col">
-                  <span className="mx-sr">Actions</span>
+                  <span className="mx-sr">{t('Actions')}</span>
                 </th>
               </tr>
             </thead>
@@ -560,21 +576,21 @@ function Reminders({
                   <td>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Avatar src={reminder.avatar} name={reminder.name} size={22} />
-                      {reminder.name}
+                      {t.raw(reminder.name)}
                     </span>
                   </td>
                   <td style={{ maxWidth: 280, overflowWrap: 'anywhere' }}>
                     <span className="mx-mono mx-muted">#{reminder.number}</span> {reminder.content}
                   </td>
                   <td className="mx-muted" style={{ whiteSpace: 'nowrap' }}>
-                    {dayTime(reminder.dueAt, now, tz)}
+                    {dayTime(t, reminder.dueAt, now, tz)}
                   </td>
                   <td className="mx-muted">{dm ? 'DM' : channelName(reminder.channelId)}</td>
                   <td style={{ textAlign: 'right' }}>
                     {readOnly ? null : (
                       <TwoStep
                         ghost
-                        label="Cancel"
+                        label={t('Cancel')}
                         disabled={pending}
                         run={() =>
                           start(async () => {
@@ -597,7 +613,9 @@ function Reminders({
           </table>
           {count > shown.length ? (
             <div className="mx-panel-body">
-              <span className="mx-sub">{`${count - shown.length} more due later`}</span>
+              <span className="mx-sub">
+                {t('{count} more due later', { count: count - shown.length })}
+              </span>
             </div>
           ) : null}
         </div>
@@ -607,21 +625,26 @@ function Reminders({
 }
 
 function Settings() {
+  const t = useT();
   const { value, set } = useDraft<SchedulerConfig>();
-  const days = String(value.maxReminderDays);
+  const days = value.maxReminderDays;
+  const options = (longest.includes(days) ? longest : [...longest, days]).map((option) => ({
+    value: String(option),
+    label: longestLabel(t, option),
+  }));
   return (
-    <Panel title="Settings" span={5} id="scheduler-settings">
+    <Panel title={t('Settings')} span={5} id="scheduler-settings">
       <PanelBody>
         <ToggleRow
           order
-          title="Member reminders"
+          title={t('Member reminders')}
           checked={value.reminders}
           onChange={(reminders) => set({ reminders })}
         />
         {value.reminders ? (
           <>
             <Fields>
-              <Field label="Per member">
+              <Field label={t('Per member')}>
                 <NumberInput
                   value={value.maxRemindersPerMember}
                   min={1}
@@ -631,24 +654,20 @@ function Settings() {
                   }
                 />
               </Field>
-              <Field label="Longest">
+              <Field label={t('Longest reminder')}>
                 <Select
-                  value={days}
-                  options={
-                    longest.some((option) => option.value === days)
-                      ? longest
-                      : [...longest, { value: days, label: `${days} days` }]
-                  }
+                  value={String(days)}
+                  options={options}
                   onChange={(next) => set({ maxReminderDays: Number(next) })}
                 />
               </Field>
             </Fields>
             <div className="mx-field">
-              <span className="mx-label">Deliver</span>
+              <span className="mx-label">{t('Deliver')}</span>
               <Seg
-                label="Deliver"
+                label={t('Deliver')}
                 value={value.reminderDelivery === 'dm' ? 'dm' : 'channel'}
-                options={deliveries}
+                options={deliveries.map((option) => ({ ...option, label: t(option.label) }))}
                 onChange={(delivery) => set({ reminderDelivery: delivery })}
               />
             </div>
@@ -674,6 +693,7 @@ export function SchedulerForm({
   reminders: ReminderView[];
   total: number;
 }) {
+  const t = useT();
   const { value, update, readOnly } = useDraft<SchedulerConfig>();
   const guild = useGuild();
   const tz = value.timezone ?? guild.timezone;
@@ -721,7 +741,12 @@ export function SchedulerForm({
 
   return (
     <>
-      <Tabs label="Scheduler" value={tab} options={tabs} onChange={setTab} />
+      <Tabs
+        label={t('Scheduler')}
+        value={tab}
+        options={tabs.map((option) => ({ ...option, label: t(option.label) }))}
+        onChange={setTab}
+      />
       {tab === 'messages' ? (
         current ? (
           <Grid>
@@ -753,12 +778,12 @@ export function SchedulerForm({
                 action={
                   readOnly ? null : (
                     <button type="button" className="mx-btn mx-btn-primary" onClick={add}>
-                      New message
+                      {t('New message')}
                     </button>
                   )
                 }
               >
-                Nothing scheduled yet.
+                {t('Nothing scheduled yet.')}
               </Empty>
             </Panel>
           </Grid>

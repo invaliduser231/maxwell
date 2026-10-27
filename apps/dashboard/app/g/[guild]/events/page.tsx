@@ -2,15 +2,15 @@ import { generalConfig } from '@maxwell/core';
 import { eventsConfig } from '@maxwell/core/modules/events';
 import { type EventRow, EventStore, nextOccurrence, PollStore } from '@maxwell/core/stores/events';
 import { resolveTimezone, toLocal } from '@maxwell/core/stores/scheduler';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
 import { db } from '@/lib/db';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { people, personOf } from '@/lib/people';
 import { EventsView, type EventView, type Occurrence, type PollView } from './events-view';
 import { isoDate, mondayOf, parseIsoDate, weekBounds } from './time';
 
-export const metadata: Metadata = { title: 'Events and polls' };
+export const generateMetadata = titled('Events and polls');
 
 const GOING_SHOWN = 12;
 

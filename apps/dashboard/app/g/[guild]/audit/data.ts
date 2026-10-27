@@ -1,6 +1,7 @@
 import 'server-only';
 import { type AuditEntry, type AuditFilter, canUndo, moduleByKey } from '@maxwell/core';
 import { db } from '@/lib/db';
+import { getT } from '@/lib/i18n/server';
 import { allPages, pageByKey } from '@/lib/pages';
 import { people, personOf } from '@/lib/people';
 import { type DiffLine, diff } from './diff';
@@ -43,8 +44,9 @@ export function filterFor(query: AuditQuery, now = Date.now()): AuditFilter {
 }
 
 export async function toRows(entries: AuditEntry[]): Promise<AuditRow[]> {
-  const known = await people(entries.map((entry) => entry.actorId));
+  const [known, t] = await Promise.all([people(entries.map((entry) => entry.actorId)), getT()]);
   const now = Date.now();
+  const nameOf = (key: string) => t.raw(moduleName(key));
   return entries.map((entry) => {
     const actor = entry.actorId ? personOf(known, entry.actorId) : null;
     return {
@@ -53,14 +55,14 @@ export async function toRows(entries: AuditEntry[]): Promise<AuditRow[]> {
       actorName: actor ? actor.name : 'Maxwell',
       actorAvatar: actor ? actor.avatar : '/mascot/neutral.svg',
       module: entry.module,
-      moduleName: moduleName(entry.module),
+      moduleName: nameOf(entry.module),
       action: entry.action,
       summary: entry.summary,
       createdAt: entry.createdAt.toISOString(),
       undoneAt: entry.undoneAt ? entry.undoneAt.toISOString() : null,
       undoable: canUndo(entry, now),
       hasUndo: entry.undo !== null,
-      diff: diff(entry.before, entry.after, moduleName),
+      diff: diff(t, entry.before, entry.after, nameOf),
     };
   });
 }

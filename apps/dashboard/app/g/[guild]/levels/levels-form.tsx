@@ -23,11 +23,13 @@ import {
   useRoleOptions,
 } from '@/components/controls';
 import { useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { MessagePreview } from '@/components/message-preview';
 import { useDraft } from '@/components/module-shell';
 import { Avatar, Empty, Field, Fields, Grid, Panel, PanelBody, roleColor } from '@/components/ui';
+import type { Key, Translator } from '@/lib/i18n';
 import type { Person } from '@/lib/people';
-import { count, date } from '@/lib/time';
+import { date } from '@/lib/time';
 import { importLevels } from './actions';
 
 interface Leader {
@@ -42,45 +44,51 @@ type ImportRow = { id: string; xp: number } | { id: string; level: number };
 
 type Tab = 'setup' | 'message' | 'leaderboard';
 
-const tabs = [
+type Announce = LevelsConfig['announce'];
+
+const tabs: { value: Tab; label: Key }[] = [
   { value: 'setup', label: 'XP and rewards' },
   { value: 'message', label: 'Level-up message' },
   { value: 'leaderboard', label: 'Leaderboard' },
-] as const;
+];
 
-const curves = [
+const curves: { value: LevelCurve; label: Key }[] = [
   { value: 'gentle', label: 'Gentle' },
   { value: 'standard', label: 'Standard' },
   { value: 'linear', label: 'Linear' },
-] as const;
-
-const cooldowns = [
-  { value: '0', label: 'No cooldown' },
-  { value: '30', label: '30 seconds' },
-  { value: '60', label: '60 seconds' },
-  { value: '120', label: '2 minutes' },
-  { value: '300', label: '5 minutes' },
 ];
+
+const cooldowns = [0, 30, 60, 120, 300];
 
 const factors = ['none', '0.5', '1.5', '2', '3'];
 
-const announceOptions = [
+const announceOptions: { value: Announce; label: Key }[] = [
   { value: 'current', label: 'Same channel' },
   { value: 'channel', label: 'A set channel' },
   { value: 'dm', label: 'Direct message' },
   { value: 'off', label: 'Off' },
-] as const;
+];
 
-const importModes = [
+const importModes: { value: ImportMode; label: Key }[] = [
   { value: 'max', label: 'Keep higher' },
   { value: 'replace', label: 'Replace' },
   { value: 'add', label: 'Add' },
-] as const;
+];
 
 const CHUNK = 20_000;
 
-function factorLabel(value: string): string {
-  return value === 'none' ? 'No XP' : `${value}x`;
+function cooldownLabel(t: Translator, seconds: number): string {
+  if (seconds === 0) return t('No cooldown');
+  if (seconds > 60 && seconds % 60 === 0) {
+    return t.plural(seconds / 60, '{n} minute', '{n} minutes');
+  }
+  return t.plural(seconds, '{n} second', '{n} seconds');
+}
+
+function factorLabel(t: Translator, value: string): string {
+  return value === 'none'
+    ? t('No XP')
+    : `${Number(value).toLocaleString(t.locale, { maximumFractionDigits: 2 })}x`;
 }
 
 function rowsOf(input: unknown): unknown[] | null {
@@ -146,28 +154,26 @@ function parseImportFile(text: string): { rows: ImportRow[]; skipped: number } |
 }
 
 function XpPanel() {
+  const t = useT();
   const { value, set } = useDraft<LevelsConfig>();
-  const cooldownOptions = cooldowns.some((entry) => Number(entry.value) === value.cooldownSeconds)
-    ? cooldowns
-    : [
-        ...cooldowns,
-        { value: String(value.cooldownSeconds), label: `${value.cooldownSeconds} seconds` },
-      ];
+  const cooldownOptions = (
+    cooldowns.includes(value.cooldownSeconds) ? cooldowns : [...cooldowns, value.cooldownSeconds]
+  ).map((seconds) => ({ value: String(seconds), label: cooldownLabel(t, seconds) }));
   return (
     <Panel
       title="XP"
       actions={
         <Seg
-          label="Level curve"
+          label={t('Level curve')}
           value={value.curve}
-          options={curves}
+          options={curves.map((option) => ({ ...option, label: t(option.label) }))}
           onChange={(curve) => set({ curve })}
         />
       }
     >
       <PanelBody>
         <Fields>
-          <Field label="XP per message, lowest">
+          <Field label={t('XP per message, lowest')}>
             <NumberInput
               value={value.xpMin}
               min={0}
@@ -175,7 +181,7 @@ function XpPanel() {
               onChange={(xpMin) => set({ xpMin })}
             />
           </Field>
-          <Field label="XP per message, highest">
+          <Field label={t('XP per message, highest')}>
             <NumberInput
               value={value.xpMax}
               min={0}
@@ -183,7 +189,7 @@ function XpPanel() {
               onChange={(xpMax) => set({ xpMax })}
             />
           </Field>
-          <Field label="Cooldown">
+          <Field label={t('Cooldown')}>
             <Select
               value={String(value.cooldownSeconds)}
               options={cooldownOptions}
@@ -192,8 +198,10 @@ function XpPanel() {
           </Field>
         </Fields>
         <span className="mx-hint">
-          Level 10 needs {count(totalXpForLevel(10, value.curve))} XP, level 50 needs{' '}
-          {count(totalXpForLevel(50, value.curve))} XP
+          {t('Level 10 needs {low} XP, level 50 needs {high} XP', {
+            low: totalXpForLevel(10, value.curve),
+            high: totalXpForLevel(50, value.curve),
+          })}
         </span>
       </PanelBody>
     </Panel>
@@ -260,14 +268,16 @@ function withFactor(
 }
 
 function RemoveButton({ label, onClick }: { label: string; onClick: () => void }) {
+  const t = useT();
   return (
     <button type="button" className="mx-btn mx-btn-ghost" aria-label={label} onClick={onClick}>
-      Remove
+      {t('Remove')}
     </button>
   );
 }
 
 function MultipliersPanel() {
+  const t = useT();
   const { value, set, readOnly } = useDraft<LevelsConfig>();
   const { channels, roles } = useGuild();
   const rows = multiplierRows(value);
@@ -280,29 +290,29 @@ function MultipliersPanel() {
   const nameOf = (row: MultiplierRow) => {
     if (row.kind === 'channel') {
       const channel = channels.find((entry) => entry.id === row.id);
-      return { label: channel ? `#${channel.name}` : 'Deleted channel', color: '#9A9EA6' };
+      return { label: channel ? `#${channel.name}` : t('Deleted channel'), color: '#9A9EA6' };
     }
     const role = roles.find((entry) => entry.id === row.id);
-    return { label: role?.name ?? 'Deleted role', color: roleColor(role?.color ?? 0) };
+    return { label: role?.name ?? t('Deleted role'), color: roleColor(role?.color ?? 0) };
   };
 
   return (
     <Panel
-      title="Multipliers"
+      title={t('Multipliers')}
       span={6}
       actions={
         readOnly ? null : (
           <>
             {channelOptions.length > 0 ? (
               <AddPicker
-                label="Add channel"
+                label={t('Add channel')}
                 options={channelOptions}
                 onPick={(id) => set(withFactor(value, 'channel', id, '2'))}
               />
             ) : null}
             {roleOptions.length > 0 ? (
               <AddPicker
-                label="Add role"
+                label={t('Add role')}
                 options={roleOptions}
                 onPick={(id) => set(withFactor(value, 'role', id, '2'))}
               />
@@ -311,11 +321,11 @@ function MultipliersPanel() {
         )
       }
     >
-      {rows.length === 0 ? <Empty>Every channel and role earns normal XP.</Empty> : null}
+      {rows.length === 0 ? <Empty>{t('Every channel and role earns normal XP.')}</Empty> : null}
       {rows.map((row) => {
         const name = nameOf(row);
         const options = (factors.includes(row.factor) ? factors : [...factors, row.factor]).map(
-          (entry) => ({ value: entry, label: factorLabel(entry) }),
+          (entry) => ({ value: entry, label: factorLabel(t, entry) }),
         );
         return (
           <div className="mx-row" key={`${row.kind}:${row.id}`}>
@@ -324,19 +334,19 @@ function MultipliersPanel() {
             ) : null}
             <div className="mx-row-main">
               <span className="mx-row-title mx-ellipsis">{name.label}</span>
-              <span className="mx-sub">{row.kind === 'channel' ? 'Channel' : 'Role'}</span>
+              <span className="mx-sub">{row.kind === 'channel' ? t('Channel') : t('Role')}</span>
             </div>
             <div style={{ width: 120, flexShrink: 0 }}>
               <Select
                 value={row.factor}
-                label={`Multiplier for ${name.label}`}
+                label={t('Multiplier for {name}', { name: name.label })}
                 options={options}
                 onChange={(next) => set(withFactor(value, row.kind, row.id, next))}
               />
             </div>
             {readOnly ? null : (
               <RemoveButton
-                label={`Remove multiplier for ${name.label}`}
+                label={t('Remove multiplier for {name}', { name: name.label })}
                 onClick={() => set(withFactor(value, row.kind, row.id, null))}
               />
             )}
@@ -354,6 +364,7 @@ function RewardsPanel({
   counts: Record<LevelCurve, Record<number, number>>;
   ranked: number;
 }) {
+  const t = useT();
   const { value, set, readOnly } = useDraft<LevelsConfig>();
   const { roles } = useGuild();
   const [level, setLevel] = useState(10);
@@ -367,17 +378,17 @@ function RewardsPanel({
   const rewards = [...value.rewards].sort((a, b) => a.level - b.level);
 
   return (
-    <Panel title="Rewards" span={6}>
-      {rewards.length === 0 && readOnly ? <Empty>No reward roles yet.</Empty> : null}
+    <Panel title={t('Rewards')} span={6}>
+      {rewards.length === 0 && readOnly ? <Empty>{t('No reward roles yet.')}</Empty> : null}
       {rewards.map((reward) => {
         const role = roles.find((entry) => entry.id === reward.roleId);
-        const name = role?.name ?? 'Deleted role';
+        const name = role?.name ?? t('Deleted role');
         const members = reached(reward.level);
         const share = ranked > 0 ? Math.round((members / ranked) * 100) : 0;
         return (
           <div className="mx-row" key={`${reward.level}:${reward.roleId}`}>
             <span className="mx-row-title" style={{ width: 64, flexShrink: 0 }}>
-              Level {reward.level}
+              {t('Level {level}', { level: reward.level })}
             </span>
             <div className="mx-row-main">
               <span className="mx-ellipsis" style={{ display: 'inline-flex', gap: 6 }}>
@@ -391,14 +402,12 @@ function RewardsPanel({
                 <div className="mx-bar" style={{ flex: 1, maxWidth: 160 }}>
                   <span style={{ width: `${share}%` }} />
                 </div>
-                <span className="mx-sub">
-                  {members === 1 ? '1 member' : `${count(members)} members`}
-                </span>
+                <span className="mx-sub">{t.plural(members, '{n} member', '{n} members')}</span>
               </div>
             </div>
             {readOnly ? null : (
               <RemoveButton
-                label={`Remove reward ${name}`}
+                label={t('Remove reward {name}', { name })}
                 onClick={() =>
                   set({
                     rewards: value.rewards.filter(
@@ -414,14 +423,14 @@ function RewardsPanel({
       {readOnly ? null : (
         <div className="mx-row">
           <div style={{ width: 96, flexShrink: 0 }}>
-            <NumberInput value={level} min={1} max={1000} label="Level" onChange={setLevel} />
+            <NumberInput value={level} min={1} max={1000} label={t('Level')} onChange={setLevel} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <RoleSelect
               value={roleId}
               none={null}
-              placeholder="Reward role"
-              label="Reward role"
+              placeholder={t('Reward role')}
+              label={t('Reward role')}
               onChange={setRoleId}
             />
           </div>
@@ -442,16 +451,16 @@ function RewardsPanel({
               setRoleId(null);
             }}
           >
-            Add
+            {t('Add')}
           </button>
         </div>
       )}
       <div className="mx-row">
         <div className="mx-row-main">
-          <span className="mx-row-title">Keep earlier rewards</span>
+          <span className="mx-row-title">{t('Keep earlier rewards')}</span>
         </div>
         <Switch
-          label="Keep earlier rewards"
+          label={t('Keep earlier rewards')}
           checked={!value.removePreviousRewards}
           onChange={(keep) => set({ removePreviousRewards: !keep })}
         />
@@ -461,20 +470,21 @@ function RewardsPanel({
 }
 
 function MessagePanel() {
+  const t = useT();
   const { value, set } = useDraft<LevelsConfig>();
   return (
-    <Panel title="Level-up message" span={value.announce === 'off' ? 12 : 7}>
+    <Panel title={t('Level-up message')} span={value.announce === 'off' ? 12 : 7}>
       <PanelBody>
         <Fields>
-          <Field label="Where">
+          <Field label={t('Where')}>
             <Select
               value={value.announce}
-              options={announceOptions}
+              options={announceOptions.map((option) => ({ ...option, label: t(option.label) }))}
               onChange={(announce) => set({ announce })}
             />
           </Field>
           {value.announce === 'channel' ? (
-            <Field label="Channel">
+            <Field label={t('Channel')}>
               <ChannelSelect
                 value={value.announceChannelId}
                 none={null}
@@ -486,18 +496,21 @@ function MessagePanel() {
         {value.announce === 'off' ? null : (
           <>
             <ToggleRow
-              title="Level-up card"
+              title={t('Level-up card')}
               checked={value.card}
               onChange={(card) => set({ card })}
             />
-            <Field label="Message" aside={`${value.message.length} / 1000`}>
+            <Field label={t('Message')} aside={`${value.message.length} / 1000`}>
               <TextInput
                 value={value.message}
                 maxLength={1000}
                 onChange={(message) => set({ message })}
               />
             </Field>
-            <Field label="Message with a reward" aside={`${value.rewardMessage.length} / 1000`}>
+            <Field
+              label={t('Message with a reward')}
+              aside={`${value.rewardMessage.length} / 1000`}
+            >
               <TextInput
                 value={value.rewardMessage}
                 maxLength={1000}
@@ -505,10 +518,10 @@ function MessagePanel() {
               />
             </Field>
             <span className="mx-hint">
-              <span className="mx-mono">{'{user}'}</span> pings,{' '}
-              <span className="mx-mono">{'{name}'}</span> does not. Also{' '}
+              <span className="mx-mono">{'{user}'}</span> {t('pings,')}{' '}
+              <span className="mx-mono">{'{name}'}</span> {t('does not. Also')}{' '}
               <span className="mx-mono">{'{level}'}</span>,{' '}
-              <span className="mx-mono">{'{role}'}</span> and{' '}
+              <span className="mx-mono">{'{role}'}</span> {t('and')}{' '}
               <span className="mx-mono">{'{server}'}</span>
             </span>
           </>
@@ -518,10 +531,10 @@ function MessagePanel() {
   );
 }
 
-const previewKinds = [
+const previewKinds: { value: 'level' | 'reward'; label: Key }[] = [
   { value: 'level', label: 'Level up' },
   { value: 'reward', label: 'Reward' },
-] as const;
+];
 
 function PreviewPanel({
   sample,
@@ -530,15 +543,16 @@ function PreviewPanel({
   sample: { name: string; avatarUrl: string | null };
   look: CardLook;
 }) {
+  const t = useT();
   const { value } = useDraft<LevelsConfig>();
   const { roles, channels, guildName } = useGuild();
   const [withReward, setWithReward] = useState(false);
   const announceChannel = channels.find((entry) => entry.id === value.announceChannelId);
   const channelName = !value.announceChannelId
-    ? 'No channel'
+    ? t('No channel')
     : announceChannel
       ? `#${announceChannel.name}`
-      : 'Deleted channel';
+      : t('Deleted channel');
   const reward = [...value.rewards].sort((a, b) => a.level - b.level)[0];
   const rewardRole = reward ? roles.find((role) => role.id === reward.roleId) : undefined;
   const showReward = withReward && reward !== undefined;
@@ -548,27 +562,25 @@ function PreviewPanel({
     user: `@${sample.name}`,
     name: sample.name,
     level: String(level),
-    role: rewardRole?.name ?? 'Deleted role',
+    role: rewardRole?.name ?? t('Deleted role'),
     server: guildName,
   };
-  const where =
-    value.announce === 'channel'
-      ? channelName
-      : (announceOptions.find((entry) => entry.value === value.announce)?.label ?? '');
+  const announce = announceOptions.find((entry) => entry.value === value.announce);
+  const where = value.announce === 'channel' ? channelName : announce ? t(announce.label) : '';
 
   if (value.announce === 'off') return null;
 
   return (
     <Panel
-      title="Preview"
+      title={t('Preview')}
       span={5}
       actions={
         <>
           {reward ? (
             <Seg
-              label="Preview message"
+              label={t('Preview message')}
               value={withReward ? 'reward' : 'level'}
-              options={previewKinds}
+              options={previewKinds.map((option) => ({ ...option, label: t(option.label) }))}
               onChange={(next) => setWithReward(next === 'reward')}
               view
             />
@@ -590,7 +602,7 @@ function PreviewPanel({
                   reward={
                     showReward
                       ? {
-                          name: rewardRole?.name ?? 'Deleted role',
+                          name: rewardRole?.name ?? t('Deleted role'),
                           color: rewardRole?.color ? roleColor(rewardRole.color) : '#F4F4F2',
                         }
                       : null
@@ -606,14 +618,15 @@ function PreviewPanel({
 }
 
 function LeaderboardPanel({ leaders, prefix }: { leaders: Leader[]; prefix: string }) {
+  const t = useT();
   const { value } = useDraft<LevelsConfig>();
   return (
     <Panel
-      title="Leaderboard"
+      title={t('Leaderboard')}
       span={7}
       actions={<span className="mx-sub mx-mono">{`${prefix}levels`}</span>}
     >
-      {leaders.length === 0 ? <Empty mood="sleeping">Nobody has XP yet.</Empty> : null}
+      {leaders.length === 0 ? <Empty mood="sleeping">{t('Nobody has XP yet.')}</Empty> : null}
       {leaders.map((leader) => (
         <div className="mx-row" key={leader.person.id}>
           <span className="mx-mono mx-muted" style={{ width: 22 }}>
@@ -622,7 +635,7 @@ function LeaderboardPanel({ leaders, prefix }: { leaders: Leader[]; prefix: stri
           <Avatar src={leader.person.avatar} name={leader.person.name} size={26} />
           <div className="mx-row-main">
             <span className="mx-row-title">{leader.person.name}</span>
-            <span className="mx-sub">{count(leader.xp)} XP</span>
+            <span className="mx-sub">{t.count(leader.xp)} XP</span>
           </div>
           <span className="mx-stat-value" style={{ fontSize: 17 }}>
             {levelFromXp(leader.xp, value.curve).level}
@@ -634,6 +647,7 @@ function LeaderboardPanel({ leaders, prefix }: { leaders: Leader[]; prefix: stri
 }
 
 function ImportPanel({ lastImport }: { lastImport: { rows: number; at: string } | null }) {
+  const t = useT();
   const { guildId } = useGuild();
   const { readOnly } = useDraft<LevelsConfig>();
   const [mode, setMode] = useState<ImportMode>('max');
@@ -645,22 +659,22 @@ function ImportPanel({ lastImport }: { lastImport: { rows: number; at: string } 
     start(async () => {
       if (!file) return;
       if (file.size > 25_000_000) {
-        setStatus({ text: 'Use a file under 25 MB.', error: true });
+        setStatus({ text: t('Use a file under 25 MB.'), error: true });
         return;
       }
       const parsed = parseImportFile(await file.text());
       if (!parsed) {
-        setStatus({ text: 'I cannot read that file.', error: true });
+        setStatus({ text: t('I cannot read that file.'), error: true });
         return;
       }
       if (parsed.rows.length === 0) {
-        setStatus({ text: 'No members with XP or a level in that file.', error: true });
+        setStatus({ text: t('No members with XP or a level in that file.'), error: true });
         return;
       }
       for (let i = 0; i < parsed.rows.length; i += CHUNK) {
         const result = await importLevels(guildId, parsed.rows.slice(i, i + CHUNK), mode);
         if (!result.ok) {
-          setStatus({ text: result.error, error: true });
+          setStatus({ text: t.raw(result.error), error: true });
           return;
         }
       }
@@ -668,14 +682,17 @@ function ImportPanel({ lastImport }: { lastImport: { rows: number; at: string } 
       setStatus({
         text:
           parsed.skipped > 0
-            ? `Importing ${count(parsed.rows.length)} members, ${count(parsed.skipped)} rows skipped.`
-            : `Importing ${count(parsed.rows.length)} members.`,
+            ? t('Importing {count} members, {skipped} rows skipped.', {
+                count: parsed.rows.length,
+                skipped: parsed.skipped,
+              })
+            : t('Importing {count} members.', { count: parsed.rows.length }),
         error: false,
       });
     });
 
   return (
-    <Panel title="Import levels" span={5}>
+    <Panel title={t('Import levels')} span={5}>
       <PanelBody>
         {readOnly ? null : (
           <>
@@ -684,7 +701,7 @@ function ImportPanel({ lastImport }: { lastImport: { rows: number; at: string } 
                 className="mx-btn"
                 style={{ flex: 1, minWidth: 0, justifyContent: 'flex-start' }}
               >
-                <span className="mx-ellipsis">{file ? file.name : 'Choose a file'}</span>
+                <span className="mx-ellipsis">{file ? file.name : t('Choose a file')}</span>
                 <input
                   type="file"
                   accept=".json,.csv,application/json,text/csv"
@@ -703,16 +720,18 @@ function ImportPanel({ lastImport }: { lastImport: { rows: number; at: string } 
                 disabled={!file || pending}
                 onClick={run}
               >
-                Import
+                {t('Import')}
               </button>
             </div>
-            <span className="mx-hint">MEE6 JSON, or a CSV with id and xp or level columns</span>
+            <span className="mx-hint">
+              {t('MEE6 JSON, or a CSV with id and xp or level columns')}
+            </span>
             <div className="mx-field">
-              <span className="mx-label">When a member already has XP</span>
+              <span className="mx-label">{t('When a member already has XP')}</span>
               <Seg
-                label="When a member already has XP"
+                label={t('When a member already has XP')}
                 value={mode}
-                options={importModes}
+                options={importModes.map((option) => ({ ...option, label: t(option.label) }))}
                 onChange={setMode}
               />
             </div>
@@ -727,8 +746,11 @@ function ImportPanel({ lastImport }: { lastImport: { rows: number; at: string } 
         ) : null}
         <span className="mx-sub">
           {lastImport
-            ? `Last import: ${count(lastImport.rows)} members on ${date(lastImport.at, 'UTC')}`
-            : 'Nothing imported yet'}
+            ? t('Last import: {count} members on {date}', {
+                count: lastImport.rows,
+                date: date(t, lastImport.at, 'UTC'),
+              })
+            : t('Nothing imported yet')}
         </span>
       </PanelBody>
     </Panel>
@@ -752,10 +774,16 @@ export function LevelsForm({
   sample: { name: string; avatarUrl: string | null };
   look: CardLook;
 }) {
+  const t = useT();
   const [tab, setTab] = useState<Tab>('setup');
   return (
     <>
-      <Tabs label="Levels" value={tab} options={tabs} onChange={setTab} />
+      <Tabs
+        label={t('Levels')}
+        value={tab}
+        options={tabs.map((option) => ({ ...option, label: t(option.label) }))}
+        onChange={setTab}
+      />
       {tab === 'setup' ? (
         <Grid>
           <XpPanel />

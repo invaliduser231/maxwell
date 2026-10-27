@@ -1,13 +1,13 @@
 import { starboardConfig } from '@maxwell/core/modules/starboard';
 import { type StarboardPost, StarboardStore } from '@maxwell/core/stores/starboard';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
 import { db } from '@/lib/db';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { people } from '@/lib/people';
 import { type Author, StarboardForm, type Summary, type TopPost } from './starboard-form';
 
-export const metadata: Metadata = { title: 'Starboard' };
+export const generateMetadata = titled('Starboard');
 
 const DAY = 86_400_000;
 

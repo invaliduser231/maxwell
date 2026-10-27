@@ -18,6 +18,7 @@ import {
   useRoleOptions,
 } from '@/components/controls';
 import { useChannelName, useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { EmbedPreview, Markdown, MessagePreview } from '@/components/message-preview';
 import { useDraft } from '@/components/module-shell';
 import { outcome, type Status, StatusText } from '@/components/status-text';
@@ -35,6 +36,7 @@ import {
   roleColor,
 } from '@/components/ui';
 import { runAction } from '@/lib/actions';
+import type { Key, Translator } from '@/lib/i18n';
 import { minutesLabel } from '@/lib/time';
 
 export interface Posted {
@@ -52,48 +54,35 @@ export interface Kept {
 
 type Tab = 'menus' | 'auto' | 'time' | 'sticky';
 
-const tabs = [
+const tabs: { value: Tab; label: Key }[] = [
   { value: 'menus', label: 'Role menus' },
   { value: 'auto', label: 'Autoroles' },
   { value: 'time', label: 'Roles after time' },
   { value: 'sticky', label: 'Sticky roles' },
-] as const;
+];
 
-const typeLabels: Record<MenuType, string> = {
+const typeLabels: Record<MenuType, Key> = {
   normal: 'Normal',
   unique: 'One of many',
   add: 'Add only',
   temporary: 'Temporary',
 };
 
-const durations = [
-  { value: '60', label: '1 hour' },
-  { value: '1440', label: '1 day' },
-  { value: '10080', label: '7 days' },
-  { value: '43200', label: '30 days' },
-];
+const durations = [60, 1440, 10080, 43200];
+const autoDelays = [0, 5, 10, 60, 1440];
 
-const autoDelays = [
-  { value: '0', label: 'Right away' },
-  { value: '5', label: 'After 5 minutes' },
-  { value: '10', label: 'After 10 minutes' },
-  { value: '60', label: 'After 1 hour' },
-  { value: '1440', label: 'After 1 day' },
-];
-
-function after(days: number): string {
-  if (days % 365 === 0) return days === 365 ? '1 year' : `${days / 365} years`;
-  return days === 1 ? '1 day' : `${days} days`;
+function delayLabel(t: Translator, minutes: number): string {
+  return minutes === 0 ? t('Right away') : t('After {span}', { span: minutesLabel(t, minutes) });
 }
 
-function typeNote(menu: RoleMenu): string | null {
+function typeNote(t: Translator, menu: RoleMenu): string | null {
   switch (menu.type) {
     case 'unique':
-      return 'One role at a time.';
+      return t('One role at a time.');
     case 'add':
-      return 'Roles stay when you remove the reaction.';
+      return t('Roles stay when you remove the reaction.');
     case 'temporary':
-      return `Roles last ${minutesLabel(menu.durationMinutes)}.`;
+      return t('Roles last {span}.', { span: minutesLabel(t, menu.durationMinutes) });
     default:
       return null;
   }
@@ -112,12 +101,13 @@ function emojiMarkup(emoji: string): string {
 }
 
 function RemoveButton({ label, onClick }: { label: string; onClick: () => void }) {
+  const t = useT();
   return (
     <button
       type="button"
       className="mx-btn mx-btn-ghost"
       aria-label={label}
-      title="Remove"
+      title={t('Remove')}
       style={{ width: 32, padding: 0, flexShrink: 0, display: 'grid', placeItems: 'center' }}
       onClick={onClick}
     >
@@ -127,6 +117,7 @@ function RemoveButton({ label, onClick }: { label: string; onClick: () => void }
 }
 
 function useAddMenu(onSelect: (index: number) => void) {
+  const t = useT();
   const { value, update } = useDraft<RolesConfig>();
   return () => {
     const id = newId(value.menus.map((menu) => menu.id));
@@ -137,7 +128,7 @@ function useAddMenu(onSelect: (index: number) => void) {
         {
           id,
           channelId: null,
-          title: 'Pick your roles',
+          title: t('Pick your roles'),
           description: '',
           type: 'normal',
           durationMinutes: 1440,
@@ -158,13 +149,14 @@ function MenuList({
   onSelect: (index: number) => void;
   posted: Posted[];
 }) {
+  const t = useT();
   const { value, readOnly } = useDraft<RolesConfig>();
   const channelName = useChannelName();
   const add = useAddMenu(onSelect);
 
   return (
     <Panel
-      title="Role menus"
+      title={t('Role menus')}
       span={3}
       id="r-menus"
       actions={
@@ -175,7 +167,7 @@ function MenuList({
             disabled={value.menus.length >= 25}
             onClick={add}
           >
-            New menu
+            {t('New menu')}
           </button>
         )
       }
@@ -190,13 +182,13 @@ function MenuList({
               aria-pressed={index === selected}
               onClick={() => onSelect(index)}
             >
-              <span className="mx-row-title mx-ellipsis">{menu.title || 'Untitled menu'}</span>
+              <span className="mx-row-title mx-ellipsis">{menu.title || t('Untitled menu')}</span>
               <span className="mx-sub mx-ellipsis">
-                {menu.channelId ? channelName(menu.channelId) : 'No channel'},{' '}
-                {menu.entries.length === 1 ? '1 role' : `${menu.entries.length} roles`}
+                {menu.channelId ? channelName(menu.channelId) : t('No channel')},{' '}
+                {t.plural(menu.entries.length, '{n} role', '{n} roles')}
               </span>
             </button>
-            {live ? <Chip>Posted</Chip> : null}
+            {live ? <Chip>{t('Posted')}</Chip> : null}
           </div>
         );
       })}
@@ -205,6 +197,7 @@ function MenuList({
 }
 
 function MenuEditor({ index, onRemoved }: { index: number; onRemoved: () => void }) {
+  const t = useT();
   const { value, update, readOnly } = useDraft<RolesConfig>();
   const { roles } = useGuild();
   const roleOptions = useRoleOptions();
@@ -226,18 +219,18 @@ function MenuEditor({ index, onRemoved }: { index: number; onRemoved: () => void
     (option) => !menu.entries.some((entry) => entry.roleId === option.value),
   );
   const expiry = menu.type === 'temporary' ? String(menu.durationMinutes) : 'never';
+  const lengths =
+    menu.type === 'temporary' && !durations.includes(menu.durationMinutes)
+      ? [...durations, menu.durationMinutes]
+      : durations;
   const expiryOptions = [
-    { value: 'never', label: 'Never' },
-    ...durations,
-    ...(menu.type === 'temporary' &&
-    !durations.some((entry) => entry.value === String(menu.durationMinutes))
-      ? [{ value: String(menu.durationMinutes), label: minutesLabel(menu.durationMinutes) }]
-      : []),
+    { value: 'never', label: t('Never') },
+    ...lengths.map((minutes) => ({ value: String(minutes), label: minutesLabel(t, minutes) })),
   ];
 
   return (
     <Panel
-      title="Edit menu"
+      title={t('Edit menu')}
       span={5}
       id="r-edit"
       actions={
@@ -253,20 +246,20 @@ function MenuEditor({ index, onRemoved }: { index: number; onRemoved: () => void
               onRemoved();
             }}
           >
-            Delete menu
+            {t('Delete menu')}
           </button>
         )
       }
     >
       <PanelBody>
-        <Field label="Title">
+        <Field label={t('Title')}>
           <TextInput value={menu.title} maxLength={256} onChange={(title) => patch({ title })} />
         </Field>
         <Fields>
-          <Field label="Channel">
+          <Field label={t('Channel')}>
             <ChannelSelect value={menu.channelId} onChange={(channelId) => patch({ channelId })} />
           </Field>
-          <Field label="Remove after">
+          <Field label={t('Remove after')}>
             <Select
               value={expiry}
               options={expiryOptions}
@@ -279,20 +272,20 @@ function MenuEditor({ index, onRemoved }: { index: number; onRemoved: () => void
           </Field>
         </Fields>
         <div className="mx-field">
-          <span className="mx-label">Type</span>
+          <span className="mx-label">{t('Type')}</span>
           <div>
             <Seg
-              label="Menu type"
+              label={t('Menu type')}
               value={menu.type}
               options={(Object.keys(typeLabels) as MenuType[]).map((type) => ({
                 value: type,
-                label: typeLabels[type],
+                label: t(typeLabels[type]),
               }))}
               onChange={(type) => patch({ type })}
             />
           </div>
         </div>
-        <Field label="Description">
+        <Field label={t('Description')}>
           <TextArea
             value={menu.description}
             rows={2}
@@ -301,11 +294,12 @@ function MenuEditor({ index, onRemoved }: { index: number; onRemoved: () => void
           />
         </Field>
         <div className="mx-field">
-          <span className="mx-label">Roles</span>
+          <span className="mx-label">{t('Roles')}</span>
           {menu.entries.length > 0 ? (
             <div className="mx-inset mx-stack" style={{ gap: 8, padding: 10 }}>
               {menu.entries.map((entry, position) => {
                 const role = roles.find((candidate) => candidate.id === entry.roleId);
+                const name = role?.name ?? t('Deleted role');
                 return (
                   <div
                     key={entry.roleId}
@@ -320,8 +314,8 @@ function MenuEditor({ index, onRemoved }: { index: number; onRemoved: () => void
                   >
                     <input
                       className="mx-input mx-mono"
-                      aria-label={`Emoji for ${role?.name ?? 'role'}`}
-                      placeholder="Emoji"
+                      aria-label={t('Emoji for {name}', { name })}
+                      placeholder={t('Emoji')}
                       value={entry.emoji}
                       maxLength={80}
                       readOnly={readOnly}
@@ -331,7 +325,7 @@ function MenuEditor({ index, onRemoved }: { index: number; onRemoved: () => void
                     <RoleSelect
                       value={entry.roleId}
                       none={null}
-                      label={`Role ${position + 1}`}
+                      label={t('Role {number}', { number: position + 1 })}
                       onChange={(roleId) => {
                         if (roleId && !menu.entries.some((other) => other.roleId === roleId)) {
                           setEntry(position, { roleId });
@@ -340,8 +334,8 @@ function MenuEditor({ index, onRemoved }: { index: number; onRemoved: () => void
                     />
                     <input
                       className="mx-input"
-                      aria-label={`Label for ${role?.name ?? 'role'}`}
-                      placeholder="Label"
+                      aria-label={t('Label for {name}', { name })}
+                      placeholder={t('Label')}
                       value={entry.label}
                       maxLength={100}
                       readOnly={readOnly}
@@ -350,7 +344,7 @@ function MenuEditor({ index, onRemoved }: { index: number; onRemoved: () => void
                     />
                     {readOnly ? null : (
                       <RemoveButton
-                        label={`Remove ${role?.name ?? 'role'}`}
+                        label={t('Remove {name}', { name })}
                         onClick={() =>
                           patch({ entries: menu.entries.filter((_, at) => at !== position) })
                         }
@@ -361,12 +355,12 @@ function MenuEditor({ index, onRemoved }: { index: number; onRemoved: () => void
               })}
             </div>
           ) : readOnly ? (
-            <span className="mx-sub">No roles yet</span>
+            <span className="mx-sub">{t('No roles yet')}</span>
           ) : null}
           {readOnly || available.length === 0 || menu.entries.length >= 20 ? null : (
             <div>
               <AddPicker
-                label="Add role"
+                label={t('Add role')}
                 options={available}
                 onPick={(roleId) =>
                   patch({ entries: [...menu.entries, { emoji: '', roleId, label: '' }] })
@@ -389,6 +383,7 @@ function MenuPreview({
   saved: RolesConfig;
   posted: Posted[];
 }) {
+  const t = useT();
   const { value, readOnly } = useDraft<RolesConfig>();
   const { roles, guildId } = useGuild();
   const channelName = useChannelName();
@@ -406,12 +401,12 @@ function MenuPreview({
 
   if (!menu) return null;
 
-  const where = menu.channelId ? channelName(menu.channelId) : 'No channel';
+  const where = menu.channelId ? channelName(menu.channelId) : t('No channel');
   const live = posted.find((entry) => entry.menuId === menu.id);
   const stored = saved.menus.find((entry) => entry.id === menu.id);
   const unsaved = !stored || JSON.stringify(stored) !== JSON.stringify(menu);
   const missingEmoji = menu.entries.some((entry) => !entry.emoji);
-  const note = typeNote(menu);
+  const note = typeNote(t, menu);
   const roleOf = (id: string) => roles.find((role) => role.id === id);
 
   const run = (action: 'menu.publish' | 'menu.remove', done: string) =>
@@ -430,7 +425,12 @@ function MenuPreview({
   };
 
   return (
-    <Panel title="Preview" span={4} id="r-prev" actions={<span className="mx-sub">{where}</span>}>
+    <Panel
+      title={t('Preview')}
+      span={4}
+      id="r-prev"
+      actions={<span className="mx-sub">{where}</span>}
+    >
       <PanelBody>
         <div className="mx-preview">
           <MessagePreview>
@@ -451,7 +451,7 @@ function MenuPreview({
                       <Markdown text={emojiMarkup(entry.emoji)} as="span" />
                     </span>
                     <span style={{ color: roleColor(role?.color ?? 0) }}>
-                      @{role?.name ?? 'Deleted role'}
+                      @{role?.name ?? t('Deleted role')}
                     </span>
                     {entry.label ? <span>{entry.label}</span> : null}
                   </span>
@@ -478,21 +478,23 @@ function MenuPreview({
                 disabled={pending || unsaved || !menu.channelId || menu.entries.length === 0}
                 onClick={publish}
               >
-                {live && live.channelId === menu.channelId ? 'Update post' : `Post to ${where}`}
+                {live && live.channelId === menu.channelId
+                  ? t('Update post')
+                  : t('Post to {channel}', { channel: where })}
               </button>
               {live ? (
                 <TwoStep
-                  label="Remove post"
+                  label={t('Remove post')}
                   danger
                   disabled={pending}
                   run={() => run('menu.remove', 'Removing.')}
                 />
               ) : null}
-              {unsaved && !status ? <span className="mx-sub">Save to post</span> : null}
+              {unsaved && !status ? <span className="mx-sub">{t('Save to post')}</span> : null}
               <StatusText status={status} />
             </div>
             {tried && missingEmoji ? (
-              <span className="mx-field-error">Every role needs an emoji.</span>
+              <span className="mx-field-error">{t('Every role needs an emoji.')}</span>
             ) : null}
           </div>
         )}
@@ -502,6 +504,7 @@ function MenuPreview({
 }
 
 function Menus({ saved, posted }: { saved: RolesConfig; posted: Posted[] }) {
+  const t = useT();
   const [selected, setSelected] = useState(0);
   const { value, readOnly } = useDraft<RolesConfig>();
   const add = useAddMenu(setSelected);
@@ -513,10 +516,10 @@ function Menus({ saved, posted }: { saved: RolesConfig; posted: Posted[] }) {
         <Panel id="r-menus">
           <Empty mood="thinking">
             <div className="mx-stack" style={{ alignItems: 'center' }}>
-              <span>No role menus yet.</span>
+              <span>{t('No role menus yet.')}</span>
               {readOnly ? null : (
                 <button type="button" className="mx-btn mx-btn-primary" onClick={add}>
-                  New menu
+                  {t('New menu')}
                 </button>
               )}
             </div>
@@ -536,32 +539,33 @@ function Menus({ saved, posted }: { saved: RolesConfig; posted: Posted[] }) {
 }
 
 function Autoroles() {
+  const t = useT();
   const { value, set } = useDraft<RolesConfig>();
   const delay = value.autoroles.delayMinutes;
-  const options = autoDelays.some((entry) => entry.value === String(delay))
-    ? autoDelays
-    : [...autoDelays, { value: String(delay), label: `After ${minutesLabel(delay)}` }];
+  const options = (autoDelays.includes(delay) ? autoDelays : [...autoDelays, delay]).map(
+    (minutes) => ({ value: String(minutes), label: delayLabel(t, minutes) }),
+  );
   const setAuto = (patch: Partial<RolesConfig['autoroles']>) =>
     set({ autoroles: { ...value.autoroles, ...patch } });
 
   return (
-    <Panel title="Autoroles" id="r-auto">
+    <Panel title={t('Autoroles')} id="r-auto">
       <PanelBody>
         <div className="mx-field">
-          <span className="mx-label">Every new member</span>
+          <span className="mx-label">{t('Every new member')}</span>
           <RoleMulti value={value.autoroles.roleIds} onChange={(roleIds) => setAuto({ roleIds })} />
         </div>
         <div className="mx-field">
-          <span className="mx-label">Bots</span>
+          <span className="mx-label">{t('Bots')}</span>
           <RoleMulti
             value={value.autoroles.botRoleIds}
             onChange={(botRoleIds) => setAuto({ botRoleIds })}
           />
         </div>
         <Fields>
-          <Field label="Give roles">
+          <Field label={t('Give roles')}>
             <Select
-              label="Give roles"
+              label={t('Give roles')}
               value={String(delay)}
               options={options}
               onChange={(next) => setAuto({ delayMinutes: Number(next) })}
@@ -574,6 +578,7 @@ function Autoroles() {
 }
 
 function TimeRoles({ holders }: { holders: Record<string, number> }) {
+  const t = useT();
   const { value, update, readOnly } = useDraft<RolesConfig>();
   const { roles } = useGuild();
   const roleOptions = useRoleOptions();
@@ -590,7 +595,7 @@ function TimeRoles({ holders }: { holders: Record<string, number> }) {
   const picker =
     readOnly || available.length === 0 || value.timeRoles.length >= 10 ? null : (
       <AddPicker
-        label="Add step"
+        label={t('Add step')}
         options={available}
         onPick={(roleId) =>
           update((previous) => ({
@@ -603,10 +608,10 @@ function TimeRoles({ holders }: { holders: Record<string, number> }) {
 
   if (value.timeRoles.length === 0) {
     return (
-      <Panel title="Roles after time" id="r-time">
+      <Panel title={t('Roles after time')} id="r-time">
         <Empty mood="sleeping">
           <div className="mx-stack" style={{ alignItems: 'center' }}>
-            <span>No steps yet.</span>
+            <span>{t('No steps yet.')}</span>
             {picker}
           </div>
         </Empty>
@@ -615,42 +620,43 @@ function TimeRoles({ holders }: { holders: Record<string, number> }) {
   }
 
   return (
-    <Panel title="Roles after time" id="r-time" actions={picker}>
+    <Panel title={t('Roles after time')} id="r-time" actions={picker}>
       <div className="mx-scroll">
         <table className="mx-table">
           <thead>
             <tr>
-              <th scope="col">After</th>
-              <th scope="col">Role</th>
-              <th scope="col">Members now</th>
+              <th scope="col">{t('After')}</th>
+              <th scope="col">{t('Role')}</th>
+              <th scope="col">{t('Members now')}</th>
               <th scope="col">
-                <span className="mx-sr">Remove</span>
+                <span className="mx-sr">{t('Remove')}</span>
               </th>
             </tr>
           </thead>
           <tbody>
             {value.timeRoles.map((step, index) => {
               const role = roles.find((entry) => entry.id === step.roleId);
+              const name = role?.name ?? t('Deleted role');
               return (
                 <tr key={step.roleId}>
                   <td style={{ width: 200 }}>
                     <NumberInput
-                      label={`Days before ${role?.name ?? 'this role'}`}
+                      label={t('Days before {name}', { name })}
                       value={step.days}
                       min={1}
                       max={3650}
-                      suffix={step.days === 1 ? 'day' : 'days'}
+                      suffix={step.days === 1 ? t('day') : t('days')}
                       onChange={(days) => setStep(index, { days })}
                     />
                   </td>
                   <td>
-                    <Chip color={roleColor(role?.color ?? 0)}>{role?.name ?? 'Deleted role'}</Chip>
+                    <Chip color={roleColor(role?.color ?? 0)}>{name}</Chip>
                   </td>
-                  <td>{(holders[step.roleId] ?? 0).toLocaleString('en-US')}</td>
+                  <td>{t.count(holders[step.roleId] ?? 0)}</td>
                   <td style={{ width: 48, textAlign: 'right' }}>
                     {readOnly ? null : (
                       <RemoveButton
-                        label={`Remove step ${role?.name ?? after(step.days)}`}
+                        label={t('Remove {name}', { name })}
                         onClick={() =>
                           update((previous) => ({
                             ...previous,
@@ -671,26 +677,24 @@ function TimeRoles({ holders }: { holders: Record<string, number> }) {
 }
 
 function Sticky({ kept }: { kept: Kept[] }) {
+  const t = useT();
   const { value, set } = useDraft<RolesConfig>();
   const { roles } = useGuild();
   const sticky = value.sticky;
   const setSticky = (patch: Partial<RolesConfig['sticky']>) =>
     set({ sticky: { ...sticky, ...patch } });
-  const names = (ids: string[]) => {
-    const list = ids.map((id) => roles.find((role) => role.id === id)?.name ?? 'Deleted role');
-    if (list.length <= 1) return list.join('');
-    return `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
-  };
+  const names = (ids: string[]) =>
+    t.list(ids.map((id) => roles.find((role) => role.id === id)?.name ?? t('Deleted role')));
 
   return (
     <Grid>
       <Panel
-        title="Sticky roles"
+        title={t('Sticky roles')}
         span={6}
         id="r-sticky"
         actions={
           <Switch
-            label="Sticky roles"
+            label={t('Sticky roles')}
             checked={sticky.enabled}
             onChange={(enabled) => setSticky({ enabled })}
           />
@@ -698,14 +702,14 @@ function Sticky({ kept }: { kept: Kept[] }) {
       >
         <PanelBody>
           <div className="mx-field">
-            <span className="mx-label">Give back</span>
+            <span className="mx-label">{t('Give back')}</span>
             <div>
               <Seg
-                label="Give back"
+                label={t('Give back')}
                 value={sticky.mode}
                 options={[
-                  { value: 'all', label: 'All roles' },
-                  { value: 'listed', label: 'Only these' },
+                  { value: 'all', label: t('All roles') },
+                  { value: 'listed', label: t('Only these') },
                 ]}
                 onChange={(mode) => setSticky({ mode })}
               />
@@ -713,41 +717,43 @@ function Sticky({ kept }: { kept: Kept[] }) {
           </div>
           {sticky.mode === 'listed' ? (
             <div className="mx-field">
-              <span className="mx-label">Roles to give back</span>
+              <span className="mx-label">{t('Roles to give back')}</span>
               <RoleMulti value={sticky.roleIds} onChange={(roleIds) => setSticky({ roleIds })} />
             </div>
           ) : null}
           <div className="mx-field">
-            <span className="mx-label">Never given back</span>
+            <span className="mx-label">{t('Never given back')}</span>
             <RoleMulti
               value={sticky.ignoredRoleIds}
               onChange={(ignoredRoleIds) => setSticky({ ignoredRoleIds })}
             />
           </div>
           <Fields>
-            <Field label="Remember for">
+            <Field label={t('Remember for')}>
               <NumberInput
-                label="Remember for"
+                label={t('Remember for')}
                 value={sticky.retentionDays}
                 min={1}
                 max={3650}
-                suffix="days"
+                suffix={t('days')}
                 onChange={(retentionDays) => setSticky({ retentionDays })}
               />
             </Field>
           </Fields>
         </PanelBody>
       </Panel>
-      <Panel title="Waiting for a rejoin" span={6} id="r-rejoin">
+      <Panel title={t('Waiting for a rejoin')} span={6} id="r-rejoin">
         {kept.length === 0 ? (
-          <Empty mood="sleeping">Nobody yet.</Empty>
+          <Empty mood="sleeping">{t('Nobody yet.')}</Empty>
         ) : (
           kept.map((member) => (
             <div key={member.userId} className="mx-row">
               <Avatar src={member.avatarUrl} name={member.name} size={26} />
               <div className="mx-row-main">
                 <span className="mx-row-title">{member.name}</span>
-                <span className="mx-sub">Gets back {names(member.roleIds)}</span>
+                <span className="mx-sub">
+                  {t('Gets back {roles}', { roles: names(member.roleIds) })}
+                </span>
               </div>
               <span className="mx-sub">{member.left}</span>
             </div>
@@ -769,11 +775,17 @@ export function RolesForm({
   holders: Record<string, number>;
   kept: Kept[];
 }) {
+  const t = useT();
   const [tab, setTab] = useState<Tab>('menus');
 
   return (
     <>
-      <Tabs label="Role tools" value={tab} options={tabs} onChange={setTab} />
+      <Tabs
+        label={t('Role tools')}
+        value={tab}
+        options={tabs.map((option) => ({ ...option, label: t(option.label) }))}
+        onChange={setTab}
+      />
       {tab === 'menus' ? <Menus saved={saved} posted={posted} /> : null}
       {tab === 'auto' ? <Autoroles /> : null}
       {tab === 'time' ? <TimeRoles holders={holders} /> : null}

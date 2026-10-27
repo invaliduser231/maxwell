@@ -22,11 +22,13 @@ import {
   TextInput,
 } from '@/components/controls';
 import { ChannelType, useChannelName, useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { EmbedPreview, MessagePreview } from '@/components/message-preview';
 import { useDraft, useReadOnly } from '@/components/module-shell';
 import { type Status, StatusText } from '@/components/status-text';
 import { TwoStep } from '@/components/two-step';
 import { Avatar, Callout, Field, Fields, Grid, Panel, PanelBody } from '@/components/ui';
+import type { Key, Translator } from '@/lib/i18n';
 import { clock, longDate, minutesLabel } from '@/lib/time';
 import { cancelEvent, type EventDraft, saveEvent } from './actions';
 import { PollsTab } from './polls';
@@ -78,13 +80,13 @@ export interface PollView {
 
 type Tab = 'events' | 'polls' | 'settings';
 
-const tabs = [
+const tabs: { value: Tab; label: Key }[] = [
   { value: 'events', label: 'Events' },
   { value: 'polls', label: 'Polls' },
   { value: 'settings', label: 'Settings' },
-] as const;
+];
 
-const repeats: { value: Recurrence; label: string }[] = [
+const repeats: { value: Recurrence; label: Key }[] = [
   { value: 'none', label: 'Once' },
   { value: 'daily', label: 'Daily' },
   { value: 'weekly', label: 'Weekly' },
@@ -93,7 +95,7 @@ const repeats: { value: Recurrence; label: string }[] = [
 
 const lengths = [30, 60, 90, 120, 180, 240, 1440];
 
-const weekdayNames: Record<string, string> = {
+const weekdayNames: Record<string, Key> = {
   mon: 'Monday',
   tue: 'Tuesday',
   wed: 'Wednesday',
@@ -103,7 +105,8 @@ const weekdayNames: Record<string, string> = {
   sun: 'Sunday',
 };
 
-function ordinal(day: number): string {
+function ordinal(t: Translator, day: number): string {
+  if (t.lang === 'de') return `${day}.`;
   const tail = day % 100;
   if (tail >= 11 && tail <= 13) return `${day}th`;
   return `${day}${['th', 'st', 'nd', 'rd'][day % 10] ?? 'th'}`;
@@ -144,20 +147,30 @@ function startOf(draft: EventDraft, timezone: string): number | null {
   return local ? fromLocal(local, timezone) : null;
 }
 
-function repeatLine(recurrence: Recurrence, start: number | null, timezone: string): string {
-  if (recurrence === 'none' || start === null) return 'One time only';
-  if (recurrence === 'daily') return 'Repeats every day';
+function repeatLine(
+  t: Translator,
+  recurrence: Recurrence,
+  start: number | null,
+  timezone: string,
+): string {
+  if (recurrence === 'none' || start === null) return t('One time only');
+  if (recurrence === 'daily') return t('Repeats every day');
   const local = toLocal(start, timezone);
-  if (recurrence === 'weekly') return `Repeats every ${weekdayNames[weekdayOf(local)]}`;
-  return `Repeats every month on the ${ordinal(local.day)}`;
+  if (recurrence === 'weekly') {
+    const day = weekdayNames[weekdayOf(local)];
+    return t('Repeats every {day}', { day: day ? t(day) : '' });
+  }
+  return t('Repeats every month on the {day}', { day: ordinal(t, local.day) });
 }
 
 function useWhere(): (draft: Pick<EventDraft, 'voiceChannelId' | 'location'>) => string | null {
   const { channels } = useGuild();
+  const t = useT();
   return (draft) => {
     if (draft.voiceChannelId) {
       return (
-        channels.find((channel) => channel.id === draft.voiceChannelId)?.name ?? 'Deleted channel'
+        channels.find((channel) => channel.id === draft.voiceChannelId)?.name ??
+        t('Deleted channel')
       );
     }
     return draft.location?.trim() || null;
@@ -198,6 +211,7 @@ function WeekPanel({
   onPick: (id: string) => void;
   onNew: () => void;
 }) {
+  const t = useT();
   const router = useRouter();
   const readOnly = useReadOnly();
   const [pending, start] = useTransition();
@@ -210,7 +224,7 @@ function WeekPanel({
 
   return (
     <Panel
-      title={`Week of ${weekHeading(monday)}`}
+      title={t('Week of {date}', { date: weekHeading(t.locale, monday) })}
       id="events-week"
       actions={
         <>
@@ -221,13 +235,13 @@ function WeekPanel({
               disabled={pending}
               onClick={() => go(thisWeek)}
             >
-              This week
+              {t('This week')}
             </button>
           ) : null}
           <button
             type="button"
             className="mx-btn mx-btn-ghost"
-            aria-label="Previous week"
+            aria-label={t('Previous week')}
             disabled={pending}
             onClick={() => go(isoDate(addDays(monday, -7)))}
           >
@@ -236,7 +250,7 @@ function WeekPanel({
           <button
             type="button"
             className="mx-btn mx-btn-ghost"
-            aria-label="Next week"
+            aria-label={t('Next week')}
             disabled={pending}
             onClick={() => go(isoDate(addDays(monday, 7)))}
           >
@@ -244,7 +258,7 @@ function WeekPanel({
           </button>
           {readOnly ? null : (
             <button type="button" className="mx-btn mx-btn-primary" onClick={onNew}>
-              New event
+              {t('New event')}
             </button>
           )}
         </>
@@ -284,7 +298,7 @@ function WeekPanel({
                     fontWeight: isToday ? 600 : undefined,
                   }}
                 >
-                  {dayHeading(day)}
+                  {dayHeading(t.locale, day)}
                 </span>
                 {items.map((slot) => {
                   const event = events.find((entry) => entry.id === slot.eventId);
@@ -321,8 +335,8 @@ function WeekPanel({
                       </span>
                       <span style={{ fontSize: 12, color: 'var(--mx-muted)' }}>
                         {slot.current
-                          ? `${event.counts.going} going`
-                          : recurrenceLabels[event.recurrence]}
+                          ? t('{count} going', { count: event.counts.going })
+                          : t(recurrenceLabels[event.recurrence])}
                       </span>
                     </button>
                   );
@@ -334,7 +348,7 @@ function WeekPanel({
       </div>
       {quiet ? (
         <div className="mx-panel-body" style={{ paddingTop: 0 }}>
-          <span className="mx-sub">Nothing planned this week.</span>
+          <span className="mx-sub">{t('Nothing planned this week.')}</span>
         </div>
       ) : null}
     </Panel>
@@ -355,6 +369,7 @@ function EventEditor({
   onChange: (patch: Partial<EventDraft>) => void;
 }) {
   const { guildId } = useGuild();
+  const t = useT();
   const { value: config } = useDraft<EventsConfig>();
   const channelName = useChannelName();
   const readOnly = useReadOnly();
@@ -364,10 +379,15 @@ function EventEditor({
   const [pending, start] = useTransition();
   const length = draft.durationMinutes === null ? '' : String(draft.durationMinutes);
   const lengthOptions = [
-    { value: '', label: `Default (${minutesLabel(config.defaultDurationMinutes)})` },
+    {
+      value: '',
+      label: t('Default ({length})', {
+        length: minutesLabel(t, config.defaultDurationMinutes),
+      }),
+    },
     ...[...new Set([...lengths, ...(draft.durationMinutes ? [draft.durationMinutes] : [])])]
       .sort((a, b) => a - b)
-      .map((minutes) => ({ value: String(minutes), label: minutesLabel(minutes) })),
+      .map((minutes) => ({ value: String(minutes), label: minutesLabel(t, minutes) })),
   ];
   const noChannel = !draft.channelId && !config.channelId;
 
@@ -402,10 +422,10 @@ function EventEditor({
         event ? (
           <>
             <span className="mx-mono mx-muted">#{event.number}</span>{' '}
-            {draft.title.trim() || 'Untitled event'}
+            {draft.title.trim() || t('Untitled event')}
           </>
         ) : (
-          draft.title.trim() || 'New event'
+          draft.title.trim() || t('New event')
         )
       }
       span={7}
@@ -418,27 +438,30 @@ function EventEditor({
               href={`/g/${guildId}/events/${event.id}/ics`}
               download
             >
-              Add to calendar
+              {t('Add to calendar')}
             </a>
             {event.status === 'scheduled' && !readOnly ? (
-              <TwoStep danger label="Cancel event" disabled={pending} run={cancel} />
+              <TwoStep danger label={t('Cancel event')} disabled={pending} run={cancel} />
             ) : null}
           </>
         ) : null
       }
     >
       <PanelBody>
-        {event?.status === 'ended' ? <Callout>This event is over.</Callout> : null}
-        <Field label="Title" aside={`${draft.title.length} / 200`}>
+        {event?.status === 'ended' ? <Callout>{t('This event is over.')}</Callout> : null}
+        <Field label={t('Title')} aside={`${draft.title.length} / 200`}>
           <TextInput
             value={draft.title}
             maxLength={200}
-            placeholder="Movie night"
+            placeholder={t('Movie night')}
             onChange={(title) => onChange({ title })}
           />
         </Field>
         <Fields>
-          <Field label="Starts" hint={`Times in ${timezone.replaceAll('_', ' ')}`}>
+          <Field
+            label={t('Starts')}
+            hint={t('Times in {zone}', { zone: timezone.replaceAll('_', ' ') })}
+          >
             <input
               className="mx-input"
               type="datetime-local"
@@ -449,7 +472,7 @@ function EventEditor({
               }}
             />
           </Field>
-          <Field label="Length">
+          <Field label={t('Length')}>
             <Select
               value={length}
               options={lengthOptions}
@@ -458,58 +481,60 @@ function EventEditor({
           </Field>
         </Fields>
         <div className="mx-field">
-          <span className="mx-label">Repeats</span>
+          <span className="mx-label">{t('Repeat')}</span>
           <Seg
-            label="Repeats"
+            label={t('Repeat')}
             value={draft.recurrence}
-            options={repeats}
+            options={repeats.map((repeat) => ({ ...repeat, label: t(repeat.label) }))}
             onChange={(recurrence) => onChange({ recurrence })}
           />
         </div>
         <Fields>
-          <Field label="Voice channel">
+          <Field label={t('Voice channel')}>
             <ChannelSelect
               value={draft.voiceChannelId}
               kinds={[ChannelType.Voice]}
-              none="No voice channel"
+              none={t('No voice channel')}
               onChange={(voiceChannelId) => onChange({ voiceChannelId })}
             />
           </Field>
           {draft.voiceChannelId ? null : (
-            <Field label="Location">
+            <Field label={t('Location')}>
               <TextInput
                 value={draft.location ?? ''}
                 maxLength={200}
-                placeholder="Optional"
+                placeholder={t('Optional')}
                 onChange={(location) => onChange({ location: location || null })}
               />
             </Field>
           )}
           <div className="mx-field">
-            <Field label="Announce in">
+            <Field label={t('Announce in')}>
               <ChannelSelect
                 value={draft.channelId}
                 none={
                   config.channelId
-                    ? `Default (${channelName(config.channelId)})`
-                    : 'Default channel'
+                    ? t('Default ({channel})', { channel: channelName(config.channelId) })
+                    : t('Default channel')
                 }
                 onChange={(channelId) => onChange({ channelId })}
               />
             </Field>
             {tried && noChannel ? (
-              <span className="mx-field-error">Pick a channel here or a default in Settings.</span>
+              <span className="mx-field-error">
+                {t('Pick a channel here or a default in Settings.')}
+              </span>
             ) : null}
           </div>
-          <Field label="Ping">
+          <Field label={t('Ping')}>
             <RoleSelect
               value={draft.pingRoleId}
-              none="Nobody"
+              none={t('Nobody')}
               onChange={(pingRoleId) => onChange({ pingRoleId })}
             />
           </Field>
         </Fields>
-        <Field label="Description" aside={`${draft.description.length} / 2000`}>
+        <Field label={t('Description')} aside={`${draft.description.length} / 2000`}>
           <TextArea
             value={draft.description}
             rows={3}
@@ -525,7 +550,7 @@ function EventEditor({
               disabled={pending || !draft.title.trim()}
               onClick={save}
             >
-              {event ? 'Save event' : 'Create event'}
+              {event ? t('Save event') : t('Create event')}
             </button>
             <StatusText status={status} />
           </div>
@@ -536,30 +561,31 @@ function EventEditor({
 }
 
 function RsvpPanel({ event, timezone }: { event: EventView; timezone: string }) {
+  const t = useT();
   const more = event.counts.going - event.going.length;
   const none = event.counts.going + event.counts.maybe + event.counts.no === 0;
   return (
     <Panel
       title="RSVP"
       id="events-rsvp"
-      actions={<span className="mx-sub">{longDate(Date.parse(event.startsAt), timezone)}</span>}
+      actions={<span className="mx-sub">{longDate(t, Date.parse(event.startsAt), timezone)}</span>}
     >
       <div
         className={none ? 'mx-stat-quiet' : undefined}
         style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}
       >
         <div className="mx-stat">
-          <span className="mx-stat-label">Going</span>
+          <span className="mx-stat-label">{t('Going')}</span>
           <span className={none ? 'mx-stat-value' : 'mx-stat-value mx-up'}>
             {event.counts.going}
           </span>
         </div>
         <div className="mx-stat">
-          <span className="mx-stat-label">Maybe</span>
+          <span className="mx-stat-label">{t('Maybe')}</span>
           <span className="mx-stat-value">{event.counts.maybe}</span>
         </div>
         <div className="mx-stat">
-          <span className="mx-stat-label">Can't</span>
+          <span className="mx-stat-label">{t("Can't")}</span>
           <span className="mx-stat-value mx-muted">{event.counts.no}</span>
         </div>
       </div>
@@ -572,7 +598,9 @@ function RsvpPanel({ event, timezone }: { event: EventView; timezone: string }) 
                 {person.name}
               </span>
             ))}
-            {more > 0 ? <span className="mx-chip">{`${more} more`}</span> : null}
+            {more > 0 ? (
+              <span className="mx-chip">{t('{count} more', { count: more })}</span>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -589,16 +617,20 @@ function PreviewPanel({
   event: EventView | null;
   timezone: string;
 }) {
+  const t = useT();
   const { value: config } = useDraft<EventsConfig>();
   const channelName = useChannelName();
   const where = useWhere()(draft);
   const start = startOf(draft, timezone);
   const channel = draft.channelId ?? config.channelId;
   const counts = event?.counts ?? { going: 0, maybe: 0, no: 0 };
-  const length = minutesLabel(draft.durationMinutes ?? config.defaultDurationMinutes);
+  const length = minutesLabel(t, draft.durationMinutes ?? config.defaultDurationMinutes);
   const cancelled = event?.status === 'cancelled';
   return (
-    <Panel title={channel ? `In ${channelName(channel)}` : 'Preview'} id="events-preview">
+    <Panel
+      title={channel ? t('In {channel}', { channel: channelName(channel) }) : t('Preview')}
+      id="events-preview"
+    >
       <PanelBody>
         <div className="mx-preview">
           <MessagePreview avatarSize={30}>
@@ -606,22 +638,22 @@ function PreviewPanel({
               color={cancelled ? '#4A4A55' : '#F26B3A'}
               title={
                 <span style={{ overflowWrap: 'anywhere' }}>
-                  {draft.title.trim() || 'New event'}
+                  {draft.title.trim() || t('New event')}
                 </span>
               }
               description={draft.description.trim()}
-              footer={repeatLine(draft.recurrence, start, timezone)}
+              footer={repeatLine(t, draft.recurrence, start, timezone)}
             >
               <span>
-                {[start === null ? null : longDate(start, timezone), length, where]
+                {[start === null ? null : longDate(t, start, timezone), length, where]
                   .filter(Boolean)
                   .join(', ')}
               </span>
             </EmbedPreview>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              <span className="mx-chip">{`Going ${counts.going}`}</span>
-              <span className="mx-chip">{`Maybe ${counts.maybe}`}</span>
-              <span className="mx-chip">{`Can't ${counts.no}`}</span>
+              <span className="mx-chip">{t('Going {count}', { count: counts.going })}</span>
+              <span className="mx-chip">{t('Maybe {count}', { count: counts.maybe })}</span>
+              <span className="mx-chip">{t("Can't {count}", { count: counts.no })}</span>
             </div>
           </MessagePreview>
         </div>
@@ -703,10 +735,16 @@ export function EventsView({
   selected: string | null;
   polls: PollView[];
 }) {
+  const t = useT();
   const [tab, setTab] = useState<Tab>('events');
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <Tabs label="Events and polls" value={tab} options={tabs} onChange={setTab} />
+      <Tabs
+        label={t('Events and polls')}
+        value={tab}
+        options={tabs.map((entry) => ({ ...entry, label: t(entry.label) }))}
+        onChange={setTab}
+      />
       {tab === 'events' ? (
         <EventsTab
           now={now}

@@ -1,12 +1,15 @@
+import { getT } from '@/lib/i18n/server';
+
 const spans = [3, 3, 3, 3, 7, 5, 12];
 const heights = [74, 74, 74, 74, 260, 260, 180];
 
-export default function Loading() {
+export default async function Loading() {
+  const t = await getT();
   return (
     <div
       role="status"
       aria-busy="true"
-      aria-label="Loading"
+      aria-label={t('Loading')}
       style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 40 }}>

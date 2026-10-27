@@ -8,15 +8,16 @@ import type {
   FormsConfig,
 } from '@maxwell/core/modules/forms';
 import { useDraft } from '@/components/module-shell';
+import type { Key, Translator } from '@/lib/i18n';
 
-export const typeLabels: Record<FormQuestionType, string> = {
+export const typeLabels: Record<FormQuestionType, Key> = {
   text: 'Text',
   choice: 'Choice',
   number: 'Number',
   yesno: 'Yes or no',
 };
 
-export const operatorLabels: Record<FormCondition['operator'], string> = {
+export const operatorLabels: Record<FormCondition['operator'], Key> = {
   equals: 'is',
   notEquals: 'is not',
   includes: 'contains',
@@ -31,18 +32,22 @@ export const operatorsFor: Record<FormQuestionType, FormCondition['operator'][]>
   yesno: ['equals', 'notEquals'],
 };
 
-export function shownValue(value: string): string {
+export function shownValue(t: Translator, value: string): string {
   const lower = value.trim().toLowerCase();
-  if (lower === 'yes') return 'Yes';
-  if (lower === 'no') return 'No';
+  if (lower === 'yes') return t('Yes');
+  if (lower === 'no') return t('No');
   return value;
 }
 
-export function conditionText(condition: FormCondition | null, questions: FormQuestion[]): string {
+export function conditionText(
+  t: Translator,
+  condition: FormCondition | null,
+  questions: FormQuestion[],
+): string {
   if (!condition) return '';
   const at = questions.findIndex((question) => question.id === condition.questionId);
-  const name = at === -1 ? 'a removed question' : `Q${at + 1}`;
-  return `${name} ${operatorLabels[condition.operator]} ${shownValue(condition.value) || 'empty'}`;
+  const name = at === -1 ? t('a removed question') : `Q${at + 1}`;
+  return `${name} ${t(operatorLabels[condition.operator])} ${shownValue(t, condition.value) || t('empty')}`;
 }
 
 export function slug(input: string, max = 32): string {
@@ -71,17 +76,20 @@ export function questionId(taken: readonly string[]): string {
   }
 }
 
-export function formIssues(form: FormDefinition): string[] {
-  const issues: string[] = [];
+export function formIssues(t: Translator, form: FormDefinition): { index: number; text: string }[] {
+  const issues: { index: number; text: string }[] = [];
   const seen = new Set<string>();
   form.questions.forEach((question, index) => {
     const name = `Q${index + 1}`;
-    if (!question.label.trim()) issues.push(`${name} has no text.`);
+    if (!question.label.trim()) issues.push({ index, text: t('{name} has no text.', { name }) });
     if (question.type === 'choice' && question.options.length === 0) {
-      issues.push(`${name} has no options.`);
+      issues.push({ index, text: t('{name} has no options.', { name }) });
     }
     if (question.condition && !seen.has(question.condition.questionId)) {
-      issues.push(`${name} depends on a question that is not above it.`);
+      issues.push({
+        index,
+        text: t('{name} depends on a question that is not above it.', { name }),
+      });
     }
     seen.add(question.id);
   });

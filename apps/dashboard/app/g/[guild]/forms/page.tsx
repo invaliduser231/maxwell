@@ -1,14 +1,14 @@
 import { formsConfig } from '@maxwell/core/modules/forms';
 import { ticketsConfig } from '@maxwell/core/modules/tickets';
 import { FormStore } from '@maxwell/core/stores/forms';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
 import { db } from '@/lib/db';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { FormsView } from './forms-view';
 import { loadSubmissions } from './load';
 
-export const metadata: Metadata = { title: 'Forms' };
+export const generateMetadata = titled('Forms');
 
 export default async function FormsPage({ params }: { params: Promise<{ guild: string }> }) {
   const { guild } = await params;

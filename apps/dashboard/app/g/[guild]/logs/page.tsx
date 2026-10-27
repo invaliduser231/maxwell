@@ -1,10 +1,10 @@
 import { logsConfig } from '@maxwell/core/modules/logs';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { LogsForm } from './logs-form';
 
-export const metadata: Metadata = { title: 'Logs' };
+export const generateMetadata = titled('Logs');
 
 export default async function LogsPage({ params }: { params: Promise<{ guild: string }> }) {
   const { guild } = await params;

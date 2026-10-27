@@ -1,13 +1,13 @@
 import { moderationConfig } from '@maxwell/core/modules/moderation';
 import type { MemberView } from '@maxwell/core/stores/moderation';
-import type { Metadata } from 'next';
 import { PageHeader } from '@/components/module-shell';
 import { levelOf, requirePage } from '@/lib/access';
 import { db } from '@/lib/db';
+import { getT, titled } from '@/lib/i18n/server';
 import { listMembers, loadFile } from './data';
 import { MembersView } from './members-view';
 
-export const metadata: Metadata = { title: 'Member files' };
+export const generateMetadata = titled('Member files');
 
 const views: MemberView[] = ['flagged', 'new', 'all'];
 
@@ -31,7 +31,7 @@ export default async function MembersPage({
     ? (pick(raw.view) as MemberView)
     : 'flagged';
   const q = pick(raw.q).trim().slice(0, 64);
-  const list = await listMembers(guild, view, q, config);
+  const [list, t] = await Promise.all([listMembers(guild, view, q, config), getT()]);
   const wanted = /^\d{1,21}$/.test(pick(raw.member)) ? pick(raw.member) : null;
   const selectedId = wanted ?? list[0]?.userId ?? null;
   const file = selectedId
@@ -46,10 +46,10 @@ export default async function MembersPage({
   return (
     <>
       <PageHeader
-        title="Member files"
+        title={t('Member files')}
         page="members"
         pole="south"
-        badge={readOnly ? 'View only' : undefined}
+        badge={readOnly ? t('View only') : undefined}
       />
       <MembersView
         key={`${view}:${q}`}

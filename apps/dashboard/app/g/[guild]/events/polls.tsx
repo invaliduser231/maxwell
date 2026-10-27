@@ -6,18 +6,20 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { ChannelSelect, Select, ToggleRow } from '@/components/controls';
 import { useChannelName, useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { useDraft, useReadOnly } from '@/components/module-shell';
 import { type Status, StatusText } from '@/components/status-text';
 import { TwoStep } from '@/components/two-step';
 import { CloseIcon, Empty, Field, Fields, Panel, PanelBody } from '@/components/ui';
 import { usePoll } from '@/components/use-poll';
 import { runAction } from '@/lib/actions';
+import type { Key, Translator } from '@/lib/i18n';
 import { createPoll, deleteDraftPoll, pollStatus } from './actions';
 import type { PollView } from './events-view';
 
 const SAMPLE = [41, 63, 88, 29, 12, 7, 18, 9, 22, 5];
 
-const durations = [
+const durations: { value: string; label: Key }[] = [
   { value: '60', label: '1 hour' },
   { value: '1440', label: '24 hours' },
   { value: '4320', label: '3 days' },
@@ -26,7 +28,7 @@ const durations = [
   { value: '0', label: 'No end' },
 ];
 
-const stateLabels: Record<PollView['status'], string> = {
+const stateLabels: Record<PollView['status'], Key> = {
   draft: 'Not posted',
   open: 'Running',
   closed: 'Ended',
@@ -46,13 +48,15 @@ function blank(count: number): Option[] {
   return Array.from({ length: count }, () => ({ key: freshKey(), text: '' }));
 }
 
-function durationText(minutes: number): string {
-  if (minutes === 0) return 'no end';
+function durationText(t: Translator, minutes: number): string {
+  if (minutes === 0) return t('no end');
   const match = durations.find((entry) => entry.value === String(minutes));
-  if (match) return `ends in ${match.label}`;
-  if (minutes % 1440 === 0) return `ends in ${minutes / 1440} days`;
-  if (minutes % 60 === 0) return `ends in ${minutes / 60} hours`;
-  return `ends in ${minutes} minutes`;
+  if (match) return t('ends in {span}', { span: t(match.label) });
+  if (minutes % 1440 === 0) {
+    return t.plural(minutes / 1440, 'ends in {n} day', 'ends in {n} days');
+  }
+  if (minutes % 60 === 0) return t.plural(minutes / 60, 'ends in {n} hour', 'ends in {n} hours');
+  return t.plural(minutes, 'ends in {n} minute', 'ends in {n} minutes');
 }
 
 function percents(counts: readonly number[]): number[] {
@@ -85,15 +89,16 @@ function ResultCard({
   multiple: boolean;
   minutes: number;
 }) {
+  const t = useT();
   const votes = options.map((_, index) => SAMPLE[index] ?? 5);
   const total = votes.reduce((sum, value) => sum + value, 0);
   const max = Math.max(0, ...votes);
   const shares = percents(votes);
   return (
     <Panel
-      title="Result card"
+      title={t('Result card')}
       id="polls-card"
-      actions={<span className="mx-sub">Sample votes</span>}
+      actions={<span className="mx-sub">{t('Sample votes')}</span>}
     >
       <PanelBody>
         <div
@@ -121,10 +126,10 @@ function ResultCard({
                 overflowWrap: 'anywhere',
               }}
             >
-              {question.trim() || 'Your question'}
+              {question.trim() || t('Your question')}
             </span>
             <span className="mx-sub" style={{ whiteSpace: 'nowrap' }}>
-              {`${total} votes`}
+              {t.plural(total, '{n} vote', '{n} votes')}
             </span>
           </div>
           {options.map(({ key, text }, index) => {
@@ -133,7 +138,7 @@ function ResultCard({
               <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
                   <span style={{ fontWeight: top ? 600 : 400, overflowWrap: 'anywhere' }}>
-                    {text.trim() || `Option ${index + 1}`}
+                    {text.trim() || t('Option {number}', { number: index + 1 })}
                   </span>
                   <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700 }}>
                     {`${shares[index] ?? 0}%`}
@@ -151,7 +156,7 @@ function ResultCard({
             );
           })}
           <span className="mx-sub">
-            {`${anonymous ? 'Anonymous' : 'Public'} poll, ${multiple ? 'multiple choice' : 'one choice'}, ${durationText(minutes)}`}
+            {`${anonymous ? t('Anonymous poll') : t('Public poll')}, ${multiple ? t('multiple choice') : t('one choice')}, ${durationText(t, minutes)}`}
           </span>
         </div>
       </PanelBody>
@@ -161,6 +166,7 @@ function ResultCard({
 
 function Recent({ polls }: { polls: PollView[] }) {
   const { guildId } = useGuild();
+  const t = useT();
   const readOnly = useReadOnly();
   const router = useRouter();
   const [status, setStatus] = useState<Status>(null);
@@ -170,7 +176,7 @@ function Recent({ polls }: { polls: PollView[] }) {
     start(async () => {
       const result = await run();
       if (!result.ok) {
-        setStatus({ message: result.error ?? 'That did not work.', error: true });
+        setStatus({ message: result.error ?? t('That did not work.'), error: true });
         return;
       }
       setStatus({ message: done, error: false });
@@ -178,24 +184,27 @@ function Recent({ polls }: { polls: PollView[] }) {
     });
 
   return (
-    <Panel title="Recent polls" id="polls-recent" actions={<StatusText status={status} />}>
+    <Panel title={t('Recent polls')} id="polls-recent" actions={<StatusText status={status} />}>
       {polls.length === 0 ? (
-        <Empty mood="sleeping">No polls yet.</Empty>
+        <Empty mood="sleeping">{t('No polls yet.')}</Empty>
       ) : (
         polls.map((poll) => {
           const votes = poll.counts.reduce((sum, value) => sum + value, 0);
           const max = Math.max(0, ...poll.counts);
           const leaders = poll.options.filter((_, index) => poll.counts[index] === max);
+          const count = t.plural(votes, '{n} vote', '{n} votes');
           const detail =
             poll.status === 'draft'
-              ? 'Not posted'
+              ? t('Not posted')
               : poll.status === 'open'
-                ? `${votes} ${votes === 1 ? 'vote' : 'votes'} so far`
+                ? t('{votes} so far', { votes: count })
                 : votes === 0
-                  ? 'No votes'
+                  ? t('No votes')
                   : leaders.length === 1
-                    ? `${votes} ${votes === 1 ? 'vote' : 'votes'}, ${leaders[0]} ${poll.status === 'closed' ? 'won' : 'led'}`
-                    : `${votes} votes, a tie`;
+                    ? poll.status === 'closed'
+                      ? t('{votes}, {option} won', { votes: count, option: leaders[0] ?? '' })
+                      : t('{votes}, {option} led', { votes: count, option: leaders[0] ?? '' })
+                    : t('{votes}, a tie', { votes: count });
           return (
             <div key={poll.id} className="mx-row">
               <div className="mx-row-main">
@@ -204,25 +213,25 @@ function Recent({ polls }: { polls: PollView[] }) {
                 </span>
                 <span className="mx-sub">{detail}</span>
               </div>
-              <span className="mx-chip">{stateLabels[poll.status]}</span>
+              <span className="mx-chip">{t(stateLabels[poll.status])}</span>
               {readOnly ? null : poll.status === 'open' ? (
                 <TwoStep
                   ghost
-                  label="End now"
+                  label={t('End now')}
                   disabled={pending}
                   run={() =>
                     act(
                       () => runAction(guildId, 'events', 'poll.close', { pollId: poll.id }),
-                      'Ending the poll.',
+                      t('Ending the poll.'),
                     )
                   }
                 />
               ) : poll.status === 'draft' ? (
                 <TwoStep
                   ghost
-                  label="Delete"
+                  label={t('Delete')}
                   disabled={pending}
-                  run={() => act(() => deleteDraftPoll(guildId, poll.id), 'Deleted.')}
+                  run={() => act(() => deleteDraftPoll(guildId, poll.id), t('Deleted.'))}
                 />
               ) : null}
             </div>
@@ -235,6 +244,7 @@ function Recent({ polls }: { polls: PollView[] }) {
 
 export function PollsTab({ polls, enabled }: { polls: PollView[]; enabled: boolean }) {
   const { guildId } = useGuild();
+  const t = useT();
   const { value: config } = useDraft<EventsConfig>();
   const channelName = useChannelName();
   const readOnly = useReadOnly();
@@ -251,6 +261,7 @@ export function PollsTab({ polls, enabled }: { polls: PollView[]; enabled: boole
   const [pending, start] = useTransition();
   const fallback = config.pollChannelId ?? config.channelId;
   const minuteValue = String(minutes);
+  const durationOptions = durations.map((entry) => ({ ...entry, label: t(entry.label) }));
   const ready =
     question.trim() !== '' &&
     options.length >= 2 &&
@@ -269,12 +280,12 @@ export function PollsTab({ polls, enabled }: { polls: PollView[]; enabled: boole
         durationMinutes: minutes,
       });
       if (!result.ok || !result.data) {
-        setStatus({ message: result.ok ? 'That did not work.' : result.error, error: true });
+        setStatus({ message: result.ok ? t('That did not work.') : result.error, error: true });
         return;
       }
       const id = result.data.id;
       setWaiting(true);
-      setStatus({ message: 'Posting.', error: false });
+      setStatus({ message: t('Posting.'), error: false });
       poll(
         async () => {
           const found = await pollStatus(guildId, id);
@@ -285,7 +296,7 @@ export function PollsTab({ polls, enabled }: { polls: PollView[]; enabled: boole
           }
           if (found.data === 'draft') return false;
           setWaiting(false);
-          setStatus({ message: 'Posted.', error: false });
+          setStatus({ message: t('Posted.'), error: false });
           setQuestion('');
           setOptions(blank(2));
           router.refresh();
@@ -295,8 +306,8 @@ export function PollsTab({ polls, enabled }: { polls: PollView[]; enabled: boole
           setWaiting(false);
           setStatus({
             message: enabled
-              ? 'Not posted. Check the channel and my permissions there.'
-              : 'Not posted while Events and polls is off.',
+              ? t('Not posted. Check the channel and my permissions there.')
+              : t('Not posted while Events and polls is off.'),
             error: true,
           });
           router.refresh();
@@ -307,7 +318,7 @@ export function PollsTab({ polls, enabled }: { polls: PollView[]; enabled: boole
   return (
     <div className="mx-grid">
       <Panel
-        title="New poll"
+        title={t('New poll')}
         span={6}
         id="polls-new"
         actions={
@@ -318,24 +329,24 @@ export function PollsTab({ polls, enabled }: { polls: PollView[]; enabled: boole
               disabled={!ready || pending || waiting}
               onClick={post}
             >
-              Post
+              {t('Post')}
             </button>
           )
         }
       >
         <PanelBody>
-          <Field label="Question" aside={`${question.length} / 250`}>
+          <Field label={t('Question')} aside={`${question.length} / 250`}>
             <input
               className="mx-input"
               value={question}
               maxLength={250}
               readOnly={readOnly}
-              placeholder="What should the next theme be?"
+              placeholder={t('What should the next theme be?')}
               onChange={(event) => setQuestion(event.target.value)}
             />
           </Field>
           <div className="mx-field">
-            <span className="mx-label">Options</span>
+            <span className="mx-label">{t('Options')}</span>
             {options.map((option, index) => (
               <div key={option.key} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                 <span className="mx-mono mx-muted" style={{ width: 16 }}>
@@ -343,7 +354,7 @@ export function PollsTab({ polls, enabled }: { polls: PollView[]; enabled: boole
                 </span>
                 <input
                   className="mx-input"
-                  aria-label={`Option ${index + 1}`}
+                  aria-label={t('Option {number}', { number: index + 1 })}
                   value={option.text}
                   maxLength={100}
                   readOnly={readOnly}
@@ -359,7 +370,7 @@ export function PollsTab({ polls, enabled }: { polls: PollView[]; enabled: boole
                   <button
                     type="button"
                     className="mx-btn mx-btn-ghost"
-                    aria-label={`Remove option ${index + 1}`}
+                    aria-label={t('Remove option {number}', { number: index + 1 })}
                     onClick={() =>
                       setOptions((current) => current.filter((entry) => entry.key !== option.key))
                     }
@@ -376,32 +387,43 @@ export function PollsTab({ polls, enabled }: { polls: PollView[]; enabled: boole
                 style={{ alignSelf: 'flex-start' }}
                 onClick={() => setOptions((current) => [...current, ...blank(1)])}
               >
-                Add option
+                {t('Add option')}
               </button>
             )}
           </div>
           <Fields>
-            <Field label="Channel">
+            <Field label={t('Channel')}>
               <ChannelSelect
                 value={channelId}
-                none={fallback ? `Default (${channelName(fallback)})` : 'Pick a channel'}
+                none={
+                  fallback
+                    ? t('Default ({channel})', { channel: channelName(fallback) })
+                    : t('Pick a channel')
+                }
                 onChange={setChannelId}
               />
             </Field>
-            <Field label="Ends">
+            <Field label={t('Ends')}>
               <Select
                 value={minuteValue}
                 options={
                   durations.some((entry) => entry.value === minuteValue)
-                    ? durations
-                    : [...durations, { value: minuteValue, label: `${minutes} minutes` }]
+                    ? durationOptions
+                    : [
+                        ...durationOptions,
+                        { value: minuteValue, label: t('{count} minutes', { count: minutes }) },
+                      ]
                 }
                 onChange={(next) => setMinutes(Number(next))}
               />
             </Field>
           </Fields>
-          <ToggleRow title="Anonymous votes" checked={anonymous} onChange={setAnonymous} />
-          <ToggleRow title="Allow more than one choice" checked={multiple} onChange={setMultiple} />
+          <ToggleRow title={t('Anonymous votes')} checked={anonymous} onChange={setAnonymous} />
+          <ToggleRow
+            title={t('Allow more than one choice')}
+            checked={multiple}
+            onChange={setMultiple}
+          />
           <StatusText status={status} />
         </PanelBody>
       </Panel>

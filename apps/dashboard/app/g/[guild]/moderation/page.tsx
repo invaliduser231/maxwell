@@ -1,16 +1,16 @@
 import { builtinCommands, generalConfig } from '@maxwell/core';
 import { type CaseAction, caseActions, moderationConfig } from '@maxwell/core/modules/moderation';
 import { ModerationStore } from '@maxwell/core/stores/moderation';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
 import { db } from '@/lib/db';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { people } from '@/lib/people';
 import { type CaseView, caseDetail, toView, withUndo } from './data';
 import { ModerationView } from './moderation-view';
 import { type CaseQuery, PAGE_SIZE, type Range } from './query';
 
-export const metadata: Metadata = { title: 'Moderation' };
+export const generateMetadata = titled('Moderation');
 
 const DAY = 86_400_000;
 const ranges: Record<Range, number | null> = {

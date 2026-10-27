@@ -5,13 +5,15 @@ import { useEffect, useId, useState, useTransition } from 'react';
 import { type CardLook, DEFAULT_ACCENT, RankCard, WelcomeCard } from '@/components/card-preview';
 import { Seg } from '@/components/controls';
 import { useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { useDraft } from '@/components/module-shell';
 import { failed, type Status, StatusText } from '@/components/status-text';
 import { TwoStep } from '@/components/two-step';
 import { Field, Grid, Panel, PanelBody } from '@/components/ui';
+import type { Key } from '@/lib/i18n';
 import { removeBackground, uploadBackground } from './actions';
 
-const swatches = [
+const swatches: { hex: string; name: Key }[] = [
   { hex: '#F26B3A', name: 'Maxwell orange' },
   { hex: '#3A9EEA', name: 'Blue' },
   { hex: '#2EB67D', name: 'Green' },
@@ -20,11 +22,11 @@ const swatches = [
   { hex: '#EC5B78', name: 'Red' },
 ];
 
-const backgrounds = [
+const backgrounds: { value: 'field' | 'plain' | 'image'; label: Key }[] = [
   { value: 'field', label: 'Field lines' },
   { value: 'plain', label: 'Plain' },
   { value: 'image', label: 'Image' },
-] as const;
+];
 
 const UPLOAD_LIMIT = 900_000;
 const MAX_SIDE = 1600;
@@ -42,7 +44,7 @@ function luminance(hex: string): number {
   );
 }
 
-function checkHex(raw: string): { hex: string } | { problem: string } {
+function checkHex(raw: string): { hex: string } | { problem: Key } {
   const hex = `#${raw.trim().replace(/^#/, '')}`.toUpperCase();
   if (!/^#[0-9A-F]{6}$/.test(hex)) return { problem: 'Use a six digit hex code, like #3A9EEA.' };
   const contrast = (luminance(hex) + 0.05) / (luminance('#17171B') + 0.05);
@@ -79,6 +81,7 @@ function ImageControls({
   onRemoved: () => void;
 }) {
   const { guildId } = useGuild();
+  const t = useT();
   const { readOnly } = useDraft<CardsConfig>();
   const [status, setStatus] = useState<Status>(null);
   const [pending, start] = useTransition();
@@ -89,7 +92,7 @@ function ImageControls({
       try {
         blob = await prepare(file);
       } catch {
-        setStatus(failed('That image could not be read.'));
+        setStatus(failed(t('That image could not be read.')));
         return;
       }
       const form = new FormData();
@@ -109,7 +112,7 @@ function ImageControls({
         {version ? (
           <img
             src={`/g/${guildId}/cards/background?v=${version}`}
-            alt="Current background"
+            alt={t('Current background')}
             style={{
               width: 88,
               height: 50,
@@ -122,7 +125,7 @@ function ImageControls({
         {readOnly ? null : (
           <>
             <label className="mx-btn" aria-disabled={pending}>
-              {version ? 'Replace image' : 'Upload image'}
+              {version ? t('Replace image') : t('Upload image')}
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp,image/gif"
@@ -137,8 +140,8 @@ function ImageControls({
             </label>
             {version ? (
               <TwoStep
-                label="Remove"
-                confirm="Click again to remove"
+                label={t('Remove')}
+                confirm={t('Click again to remove')}
                 ghost
                 disabled={pending}
                 run={() =>
@@ -159,7 +162,7 @@ function ImageControls({
         )}
       </div>
       {!version && !status ? (
-        <span className="mx-hint">Field lines show until you add an image.</span>
+        <span className="mx-hint">{t('Field lines show until you add an image.')}</span>
       ) : null}
       <StatusText status={status} />
     </div>
@@ -180,10 +183,11 @@ export function CardsForm({
   };
 }) {
   const { guildId } = useGuild();
+  const t = useT();
   const { value, set, readOnly } = useDraft<CardsConfig>();
   const accent = (value.accent ?? DEFAULT_ACCENT).toUpperCase();
   const [hexText, setHexText] = useState(accent);
-  const [problem, setProblem] = useState('');
+  const [problem, setProblem] = useState<Key | ''>('');
   const [version, setVersion] = useState(imageVersion);
   const accentLabel = useId();
 
@@ -206,14 +210,16 @@ export function CardsForm({
   return (
     <Grid>
       <Panel
-        title="Style"
+        title={t('Style')}
         span={5}
-        actions={<span className="mx-sub">Welcome, goodbye, rank, level up, leaderboard</span>}
+        actions={
+          <span className="mx-sub">{t('Welcome, goodbye, rank, level up, leaderboard')}</span>
+        }
       >
         <PanelBody>
           <div className="mx-field">
             <span className="mx-label" id={accentLabel}>
-              Accent color
+              {t('Accent color')}
             </span>
             <div className="mx-inline" style={{ gap: 10 }}>
               <div className="mx-inline" role="group" aria-labelledby={accentLabel}>
@@ -223,7 +229,7 @@ export function CardsForm({
                     <button
                       key={swatch.hex}
                       type="button"
-                      aria-label={swatch.name}
+                      aria-label={t(swatch.name)}
                       aria-pressed={active}
                       disabled={readOnly}
                       onClick={() =>
@@ -249,7 +255,7 @@ export function CardsForm({
               <input
                 className="mx-input mx-mono"
                 type="text"
-                aria-label="Hex code"
+                aria-label={t('Hex code')}
                 value={hexText}
                 maxLength={7}
                 spellCheck={false}
@@ -271,16 +277,16 @@ export function CardsForm({
             </div>
             {problem ? (
               <span role="alert" className="mx-field-error">
-                {problem}
+                {t(problem)}
               </span>
             ) : null}
           </div>
           <div className="mx-field">
-            <span className="mx-label">Background</span>
+            <span className="mx-label">{t('Background')}</span>
             <Seg
-              label="Background"
+              label={t('Background')}
               value={value.background}
-              options={backgrounds}
+              options={backgrounds.map((entry) => ({ ...entry, label: t(entry.label) }))}
               onChange={(background) => set({ background })}
             />
           </div>
@@ -291,7 +297,7 @@ export function CardsForm({
                 onVersion={setVersion}
                 onRemoved={() => set({ background: 'field' })}
               />
-              <Field label="Dim" aside={`${dimPercent}%`}>
+              <Field label={t('Dim')} aside={`${dimPercent}%`}>
                 <input
                   type="range"
                   min={0}
@@ -308,7 +314,7 @@ export function CardsForm({
         </PanelBody>
       </Panel>
 
-      <Panel title="Preview" span={7}>
+      <Panel title={t('Preview')} span={7}>
         <PanelBody>
           <WelcomeCard
             look={look}
@@ -316,7 +322,10 @@ export function CardsForm({
             avatarUrl={sample.avatarUrl}
             subtitle={
               sample.memberCount
-                ? `Member #${sample.memberCount.toLocaleString('en-US')} of ${sample.guildName}`
+                ? t('Member #{number} of {guild}', {
+                    number: sample.memberCount,
+                    guild: sample.guildName,
+                  })
                 : sample.guildName
             }
           />

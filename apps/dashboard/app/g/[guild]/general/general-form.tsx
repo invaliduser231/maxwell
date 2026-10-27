@@ -4,12 +4,14 @@ import type { GeneralConfig } from '@maxwell/core';
 import { useState, useTransition } from 'react';
 import { AddPicker, ChannelMulti, Seg, Select, TimezoneSelect } from '@/components/controls';
 import { useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { useRemote } from '@/components/live';
 import { useDraft } from '@/components/module-shell';
 import { failed, outcome, type Status, StatusText, sorted } from '@/components/status-text';
 import { DangerRow } from '@/components/two-step';
 import { CloseIcon, Field, Fields, Grid, Panel, PanelBody, Row } from '@/components/ui';
 import type { BotProfile } from '@/lib/fluxer';
+import type { Key } from '@/lib/i18n';
 import { removeMaxwell, resetSettings, saveAvatar, savePrefix, saveProfile } from './actions';
 
 const languageNames: Record<GeneralConfig['language'], string> = {
@@ -17,15 +19,16 @@ const languageNames: Record<GeneralConfig['language'], string> = {
   de: 'Deutsch',
 };
 
-const retention = [
+const retention: { value: string; label: Key }[] = [
   { value: 'forever', label: 'Forever' },
   { value: '730', label: '2 years' },
   { value: '365', label: '1 year' },
   { value: '90', label: '90 days' },
-] as const;
+];
 
 function PrefixPanel({ initial }: { initial: string }) {
   const { guildId } = useGuild();
+  const t = useT();
   const { readOnly } = useDraft<GeneralConfig>();
   const [prefix, setPrefix] = useState(initial);
   const [saved, setSaved] = useState(initial);
@@ -38,11 +41,11 @@ function PrefixPanel({ initial }: { initial: string }) {
 
   return (
     <div className="mx-field">
-      <span className="mx-label">Prefix</span>
+      <span className="mx-label">{t('Prefix')}</span>
       <div className="mx-inline">
         <input
           className="mx-input mx-mono"
-          aria-label="Prefix"
+          aria-label={t('Prefix')}
           value={prefix}
           maxLength={8}
           readOnly={readOnly}
@@ -67,7 +70,7 @@ function PrefixPanel({ initial }: { initial: string }) {
               })
             }
           >
-            Save prefix
+            {t('Save prefix')}
           </button>
         ) : null}
         <StatusText status={status} />
@@ -78,6 +81,7 @@ function PrefixPanel({ initial }: { initial: string }) {
 
 function ProfilePanel({ profile, guildName }: { profile: BotProfile | null; guildName: string }) {
   const { guildId } = useGuild();
+  const t = useT();
   const { readOnly } = useDraft<GeneralConfig>();
   const [nick, setNick] = useState(profile?.nick ?? '');
   const [bio, setBio] = useState(profile?.bio ?? '');
@@ -88,7 +92,7 @@ function ProfilePanel({ profile, guildName }: { profile: BotProfile | null; guil
 
   const upload = (file: File) => {
     if (file.size > 1_000_000) {
-      setStatus(failed('Use an image under 1 MB.'));
+      setStatus(failed(t('Use an image under 1 MB.')));
       return;
     }
     const reader = new FileReader();
@@ -103,12 +107,12 @@ function ProfilePanel({ profile, guildName }: { profile: BotProfile | null; guil
   };
 
   return (
-    <Panel title={`Maxwell in ${guildName}`} span={6}>
+    <Panel title={t('Maxwell in {guild}', { guild: guildName })} span={6}>
       <PanelBody>
         <div className="mx-inline" style={{ gap: 14 }}>
           <img
             src={avatar ?? '/mascot/neutral.svg'}
-            alt="Maxwell's avatar in this community"
+            alt={t("Maxwell's avatar in this community")}
             width={56}
             height={56}
             style={{ borderRadius: '50%', display: 'block' }}
@@ -116,7 +120,7 @@ function ProfilePanel({ profile, guildName }: { profile: BotProfile | null; guil
           {readOnly ? null : (
             <div className="mx-inline">
               <label className="mx-btn" aria-disabled={pending}>
-                Upload avatar
+                {t('Upload avatar')}
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/gif,image/webp"
@@ -142,13 +146,13 @@ function ProfilePanel({ profile, guildName }: { profile: BotProfile | null; guil
                     })
                   }
                 >
-                  Use default
+                  {t('Use default')}
                 </button>
               ) : null}
             </div>
           )}
         </div>
-        <Field label="Nickname">
+        <Field label={t('Nickname')}>
           <input
             className="mx-input"
             value={nick}
@@ -158,7 +162,7 @@ function ProfilePanel({ profile, guildName }: { profile: BotProfile | null; guil
             onChange={(event) => setNick(event.target.value)}
           />
         </Field>
-        <Field label="About me" aside={`${bio.length} / 320`}>
+        <Field label={t('About me')} aside={`${bio.length} / 320`}>
           <textarea
             className="mx-textarea"
             rows={3}
@@ -184,7 +188,7 @@ function ProfilePanel({ profile, guildName }: { profile: BotProfile | null; guil
                 })
               }
             >
-              Save profile
+              {t('Save profile')}
             </button>
           ) : null}
           <StatusText status={status} />
@@ -208,17 +212,19 @@ export function GeneralForm({
   admin: boolean;
 }) {
   const { guildId } = useGuild();
+  const t = useT();
   const { value, set, readOnly } = useDraft<GeneralConfig>();
   const [scoped, setScoped] = useState(value.commandChannels.length > 0);
   const available = commands.filter((name) => !value.disabledCommands.includes(name));
+  const retentionOptions = retention.map((entry) => ({ ...entry, label: t(entry.label) }));
 
   return (
     <Grid>
-      <Panel title="Basics" span={6}>
+      <Panel title={t('Basics')} span={6}>
         <PanelBody>
           <PrefixPanel initial={prefix} />
           <Fields>
-            <Field label="Language">
+            <Field label={t('Bot language')}>
               <Select
                 value={value.language}
                 options={Object.entries(languageNames).map(([code, name]) => ({
@@ -228,7 +234,7 @@ export function GeneralForm({
                 onChange={(language) => set({ language })}
               />
             </Field>
-            <Field label="Timezone">
+            <Field label={t('Timezone')}>
               <TimezoneSelect value={value.timezone} onChange={(timezone) => set({ timezone })} />
             </Field>
           </Fields>
@@ -237,10 +243,10 @@ export function GeneralForm({
 
       <ProfilePanel profile={profile} guildName={guildName} />
 
-      <Panel title="Commands" span={7}>
+      <Panel title={t('Commands')} span={7}>
         <PanelBody>
           <div className="mx-field">
-            <span className="mx-label">Turned off</span>
+            <span className="mx-label">{t('Turned off')}</span>
             <div className="mx-chips">
               {value.disabledCommands.map((name) => (
                 <span key={name} className="mx-chip">
@@ -249,7 +255,7 @@ export function GeneralForm({
                     <button
                       type="button"
                       className="mx-chip-x"
-                      aria-label={`Turn ${name} back on`}
+                      aria-label={t('Turn {name} back on', { name })}
                       onClick={() =>
                         set({
                           disabledCommands: value.disabledCommands.filter(
@@ -264,11 +270,11 @@ export function GeneralForm({
                 </span>
               ))}
               {readOnly && value.disabledCommands.length === 0 ? (
-                <span className="mx-sub">None</span>
+                <span className="mx-sub">{t('None')}</span>
               ) : null}
               {readOnly || available.length === 0 ? null : (
                 <AddPicker
-                  label="Turn off a command"
+                  label={t('Turn off a command')}
                   options={available.map((name) => ({ value: name, label: name }))}
                   onPick={(name) => set({ disabledCommands: [...value.disabledCommands, name] })}
                 />
@@ -276,13 +282,13 @@ export function GeneralForm({
             </div>
           </div>
           <div className="mx-field">
-            <span className="mx-label">Where commands work</span>
+            <span className="mx-label">{t('Where commands work')}</span>
             <Seg
-              label="Where commands work"
+              label={t('Where commands work')}
               value={scoped ? 'some' : 'all'}
               options={[
-                { value: 'all', label: 'Everywhere' },
-                { value: 'some', label: 'Some channels' },
+                { value: 'all', label: t('Everywhere') },
+                { value: 'some', label: t('Some channels') },
               ]}
               onChange={(next) => {
                 setScoped(next === 'some');
@@ -299,20 +305,20 @@ export function GeneralForm({
         </PanelBody>
       </Panel>
 
-      <Panel title="Privacy" span={5}>
+      <Panel title={t('Privacy')} span={5}>
         <PanelBody>
-          <Field label="Keep cases">
+          <Field label={t('Keep cases')}>
             <Select
               value={value.caseRetentionDays === null ? 'forever' : String(value.caseRetentionDays)}
               options={
                 value.caseRetentionDays === null ||
                 retention.some((entry) => entry.value === String(value.caseRetentionDays))
-                  ? retention
+                  ? retentionOptions
                   : [
-                      ...retention,
+                      ...retentionOptions,
                       {
                         value: String(value.caseRetentionDays),
-                        label: `${value.caseRetentionDays} days`,
+                        label: t.plural(value.caseRetentionDays, '{n} day', '{n} days'),
                       },
                     ]
               }
@@ -323,25 +329,25 @@ export function GeneralForm({
           </Field>
         </PanelBody>
         <Row
-          title="Members export their data"
+          title={t('Members export their data')}
           sub={<span className="mx-mono">{`${prefix}mydata`}</span>}
         />
         <Row
-          title="Members delete their data"
+          title={t('Members delete their data')}
           sub={<span className="mx-mono">{`${prefix}forgetme`}</span>}
         />
       </Panel>
 
       {admin ? (
-        <Panel title="Reset" span={12}>
+        <Panel title={t('Reset')} span={12}>
           <DangerRow
-            label="Reset all settings"
-            sub="Levels, currency, cases and backups stay"
+            label={t('Reset all settings')}
+            sub={t('Levels, currency, cases and backups stay')}
             run={() => resetSettings(guildId)}
           />
           <DangerRow
-            label="Remove Maxwell"
-            sub={`Maxwell leaves ${guildName}`}
+            label={t('Remove Maxwell')}
+            sub={t('Maxwell leaves {guild}', { guild: guildName })}
             run={() => removeMaxwell(guildId)}
           />
         </Panel>

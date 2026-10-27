@@ -5,9 +5,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 import { ChannelMulti, Seg, Select, Switch } from '@/components/controls';
 import { ChannelType, useChannelName, useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { useDraft } from '@/components/module-shell';
 import { Empty, Field, Fields, Grid, Panel, PanelBody, Row } from '@/components/ui';
-import { count } from '@/lib/time';
+import type { Key, Translator } from '@/lib/i18n';
 
 export type RangeDays = 7 | 30 | 90;
 
@@ -44,14 +45,13 @@ export interface Retention {
 
 const BLUE = '#3A9EEA';
 const ORANGE = '#F26B3A';
-const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
-const ranges: { value: RangeDays; label: string }[] = [
+const ranges: { value: RangeDays; label: Key }[] = [
   { value: 7, label: '7 days' },
   { value: 30, label: '30 days' },
   { value: 90, label: '90 days' },
 ];
-const keepFor = [
+const keepFor: { value: string; label: Key }[] = [
   { value: '30', label: '30 days' },
   { value: '90', label: '90 days' },
   { value: '180', label: '6 months' },
@@ -59,8 +59,15 @@ const keepFor = [
   { value: '730', label: '2 years' },
 ];
 
-function dayLabel(day: string): string {
-  return new Intl.DateTimeFormat('en-GB', {
+function weekdayNames(locale: string): string[] {
+  const format = new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' });
+  return Array.from({ length: 7 }, (_, index) =>
+    format.format(new Date(Date.UTC(2024, 0, 1 + index))),
+  );
+}
+
+function dayLabel(locale: string, day: string): string {
+  return new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'short',
     timeZone: 'UTC',
@@ -73,9 +80,9 @@ function percentTrend(now: number, before: number): { text: string; up: boolean 
   return { text: `${change >= 0 ? '+' : ''}${change}%`, up: change >= 0 };
 }
 
-function countTrend(now: number, before: number): { text: string; up: boolean } {
+function countTrend(t: Translator, now: number, before: number): { text: string; up: boolean } {
   const change = now - before;
-  return { text: `${change >= 0 ? '+' : ''}${count(change)}`, up: change >= 0 };
+  return { text: `${change >= 0 ? '+' : ''}${t.count(change)}`, up: change >= 0 };
 }
 
 function share(part: number, whole: number): number | null {
@@ -87,6 +94,7 @@ function rateColor(value: number): string {
 }
 
 function RangePicker({ days, data }: { days: RangeDays; data: boolean }) {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const { guildId } = useGuild();
@@ -102,16 +110,16 @@ function RangePicker({ days, data }: { days: RangeDays; data: boolean }) {
       }}
     >
       <Seg
-        label="Range"
+        label={t('Range')}
         value={String(days)}
-        options={ranges.map((range) => ({ value: String(range.value), label: range.label }))}
+        options={ranges.map((range) => ({ value: String(range.value), label: t(range.label) }))}
         disabled={pending}
         view
         onChange={(next) => start(() => router.push(`${pathname}?range=${next}`))}
       />
       {data ? (
         <a className="mx-btn" href={`/g/${guildId}/insights/export?range=${days}`} download>
-          Export CSV
+          {t('Export CSV')}
         </a>
       ) : null}
     </div>
@@ -127,10 +135,11 @@ function Stats({
   retention: Retention[];
   quiet: boolean;
 }) {
+  const t = useT();
   const eligible = retention.reduce((sum, row) => sum + row.eligible30, 0);
   const stayed = retention.reduce((sum, row) => sum + row.stayed30, 0);
   const kept = share(stayed, eligible);
-  const leaves = countTrend(stats.leaves[0], stats.leaves[1]);
+  const leaves = countTrend(t, stats.leaves[0], stats.leaves[1]);
   const items: {
     label: string;
     value: string;
@@ -138,39 +147,39 @@ function Stats({
     note?: string;
   }[] = [
     {
-      label: 'Active members',
-      value: count(stats.active[0]),
+      label: t('Active members'),
+      value: t.count(stats.active[0]),
       trend: (() => {
         const trend = percentTrend(stats.active[0], stats.active[1]);
         return trend ? { text: trend.text, good: trend.up } : null;
       })(),
     },
     {
-      label: 'Messages',
-      value: count(stats.messages[0]),
+      label: t('Messages'),
+      value: t.count(stats.messages[0]),
       trend: (() => {
         const trend = percentTrend(stats.messages[0], stats.messages[1]);
         return trend ? { text: trend.text, good: trend.up } : null;
       })(),
     },
     {
-      label: 'Joins',
-      value: count(stats.joins[0]),
+      label: t('Joins'),
+      value: t.count(stats.joins[0]),
       trend: (() => {
-        const trend = countTrend(stats.joins[0], stats.joins[1]);
+        const trend = countTrend(t, stats.joins[0], stats.joins[1]);
         return { text: trend.text, good: trend.up };
       })(),
     },
     {
-      label: 'Leaves',
-      value: count(stats.leaves[0]),
+      label: t('Leaves'),
+      value: t.count(stats.leaves[0]),
       trend: { text: leaves.text, good: !leaves.up || stats.leaves[0] === stats.leaves[1] },
     },
     {
-      label: 'Still here after 30 days',
+      label: t('Still here after 30 days'),
       value: `${kept ?? 0}%`,
       trend: null,
-      note: kept === null ? 'Needs joins from a month ago' : 'Invited members, last 90 days',
+      note: kept === null ? t('Needs joins from a month ago') : t('Invited members, last 90 days'),
     },
   ];
   return (
@@ -184,8 +193,8 @@ function Stats({
           <span className="mx-stat-value">{item.value}</span>
           {quiet ? null : item.trend ? (
             <span className="mx-sub">
-              <span className={item.trend.good ? 'mx-up' : 'mx-down'}>{item.trend.text}</span> vs
-              previous
+              <span className={item.trend.good ? 'mx-up' : 'mx-down'}>{item.trend.text}</span>{' '}
+              {t('vs previous')}
             </span>
           ) : item.note ? (
             <span className="mx-sub">{item.note}</span>
@@ -197,6 +206,7 @@ function Stats({
 }
 
 function Activity({ series, days }: { series: DayPoint[]; days: RangeDays }) {
+  const t = useT();
   const maxMessages = Math.max(0, ...series.map((point) => point.messages));
   const maxJoins = Math.max(0, ...series.map((point) => point.joins));
   const peak = series.reduce<DayPoint | null>(
@@ -207,8 +217,8 @@ function Activity({ series, days }: { series: DayPoint[]; days: RangeDays }) {
   const last = series.at(-1);
   if (!first || !last || maxMessages === 0) {
     return (
-      <Panel title="Messages per day" span={8} id="insights-activity">
-        <Empty>No messages counted yet.</Empty>
+      <Panel title={t('Messages per day')} span={8} id="insights-activity">
+        <Empty>{t('No messages counted yet.')}</Empty>
       </Panel>
     );
   }
@@ -221,12 +231,17 @@ function Activity({ series, days }: { series: DayPoint[]; days: RangeDays }) {
 
   return (
     <Panel
-      title="Messages per day"
+      title={t('Messages per day')}
       span={8}
       id="insights-activity"
       actions={
         peak ? (
-          <span className="mx-sub">{`Peak ${count(peak.messages)} on ${dayLabel(peak.day)}`}</span>
+          <span className="mx-sub">
+            {t('Peak {count} on {day}', {
+              count: peak.messages,
+              day: dayLabel(t.locale, peak.day),
+            })}
+          </span>
         ) : null
       }
     >
@@ -234,7 +249,10 @@ function Activity({ series, days }: { series: DayPoint[]; days: RangeDays }) {
         <svg
           viewBox="0 0 600 160"
           role="img"
-          aria-label={`Messages per day over the last ${days} days, peak ${count(maxMessages)}`}
+          aria-label={t('Messages per day over the last {days} days, peak {count}', {
+            days,
+            count: maxMessages,
+          })}
           style={{ width: '100%', height: 180, display: 'block' }}
           preserveAspectRatio="none"
         >
@@ -267,16 +285,16 @@ function Activity({ series, days }: { series: DayPoint[]; days: RangeDays }) {
           className="mx-sub"
           style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10 }}
         >
-          <span>{dayLabel(first.day)}</span>
+          <span>{dayLabel(t.locale, first.day)}</span>
           <span style={{ display: 'flex', gap: 14 }}>
             <span>
-              <span className="mx-dot" style={{ background: BLUE }} /> Messages
+              <span className="mx-dot" style={{ background: BLUE }} /> {t('Messages')}
             </span>
             <span>
-              <span className="mx-dot" style={{ background: ORANGE }} /> Joins, scaled
+              <span className="mx-dot" style={{ background: ORANGE }} /> {t('Joins, scaled')}
             </span>
           </span>
-          <span>{dayLabel(last.day)}</span>
+          <span>{dayLabel(t.locale, last.day)}</span>
         </div>
       </PanelBody>
     </Panel>
@@ -284,17 +302,20 @@ function Activity({ series, days }: { series: DayPoint[]; days: RangeDays }) {
 }
 
 function Channels({ channels }: { channels: { channelId: string; count: number }[] }) {
+  const t = useT();
   const channelName = useChannelName();
   const top = channels[0];
   return (
-    <Panel title="Busiest channels" span={4} id="insights-channels">
+    <Panel title={t('Busiest channels')} span={4} id="insights-channels">
       {!top ? (
-        <Empty>No messages counted yet.</Empty>
+        <Empty>{t('No messages counted yet.')}</Empty>
       ) : (
         <div
           className="mx-panel-body"
           role="img"
-          aria-label={`Messages per channel, ${channelName(top.channelId)} is the busiest`}
+          aria-label={t('Messages per channel, {channel} is the busiest', {
+            channel: channelName(top.channelId),
+          })}
           style={{ gap: 9 }}
         >
           {channels.map((channel) => (
@@ -304,7 +325,7 @@ function Channels({ channels }: { channels: { channelId: string; count: number }
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                 <span className="mx-ellipsis">{channelName(channel.channelId)}</span>
-                <span className="mx-muted">{count(channel.count)}</span>
+                <span className="mx-muted">{t.count(channel.count)}</span>
               </div>
               <div className="mx-bar">
                 <span
@@ -323,6 +344,8 @@ function Channels({ channels }: { channels: { channelId: string; count: number }
 }
 
 function Heatmap({ heat, timezone, span }: { heat: Heat[]; timezone: string; span: 8 | 12 }) {
+  const t = useT();
+  const weekdays = weekdayNames(t.locale);
   const max = Math.max(0, ...heat.map((cell) => cell.messages));
   const grid = weekdays.map((_, weekday) =>
     Array.from(
@@ -338,18 +361,21 @@ function Heatmap({ heat, timezone, span }: { heat: Heat[]; timezone: string; spa
   const hour = (value: number) => `${String(value).padStart(2, '0')}:00`;
   return (
     <Panel
-      title="When people talk"
+      title={t('When people talk')}
       span={span}
       id="insights-heat"
       actions={<span className="mx-sub">{timezone.replaceAll('_', ' ')}</span>}
     >
       {max === 0 || !busiest ? (
-        <Empty>No messages counted yet.</Empty>
+        <Empty>{t('No messages counted yet.')}</Empty>
       ) : (
         <div className="mx-panel-body mx-scroll">
           <div
             role="img"
-            aria-label={`Activity by weekday and hour, busiest ${weekdays[busiest.weekday]} at ${hour(busiest.hour)}`}
+            aria-label={t('Activity by weekday and hour, busiest {day} at {hour}', {
+              day: weekdays[busiest.weekday] ?? '',
+              hour: hour(busiest.hour),
+            })}
             style={{
               display: 'grid',
               gridTemplateColumns: '36px repeat(24, minmax(14px, 1fr))',
@@ -375,7 +401,11 @@ function Heatmap({ heat, timezone, span }: { heat: Heat[]; timezone: string; spa
               ...row.map((messages, value) => (
                 <span
                   key={`${weekdays[weekday]}-${hour(value)}`}
-                  title={`${weekdays[weekday]} ${hour(value)}, ${count(messages)} messages`}
+                  title={t('{day} {hour}, {count} messages', {
+                    day: weekdays[weekday] ?? '',
+                    hour: hour(value),
+                    count: messages,
+                  })}
                   style={{
                     height: 18,
                     borderRadius: 3,
@@ -393,6 +423,7 @@ function Heatmap({ heat, timezone, span }: { heat: Heat[]; timezone: string; spa
 }
 
 function Moderation({ weeks, span }: { weeks: Week[]; span: 4 | 6 }) {
+  const t = useT();
   const max = Math.max(0, ...weeks.map((week) => week.total));
   const total = weeks.reduce((sum, week) => sum + week.total, 0);
   const automod = share(
@@ -401,18 +432,20 @@ function Moderation({ weeks, span }: { weeks: Week[]; span: 4 | 6 }) {
   );
   return (
     <Panel
-      title="Moderation load"
+      title={t('Moderation load')}
       span={span}
       id="insights-moderation"
-      actions={<span className="mx-sub">Actions per week</span>}
+      actions={<span className="mx-sub">{t('Actions per week')}</span>}
     >
       {total === 0 ? (
-        <Empty>No moderation in the last 8 weeks.</Empty>
+        <Empty>{t('No moderation in the last 8 weeks.')}</Empty>
       ) : (
         <PanelBody>
           <div
             role="img"
-            aria-label={`Moderation actions per week for the last 8 weeks, highest ${count(max)}`}
+            aria-label={t('Moderation actions per week for the last 8 weeks, highest {count}', {
+              count: max,
+            })}
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
@@ -448,7 +481,9 @@ function Moderation({ weeks, span }: { weeks: Week[]; span: 4 | 6 }) {
             ))}
           </div>
           {automod !== null ? (
-            <span className="mx-sub">{`AutoMod handled ${automod}% of all actions`}</span>
+            <span className="mx-sub">
+              {t('AutoMod handled {percent}% of all actions', { percent: automod })}
+            </span>
           ) : null}
         </PanelBody>
       )}
@@ -457,8 +492,9 @@ function Moderation({ weeks, span }: { weeks: Week[]; span: 4 | 6 }) {
 }
 
 function Rate({ part, whole }: { part: number; whole: number }) {
+  const t = useT();
   const value = share(part, whole);
-  if (value === null) return <span className="mx-muted">Too new</span>;
+  if (value === null) return <span className="mx-muted">{t('Too new')}</span>;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 140 }}>
       <div className="mx-bar" style={{ flex: 1 }}>
@@ -470,34 +506,35 @@ function Rate({ part, whole }: { part: number; whole: number }) {
 }
 
 function RetentionTable({ rows, span }: { rows: Retention[]; span: 6 | 12 }) {
+  const t = useT();
   return (
     <Panel
-      title="Retention by invite"
+      title={t('Retention by invite')}
       span={span}
       id="insights-retention"
-      actions={<span className="mx-sub">Joins, last 90 days</span>}
+      actions={<span className="mx-sub">{t('Joins, last 90 days')}</span>}
     >
       {rows.length === 0 ? (
-        <Empty>No tracked joins yet.</Empty>
+        <Empty>{t('No tracked joins yet.')}</Empty>
       ) : (
         <div className="mx-scroll">
           <table className="mx-table">
             <thead>
               <tr>
-                <th scope="col">Invite</th>
-                <th scope="col">Created by</th>
-                <th scope="col">Joined</th>
-                <th scope="col">After 7 days</th>
-                <th scope="col">After 30 days</th>
-                <th scope="col">Still active</th>
+                <th scope="col">{t('Invite')}</th>
+                <th scope="col">{t('Created by')}</th>
+                <th scope="col">{t('Joined')}</th>
+                <th scope="col">{t('After 7 days')}</th>
+                <th scope="col">{t('After 30 days')}</th>
+                <th scope="col">{t('Still active')}</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.code ?? 'unknown'}>
-                  <td className="mx-mono">{row.code ?? 'Unknown'}</td>
-                  <td>{row.inviter ?? <span className="mx-muted">Nobody</span>}</td>
-                  <td>{count(row.joins)}</td>
+                  <td className="mx-mono">{row.code ?? t('Unknown')}</td>
+                  <td>{row.inviter ?? <span className="mx-muted">{t('Nobody')}</span>}</td>
+                  <td>{t.count(row.joins)}</td>
                   <td>
                     <Rate part={row.stayed7} whole={row.eligible7} />
                   </td>
@@ -518,27 +555,32 @@ function RetentionTable({ rows, span }: { rows: Retention[]; span: 6 | 12 }) {
 }
 
 function Settings() {
+  const t = useT();
   const { value, set } = useDraft<InsightsConfig>();
   const keep = String(value.retentionDays);
+  const keepOptions = keepFor.map((option) => ({ ...option, label: t(option.label) }));
   return (
-    <Panel title="Settings" span={12} id="insights-settings">
+    <Panel title={t('Settings')} span={12} id="insights-settings">
       <PanelBody>
         <Fields>
-          <Field label="Keep data for">
+          <Field label={t('Keep data for')}>
             <Select
-              label="Keep data for"
+              label={t('Keep data for')}
               value={keep}
               options={
                 keepFor.some((option) => option.value === keep)
-                  ? keepFor
-                  : [...keepFor, { value: keep, label: `${keep} days` }]
+                  ? keepOptions
+                  : [
+                      ...keepOptions,
+                      { value: keep, label: t.plural(value.retentionDays, '{n} day', '{n} days') },
+                    ]
               }
               onChange={(next) => set({ retentionDays: Number(next) })}
             />
           </Field>
         </Fields>
         <div className="mx-field">
-          <span className="mx-label">Ignored channels</span>
+          <span className="mx-label">{t('Ignored channels')}</span>
           <ChannelMulti
             value={value.excludedChannels}
             kinds={[ChannelType.Text, ChannelType.Announcement, ChannelType.Voice]}
@@ -546,16 +588,16 @@ function Settings() {
           />
         </div>
       </PanelBody>
-      <Row title="Count bots">
+      <Row title={t('Count bots')}>
         <Switch
-          label="Count bots"
+          label={t('Count bots')}
           checked={value.countBots}
           onChange={(countBots) => set({ countBots })}
         />
       </Row>
-      <Row title="Count voice time">
+      <Row title={t('Count voice time')}>
         <Switch
-          label="Count voice time"
+          label={t('Count voice time')}
           checked={value.trackVoice}
           onChange={(trackVoice) => set({ trackVoice })}
         />
@@ -583,6 +625,7 @@ export function InsightsView({
   weeks: Week[];
   retention: Retention[];
 }) {
+  const t = useT();
   const talk =
     series.some((point) => point.messages > 0) ||
     channels.length > 0 ||
@@ -604,8 +647,8 @@ export function InsightsView({
         {talk || moderated || invited ? null : (
           <Panel span={12} id="insights-empty">
             <Empty mood="sleeping">
-              <div>Nothing counted yet.</div>
-              <div className="mx-sub">Charts fill in once people start talking.</div>
+              <div>{t('Nothing counted yet.')}</div>
+              <div className="mx-sub">{t('Charts fill in once people start talking.')}</div>
             </Empty>
           </Panel>
         )}

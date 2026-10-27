@@ -11,6 +11,7 @@ import {
   TextInput,
 } from '@/components/controls';
 import { useChannelName, useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { Listbox } from '@/components/listbox';
 import { MessagePreview } from '@/components/message-preview';
 import { useDraft, useReadOnly } from '@/components/module-shell';
@@ -18,8 +19,8 @@ import { outcome, type Status, StatusText } from '@/components/status-text';
 import { TwoStep } from '@/components/two-step';
 import { Avatar, Empty, Field, Fields, Grid, Panel, PanelBody, Row } from '@/components/ui';
 import { runAction } from '@/lib/actions';
+import type { Key, Translator } from '@/lib/i18n';
 import { Section, Tile, Tiles } from '../economy/bits';
-import { amount } from '../economy/format';
 
 export interface BoardRow {
   userId: string;
@@ -48,7 +49,7 @@ interface EconomyView {
 
 type ConfigKey = 'trivia' | 'counting' | 'wordchain' | 'higherLower' | 'coinflip';
 
-const list: { key: GameKey; config: ConfigKey; name: string }[] = [
+const list: { key: GameKey; config: ConfigKey; name: Key }[] = [
   { key: 'trivia', config: 'trivia', name: 'Trivia' },
   { key: 'counting', config: 'counting', name: 'Counting' },
   { key: 'wordchain', config: 'wordchain', name: 'Word chain' },
@@ -56,7 +57,7 @@ const list: { key: GameKey; config: ConfigKey; name: string }[] = [
   { key: 'coinflip', config: 'coinflip', name: 'Coinflip duels' },
 ];
 
-const gameNames: Record<GameKey, string> = {
+const gameNames: Record<GameKey, Key> = {
   trivia: 'Trivia',
   counting: 'Counting',
   wordchain: 'Word chain',
@@ -68,9 +69,9 @@ const SLOTS = ['a', 'b', 'c', 'd'] as const;
 
 const seconds = [10, 15, 20, 30, 45, 60, 90, 120, 180, 300];
 
-function secondsLabel(n: number): string {
-  if (n >= 60 && n % 60 === 0) return n === 60 ? '1 minute' : `${n / 60} minutes`;
-  return `${n} seconds`;
+function secondsLabel(t: Translator, n: number): string {
+  if (n >= 60 && n % 60 === 0) return t.plural(n / 60, '{n} minute', '{n} minutes');
+  return t('{count} seconds', { count: n });
 }
 
 function SecondsSelect({
@@ -86,13 +87,14 @@ function SecondsSelect({
   max: number;
   label: string;
 }) {
+  const t = useT();
   const options = seconds.filter((n) => n >= min && n <= max);
   const all = options.includes(value) ? options : [...options, value].sort((a, b) => a - b);
   return (
     <Select
       label={label}
       value={String(value)}
-      options={all.map((n) => ({ value: String(n), label: secondsLabel(n) }))}
+      options={all.map((n) => ({ value: String(n), label: secondsLabel(t, n) }))}
       onChange={(next) => onChange(Number(next))}
     />
   );
@@ -133,6 +135,7 @@ function AnswerRow({
   onMark: () => void;
   onChange: (next: string) => void;
 }) {
+  const t = useT();
   return (
     <div
       className={right ? 'mx-inset' : undefined}
@@ -148,8 +151,8 @@ function AnswerRow({
         type="button"
         role="radio"
         aria-checked={right}
-        aria-label={`Answer ${index + 1} is right`}
-        title={right ? 'Right answer' : 'Mark as right'}
+        aria-label={t('Answer {number} is right', { number: index + 1 })}
+        title={right ? t('Right answer') : t('Mark as right')}
         onClick={onMark}
         style={{
           width: 36,
@@ -170,10 +173,10 @@ function AnswerRow({
       </button>
       <div style={{ flex: 1, minWidth: 0, display: 'grid' }}>
         <TextInput
-          label={`Answer ${index + 1}`}
+          label={t('Answer {number}', { number: index + 1 })}
           value={value}
           maxLength={100}
-          placeholder={right ? 'Right answer' : 'Wrong answer'}
+          placeholder={right ? t('Right answer') : t('Wrong answer')}
           onChange={onChange}
         />
       </div>
@@ -203,6 +206,7 @@ function Chat({ name, color, text }: { name: string; color: string; text: string
 
 function ResetChannel({ game, label }: { game: 'counting' | 'wordchain'; label: string }) {
   const { guildId } = useGuild();
+  const t = useT();
   const readOnly = useReadOnly();
   const [status, setStatus] = useState<Status>(null);
   const [pending, start] = useTransition();
@@ -216,7 +220,7 @@ function ResetChannel({ game, label }: { game: 'counting' | 'wordchain'; label: 
         run={() =>
           start(async () => {
             const result = await runAction(guildId, 'games', 'resetChannel', { game });
-            setStatus(outcome(result, 'Resetting.'));
+            setStatus(outcome(result, t('Resetting.')));
           })
         }
       />
@@ -290,6 +294,7 @@ function questionsFromCsv(text: string): TriviaQuestion[] {
 
 function TriviaEditor({ economy }: { economy: EconomyView }) {
   const { guildId } = useGuild();
+  const t = useT();
   const { value, set, readOnly } = useDraft<GamesConfig>();
   const trivia = value.trivia;
   const [question, setQuestion] = useState('');
@@ -305,12 +310,12 @@ function TriviaEditor({ economy }: { economy: EconomyView }) {
   const filled = answers.map((answer) => answer.trim());
   const choices = filled.filter(Boolean);
   const correct = filled[right] ?? '';
-  const questionError = text ? null : 'Write a question first.';
+  const questionError = text ? null : t('Write a question first.');
   const answerError =
     choices.length === 0
-      ? 'Add the right answer.'
+      ? t('Add the right answer.')
       : choices.length > 1 && !correct
-        ? 'The answer marked as right is empty.'
+        ? t('The answer marked as right is empty.')
         : null;
 
   const add = () => {
@@ -325,7 +330,7 @@ function TriviaEditor({ economy }: { economy: EconomyView }) {
     setAnswers(['', '', '', '']);
     setRight(0);
     setTried(false);
-    setStatus({ message: 'Added. Save to keep it.', error: false });
+    setStatus({ message: t('Added. Save to keep it.'), error: false });
   };
 
   const importFile = (file: File) => {
@@ -335,12 +340,16 @@ function TriviaEditor({ economy }: { economy: EconomyView }) {
       const room = 500 - questions.length;
       const added = parsed.slice(0, Math.max(room, 0));
       if (added.length === 0) {
-        setStatus({ message: 'No questions found in that file.', error: true });
+        setStatus({ message: t('No questions found in that file.'), error: true });
         return;
       }
       set({ trivia: { ...trivia, questions: [...questions, ...added] } });
       setStatus({
-        message: `${added.length === 1 ? '1 question' : `${added.length} questions`} added. Save to keep them.`,
+        message: t.plural(
+          added.length,
+          '{n} question added. Save to keep it.',
+          '{n} questions added. Save to keep them.',
+        ),
         error: false,
       });
     };
@@ -351,9 +360,9 @@ function TriviaEditor({ economy }: { economy: EconomyView }) {
     <>
       <PanelBody>
         <Fields>
-          <Field label="Time per question">
+          <Field label={t('Time per question')}>
             <SecondsSelect
-              label="Time per question"
+              label={t('Time per question')}
               value={trivia.answerSeconds}
               min={10}
               max={300}
@@ -361,25 +370,25 @@ function TriviaEditor({ economy }: { economy: EconomyView }) {
             />
           </Field>
           <div className="mx-field">
-            <span className="mx-label">Reward per right answer</span>
+            <span className="mx-label">{t('Reward per right answer')}</span>
             <div className="mx-between" style={{ minHeight: 36 }}>
               <span>
                 {economy.on && economy.perWin > 0
-                  ? `${amount(economy.perWin)} ${economy.symbol}`
-                  : 'No reward'}
+                  ? `${t.count(economy.perWin)} ${economy.symbol}`
+                  : t('No reward')}
               </span>
               <a className="mx-btn mx-btn-ghost" href={`/g/${guildId}/economy`}>
-                Economy
+                {t('Economy')}
               </a>
             </div>
           </div>
         </Fields>
       </PanelBody>
       <Section
-        title="Questions"
-        aside={questions.length === 1 ? '1 question' : `${amount(questions.length)} questions`}
+        title={t('Questions')}
+        aside={t.plural(questions.length, '{n} question', '{n} questions')}
       />
-      {questions.length === 0 ? <Empty mood="thinking">No questions yet.</Empty> : null}
+      {questions.length === 0 ? <Empty mood="thinking">{t('No questions yet.')}</Empty> : null}
       {shown.map((entry) => {
         const index = questions.indexOf(entry);
         return (
@@ -388,7 +397,10 @@ function TriviaEditor({ economy }: { economy: EconomyView }) {
             title={entry.question}
             sub={
               entry.choices.length > 0
-                ? `${entry.answers[0]}, out of ${entry.choices.length} choices`
+                ? t('{answer}, out of {count} choices', {
+                    answer: entry.answers[0] ?? '',
+                    count: entry.choices.length,
+                  })
                 : entry.answers.join(', ')
             }
           >
@@ -396,14 +408,14 @@ function TriviaEditor({ economy }: { economy: EconomyView }) {
               <button
                 type="button"
                 className="mx-btn mx-btn-ghost"
-                aria-label={`Remove ${entry.question}`}
+                aria-label={t('Remove {name}', { name: entry.question })}
                 onClick={() =>
                   set({
                     trivia: { ...trivia, questions: questions.filter((_, i) => i !== index) },
                   })
                 }
               >
-                Remove
+                {t('Remove')}
               </button>
             )}
           </Row>
@@ -412,18 +424,18 @@ function TriviaEditor({ economy }: { economy: EconomyView }) {
       {questions.length > 6 ? (
         <div className="mx-row">
           <button type="button" className="mx-btn mx-btn-ghost" onClick={() => setAll(!all)}>
-            {all ? 'Show fewer' : `Show all ${amount(questions.length)}`}
+            {all ? t('Show fewer') : t('Show all {count}', { count: questions.length })}
           </button>
         </div>
       ) : null}
       {readOnly ? null : (
         <>
-          <Section title="New question" />
+          <Section title={t('New question')} />
           <PanelBody>
             <div className="mx-field">
               <TextInput
-                label="New question"
-                placeholder="Question"
+                label={t('New question')}
+                placeholder={t('Question')}
                 value={question}
                 maxLength={300}
                 onChange={setQuestion}
@@ -433,8 +445,12 @@ function TriviaEditor({ economy }: { economy: EconomyView }) {
               ) : null}
             </div>
             <div className="mx-field">
-              <span className="mx-label">Answers</span>
-              <div role="radiogroup" aria-label="Right answer" style={{ display: 'grid', gap: 6 }}>
+              <span className="mx-label">{t('Answers')}</span>
+              <div
+                role="radiogroup"
+                aria-label={t('Right answer')}
+                style={{ display: 'grid', gap: 6 }}
+              >
                 {SLOTS.map((slot, i) => (
                   <AnswerRow
                     key={slot}
@@ -452,10 +468,10 @@ function TriviaEditor({ economy }: { economy: EconomyView }) {
             </div>
             <div className="mx-inline">
               <button type="button" className="mx-btn mx-btn-primary" disabled={full} onClick={add}>
-                Add question
+                {t('Add question')}
               </button>
               <label className="mx-btn">
-                Import CSV
+                {t('Import CSV')}
                 <input
                   type="file"
                   accept=".csv,text/csv,text/plain"
@@ -486,6 +502,7 @@ function CountingEditor({
   top: BoardRow | null;
   economy: EconomyView;
 }) {
+  const t = useT();
   const { value, set } = useDraft<GamesConfig>();
   const counting = value.counting;
   const at = state?.current ?? 0;
@@ -494,47 +511,47 @@ function CountingEditor({
     <PanelBody>
       {state || top ? (
         <Tiles>
-          <Tile label="Current count" value={amount(at)} />
-          <Tile label="Record" value={amount(state?.highScore ?? 0)} />
-          <Tile label="Counted most" value={top ? `${top.name}, ${amount(top.wins)}` : '0'} />
+          <Tile label={t('Current count')} value={t.count(at)} />
+          <Tile label={t('Record')} value={t.count(state?.highScore ?? 0)} />
+          <Tile label={t('Counted most')} value={top ? `${top.name}, ${t.count(top.wins)}` : '0'} />
         </Tiles>
       ) : null}
       <Fields>
-        <Field label="Channel">
+        <Field label={t('Channel')}>
           <ChannelSelect
             value={counting.channelId}
-            none="Pick a channel"
+            none={t('Pick a channel')}
             onChange={(channelId) => set({ counting: { ...counting, channelId } })}
           />
         </Field>
-        <Field label="Wrong number">
+        <Field label={t('Wrong number')}>
           <Select
             value={counting.resetOnMistake ? 'reset' : 'keep'}
             options={[
-              { value: 'reset', label: 'Back to 1' },
-              { value: 'keep', label: 'Keep going' },
+              { value: 'reset', label: t('Back to 1') },
+              { value: 'keep', label: t('Keep going') },
             ]}
             onChange={(next) =>
               set({ counting: { ...counting, resetOnMistake: next === 'reset' } })
             }
           />
         </Field>
-        <Field label="Same person twice in a row">
+        <Field label={t('Same person twice in a row')}>
           <Select
             value={counting.allowSameUser ? 'yes' : 'no'}
             options={[
-              { value: 'no', label: 'Not allowed' },
-              { value: 'yes', label: 'Allowed' },
+              { value: 'no', label: t('Not allowed') },
+              { value: 'yes', label: t('Allowed') },
             ]}
             onChange={(next) => set({ counting: { ...counting, allowSameUser: next === 'yes' } })}
           />
         </Field>
-        <Field label="Reward every">
+        <Field label={t('Reward every')}>
           <OptionalNumber
             integer
-            label="Reward every"
+            label={t('Reward every')}
             value={counting.rewardEvery > 0 ? counting.rewardEvery : null}
-            placeholder="Off"
+            placeholder={t('Off')}
             min={1}
             onChange={(next) =>
               set({ counting: { ...counting, rewardEvery: Math.min(100_000, next ?? 0) } })
@@ -549,23 +566,28 @@ function CountingEditor({
           avatarSize={28}
           content={
             counting.resetOnMistake
-              ? `Kai broke the count at ${amount(at + 1)}. Next number is 1.`
-              : "Kai, that's not it."
+              ? t('Kai broke the count at {number}. Next number is 1.', { number: at + 1 })
+              : t("Kai, that's not it.")
           }
         />
         {counting.rewardEvery > 0 && economy.on && economy.perWin > 0 ? (
           <MessagePreview
             avatarSize={28}
-            content={`${amount(counting.rewardEvery)}. +${amount(economy.perWin)} ${economy.symbol} for Max.`}
+            content={t('{number}. +{amount} {symbol} for Max.', {
+              number: counting.rewardEvery,
+              amount: economy.perWin,
+              symbol: economy.symbol,
+            })}
           />
         ) : null}
       </div>
-      {state ? <ResetChannel game="counting" label="Reset count" /> : null}
+      {state ? <ResetChannel game="counting" label={t('Reset count')} /> : null}
     </PanelBody>
   );
 }
 
 function WordchainEditor({ state }: { state: ChannelView | null }) {
+  const t = useT();
   const { value, set } = useDraft<GamesConfig>();
   const words = value.wordchain;
 
@@ -573,23 +595,23 @@ function WordchainEditor({ state }: { state: ChannelView | null }) {
     <PanelBody>
       {state ? (
         <Tiles>
-          <Tile label="Chain" value={amount(state.current)} />
-          <Tile label="Record" value={amount(state.highScore)} />
-          {state.lastWord ? <Tile label="Last word" value={state.lastWord} /> : null}
+          <Tile label={t('Chain')} value={t.count(state.current)} />
+          <Tile label={t('Record')} value={t.count(state.highScore)} />
+          {state.lastWord ? <Tile label={t('Last word')} value={state.lastWord} /> : null}
         </Tiles>
       ) : null}
       <Fields>
-        <Field label="Channel">
+        <Field label={t('Channel')}>
           <ChannelSelect
             value={words.channelId}
-            none="Pick a channel"
+            none={t('Pick a channel')}
             onChange={(channelId) => set({ wordchain: { ...words, channelId } })}
           />
         </Field>
-        <Field label="Minimum length">
+        <Field label={t('Minimum length')}>
           <OptionalNumber
             integer
-            label="Minimum length"
+            label={t('Minimum length')}
             value={words.minLength}
             placeholder="3"
             min={1}
@@ -598,57 +620,58 @@ function WordchainEditor({ state }: { state: ChannelView | null }) {
             }
           />
         </Field>
-        <Field label="Words can repeat">
+        <Field label={t('Words can repeat')}>
           <Select
             value={words.allowRepeat ? 'yes' : 'no'}
             options={[
-              { value: 'no', label: 'Never' },
-              { value: 'yes', label: 'Yes' },
+              { value: 'no', label: t('Never') },
+              { value: 'yes', label: t('Yes') },
             ]}
             onChange={(next) => set({ wordchain: { ...words, allowRepeat: next === 'yes' } })}
           />
         </Field>
-        <Field label="Same person twice in a row">
+        <Field label={t('Same person twice in a row')}>
           <Select
             value={words.allowSameUser ? 'yes' : 'no'}
             options={[
-              { value: 'no', label: 'Not allowed' },
-              { value: 'yes', label: 'Allowed' },
+              { value: 'no', label: t('Not allowed') },
+              { value: 'yes', label: t('Allowed') },
             ]}
             onChange={(next) => set({ wordchain: { ...words, allowSameUser: next === 'yes' } })}
           />
         </Field>
-        <Field label="Wrong word">
+        <Field label={t('Wrong word')}>
           <Select
             value={words.resetOnMistake ? 'reset' : 'keep'}
             options={[
-              { value: 'reset', label: 'Chain starts over' },
-              { value: 'keep', label: 'Ignore it' },
+              { value: 'reset', label: t('Chain starts over') },
+              { value: 'keep', label: t('Ignore it') },
             ]}
             onChange={(next) => set({ wordchain: { ...words, resetOnMistake: next === 'reset' } })}
           />
         </Field>
       </Fields>
       <div className="mx-preview">
-        <Chat name="Lena" color="#3A9EEA" text="magnet" />
-        <Chat name="Tom" color="#B48CF2" text="tangent" />
-        <Chat name="Ada" color="#F26B3A" text="tiger" />
+        <Chat name="Lena" color="#3A9EEA" text={t('magnet')} />
+        <Chat name="Tom" color="#B48CF2" text={t('tangent')} />
+        <Chat name="Ada" color="#F26B3A" text={t('tiger')} />
       </div>
-      {state ? <ResetChannel game="wordchain" label="Reset chain" /> : null}
+      {state ? <ResetChannel game="wordchain" label={t('Reset chain')} /> : null}
     </PanelBody>
   );
 }
 
 function HiloEditor({ prefix }: { prefix: string }) {
+  const t = useT();
   const { value, set } = useDraft<GamesConfig>();
   const hilo = value.higherLower;
   return (
     <PanelBody>
       <Fields>
-        <Field label="Highest number">
+        <Field label={t('Highest number')}>
           <OptionalNumber
             integer
-            label="Highest number"
+            label={t('Highest number')}
             value={hilo.max}
             placeholder="100"
             min={10}
@@ -657,10 +680,10 @@ function HiloEditor({ prefix }: { prefix: string }) {
             }
           />
         </Field>
-        <Field label="House edge (%)">
+        <Field label={t('House edge (%)')}>
           <OptionalNumber
             integer
-            label="House edge (%)"
+            label={t('House edge (%)')}
             value={Math.round(hilo.edge * 100)}
             placeholder="0"
             onChange={(next) =>
@@ -668,10 +691,10 @@ function HiloEditor({ prefix }: { prefix: string }) {
             }
           />
         </Field>
-        <Field label="Highest multiplier">
+        <Field label={t('Highest multiplier')}>
           <OptionalNumber
             integer
-            label="Highest multiplier"
+            label={t('Highest multiplier')}
             value={hilo.maxMultiplier}
             placeholder="10"
             min={1}
@@ -680,9 +703,9 @@ function HiloEditor({ prefix }: { prefix: string }) {
             }
           />
         </Field>
-        <Field label="Time to answer">
+        <Field label={t('Time to answer')}>
           <SecondsSelect
-            label="Time to answer"
+            label={t('Time to answer')}
             value={hilo.timeoutSeconds}
             min={15}
             max={600}
@@ -691,21 +714,22 @@ function HiloEditor({ prefix }: { prefix: string }) {
         </Field>
       </Fields>
       <p className="mx-sub" style={{ margin: 0 }}>
-        Command: <span className="mx-kbd">{`${prefix}higherlower 50`}</span>
+        {t('Command:')} <span className="mx-kbd">{`${prefix}higherlower 50`}</span>
       </p>
     </PanelBody>
   );
 }
 
 function CoinflipEditor({ prefix }: { prefix: string }) {
+  const t = useT();
   const { value, set } = useDraft<GamesConfig>();
   const coinflip = value.coinflip;
   return (
     <PanelBody>
       <Fields>
-        <Field label="Challenges expire after">
+        <Field label={t('Challenges expire after')}>
           <SecondsSelect
-            label="Challenges expire after"
+            label={t('Challenges expire after')}
             value={coinflip.expirySeconds}
             min={15}
             max={600}
@@ -714,7 +738,7 @@ function CoinflipEditor({ prefix }: { prefix: string }) {
         </Field>
       </Fields>
       <p className="mx-sub" style={{ margin: 0 }}>
-        Command: <span className="mx-kbd">{`${prefix}coinflip @member 100`}</span>
+        {t('Command:')} <span className="mx-kbd">{`${prefix}coinflip @member 100`}</span>
       </p>
     </PanelBody>
   );
@@ -727,13 +751,14 @@ function BoardSelect({
   value: 'all' | GameKey;
   onChange: (next: 'all' | GameKey) => void;
 }) {
+  const t = useT();
   return (
     <Listbox
-      label="Game"
+      label={t('Game')}
       value={value}
       options={[
-        { value: 'all', label: 'All games' },
-        ...list.map((game) => ({ value: game.key, label: gameNames[game.key] })),
+        { value: 'all', label: t('All games') },
+        ...list.map((game) => ({ value: game.key, label: t(gameNames[game.key]) })),
       ]}
       onChange={(next) => onChange(next as 'all' | GameKey)}
     />
@@ -741,35 +766,38 @@ function BoardSelect({
 }
 
 function BoardPanel({ board }: { board: Record<string, BoardRow[]> }) {
+  const t = useT();
   const [tab, setTab] = useState<'all' | GameKey>('all');
   const rows = board[tab] ?? [];
   const detail = (row: BoardRow) => {
-    if (tab === 'all') return `${gameNames[row.game]}, ${amount(row.best)} wins`;
-    if (tab === 'higherlower') return `${amount(row.plays)} played`;
-    if (tab === 'counting') return `Highest ${amount(row.best)}`;
-    if (tab === 'wordchain') return `Longest chain ${amount(row.best)}`;
-    return `${amount(row.plays)} played`;
+    if (tab === 'all') {
+      return `${t(gameNames[row.game])}, ${t.plural(row.best, '{n} win', '{n} wins')}`;
+    }
+    if (tab === 'higherlower') return t('{count} played', { count: row.plays });
+    if (tab === 'counting') return t('Highest {count}', { count: row.best });
+    if (tab === 'wordchain') return t('Longest chain {count}', { count: row.best });
+    return t('{count} played', { count: row.plays });
   };
   const score = (row: BoardRow) => {
-    if (tab === 'higherlower') return `${amount(row.best)} streak`;
-    if (tab === 'counting') return `${amount(row.wins)} numbers`;
-    if (tab === 'wordchain') return `${amount(row.wins)} words`;
-    return row.wins === 1 ? '1 win' : `${amount(row.wins)} wins`;
+    if (tab === 'higherlower') return t('{count} streak', { count: row.best });
+    if (tab === 'counting') return t.plural(row.wins, '{n} number', '{n} numbers');
+    if (tab === 'wordchain') return t.plural(row.wins, '{n} word', '{n} words');
+    return t.plural(row.wins, '{n} win', '{n} wins');
   };
 
   const played = Object.values(board).some((entries) => entries.length > 0);
 
   if (!played) {
     return (
-      <Panel title="Top players" span={6} id="board">
-        <Empty mood="sleeping">Nobody has played yet.</Empty>
+      <Panel title={t('Top players')} span={6} id="board">
+        <Empty mood="sleeping">{t('Nobody has played yet.')}</Empty>
       </Panel>
     );
   }
 
   return (
     <Panel
-      title="Top players"
+      title={t('Top players')}
       span={6}
       id="board"
       actions={
@@ -778,7 +806,7 @@ function BoardPanel({ board }: { board: Record<string, BoardRow[]> }) {
         </div>
       }
     >
-      {rows.length === 0 ? <Empty>Nobody here yet.</Empty> : null}
+      {rows.length === 0 ? <Empty>{t('Nobody here yet.')}</Empty> : null}
       {rows.map((row, i) => (
         <div key={row.userId} className="mx-row">
           <span className="mx-mono mx-muted" style={{ width: 22 }}>
@@ -804,40 +832,41 @@ function MoneyPanel({
   money: { rewards: number; staked: number; house: number };
 }) {
   const { guildId } = useGuild();
+  const t = useT();
   const { value, set } = useDraft<GamesConfig>();
   const stakes = value.stakes;
   const symbol = economy.symbol;
 
   return (
     <Panel
-      title={`${economy.name} in games`}
+      title={t('{currency} in games', { currency: economy.name })}
       span={6}
       id="money"
       actions={
         <>
-          {economy.on ? null : <span className="mx-sub">Economy is off</span>}
+          {economy.on ? null : <span className="mx-sub">{t('Economy is off')}</span>}
           <a className="mx-btn mx-btn-ghost" href={`/g/${guildId}/economy`}>
-            Economy
+            {t('Economy')}
           </a>
         </>
       }
     >
       <PanelBody>
         <Fields>
-          <Field label={`Lowest stake (${symbol})`}>
+          <Field label={t('Lowest stake ({symbol})', { symbol })}>
             <OptionalNumber
               integer
-              label="Lowest stake"
+              label={t('Lowest stake')}
               value={stakes.min}
               placeholder="10"
               min={1}
               onChange={(next) => set({ stakes: { ...stakes, min: next ?? 1 } })}
             />
           </Field>
-          <Field label={`Highest stake (${symbol})`}>
+          <Field label={t('Highest stake ({symbol})', { symbol })}>
             <OptionalNumber
               integer
-              label="Highest stake"
+              label={t('Highest stake')}
               value={stakes.max}
               placeholder="5000"
               min={1}
@@ -845,17 +874,17 @@ function MoneyPanel({
             />
           </Field>
           <div className="mx-field">
-            <span className="mx-label">Reward per win</span>
+            <span className="mx-label">{t('Reward per win')}</span>
             <span style={{ minHeight: 36, display: 'flex', alignItems: 'center' }}>
-              {economy.perWin > 0 ? `${amount(economy.perWin)} ${symbol}` : 'Off'}
+              {economy.perWin > 0 ? `${t.count(economy.perWin)} ${symbol}` : t('Off')}
             </span>
           </div>
         </Fields>
         {money.rewards > 0 || money.staked > 0 || money.house > 0 ? (
           <Tiles>
-            <Tile label="Rewards, 30 days" value={`${amount(money.rewards)} ${symbol}`} />
-            <Tile label="Staked" value={`${amount(money.staked)} ${symbol}`} />
-            <Tile label="House kept" value={`${amount(money.house)} ${symbol}`} />
+            <Tile label={t('Rewards, 30 days')} value={`${t.count(money.rewards)} ${symbol}`} />
+            <Tile label={t('Staked')} value={`${t.count(money.staked)} ${symbol}`} />
+            <Tile label={t('House kept')} value={`${t.count(money.house)} ${symbol}`} />
           </Tiles>
         ) : null}
       </PanelBody>
@@ -876,6 +905,7 @@ export function GamesForm({
   economy: EconomyView;
   money: { rewards: number; staked: number; house: number };
 }) {
+  const t = useT();
   const { value, set } = useDraft<GamesConfig>();
   const channelName = useChannelName();
   const [selected, setSelected] = useState<GameKey>('trivia');
@@ -883,18 +913,20 @@ export function GamesForm({
   const enabled = (key: ConfigKey) => value[key].enabled;
   const commandWhere =
     value.channelIds.length === 0
-      ? 'Every channel'
+      ? t('Every channel')
       : value.channelIds.map((id) => channelName(id)).join(', ');
   const where = (key: GameKey): string => {
     switch (key) {
       case 'trivia':
         return commandWhere;
       case 'counting':
-        return value.counting.channelId ? channelName(value.counting.channelId) : 'No channel yet';
+        return value.counting.channelId
+          ? channelName(value.counting.channelId)
+          : t('No channel yet');
       case 'wordchain':
         return value.wordchain.channelId
           ? channelName(value.wordchain.channelId)
-          : 'No channel yet';
+          : t('No channel yet');
       case 'higherlower':
         return `${prefix}higherlower <stake>`;
       case 'coinflip':
@@ -910,10 +942,10 @@ export function GamesForm({
   return (
     <Grid>
       <Panel
-        title="Games"
+        title={t('Games')}
         span={4}
         id="games"
-        actions={<span className="mx-sub">{`${active} on`}</span>}
+        actions={<span className="mx-sub">{t('{count} on', { count: active })}</span>}
       >
         {list.map((game) => (
           <div key={game.key} className="mx-row">
@@ -923,11 +955,15 @@ export function GamesForm({
               aria-pressed={game.key === selected}
               onClick={() => setSelected(game.key)}
             >
-              <span className="mx-row-title">{game.name}</span>
+              <span className="mx-row-title">{t(game.name)}</span>
               <span className="mx-sub mx-ellipsis">{where(game.key)}</span>
             </button>
             <Switch
-              label={`${game.name} ${enabled(game.config) ? 'on' : 'off'}`}
+              label={
+                enabled(game.config)
+                  ? t('{name} on', { name: t(game.name) })
+                  : t('{name} off', { name: t(game.name) })
+              }
               checked={enabled(game.config)}
               onChange={(on) =>
                 set({
@@ -940,9 +976,9 @@ export function GamesForm({
         <div className="mx-panel-body" style={{ borderTop: '1px solid var(--mx-line)' }}>
           <div className="mx-field">
             <span className="mx-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Command channels</span>
+              <span>{t('Command channels')}</span>
               {value.channelIds.length === 0 ? (
-                <span className="mx-muted">Every channel</span>
+                <span className="mx-muted">{t('Every channel')}</span>
               ) : null}
             </span>
             <ChannelMulti value={value.channelIds} onChange={(channelIds) => set({ channelIds })} />
@@ -951,12 +987,12 @@ export function GamesForm({
       </Panel>
 
       <Panel
-        title={current?.name ?? 'Trivia'}
+        title={current ? t(current.name) : t('Trivia')}
         span={8}
         id="editor"
         actions={
           <span className="mx-sub">
-            {current && enabled(current.config) ? where(current.key) : 'Off'}
+            {current && enabled(current.config) ? where(current.key) : t('Off')}
           </span>
         }
       >

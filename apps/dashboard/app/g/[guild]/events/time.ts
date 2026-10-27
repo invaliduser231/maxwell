@@ -6,6 +6,7 @@ import {
   toLocal,
   weekdayOf,
 } from '@maxwell/core/stores/scheduler';
+import type { Key } from '@/lib/i18n';
 
 const order = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 
@@ -37,23 +38,23 @@ export function weekBounds(monday: LocalDate, timezone: string): { from: number;
   };
 }
 
-export function dayHeading(date: LocalDate): string {
-  return new Intl.DateTimeFormat('en-GB', {
+export function dayHeading(locale: string, date: LocalDate): string {
+  return new Intl.DateTimeFormat(locale, {
     weekday: 'short',
     day: 'numeric',
     timeZone: 'UTC',
   }).format(new Date(Date.UTC(date.year, date.month - 1, date.day)));
 }
 
-export function weekHeading(monday: LocalDate): string {
-  return new Intl.DateTimeFormat('en-GB', {
+export function weekHeading(locale: string, monday: LocalDate): string {
+  return new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'long',
     timeZone: 'UTC',
   }).format(new Date(Date.UTC(monday.year, monday.month - 1, monday.day)));
 }
 
-export const recurrenceLabels: Record<Recurrence, string> = {
+export const recurrenceLabels: Record<Recurrence, Key> = {
   none: 'Once',
   daily: 'Daily',
   weekly: 'Weekly',

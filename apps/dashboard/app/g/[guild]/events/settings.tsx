@@ -10,13 +10,15 @@ import {
   ToggleRow,
 } from '@/components/controls';
 import { useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { useDraft } from '@/components/module-shell';
 import { Field, Fields, Grid, Panel, PanelBody } from '@/components/ui';
+import type { Key } from '@/lib/i18n';
 import { minutesLabel } from '@/lib/time';
 
 const lengths = [30, 60, 90, 120, 180, 240, 1440];
 
-const reminders = [
+const reminders: { value: string; label: Key }[] = [
   { value: '0', label: 'Off' },
   { value: '15', label: '15 minutes before' },
   { value: '30', label: '30 minutes before' },
@@ -25,7 +27,7 @@ const reminders = [
   { value: '1440', label: '1 day before' },
 ];
 
-const pollLengths = [
+const pollLengths: { value: string; label: Key }[] = [
   { value: '60', label: '1 hour' },
   { value: '1440', label: '24 hours' },
   { value: '4320', label: '3 days' },
@@ -45,79 +47,86 @@ function withCurrent(
 }
 
 export function SettingsTab() {
+  const t = useT();
   const { value, set } = useDraft<EventsConfig>();
   const { timezone } = useGuild();
   const length = String(value.defaultDurationMinutes);
   const reminder = String(value.reminderMinutes);
   const pollLength = String(value.pollDurationMinutes);
+  const translate = (list: { value: string; label: Key }[]) =>
+    list.map((entry) => ({ ...entry, label: t(entry.label) }));
 
   return (
     <Grid>
-      <Panel title="Events" span={6} id="events-settings">
+      <Panel title={t('Events')} span={6} id="events-settings">
         <PanelBody>
           <Fields>
-            <Field label="Announce in">
+            <Field label={t('Announce in')}>
               <ChannelSelect
                 value={value.channelId}
-                none="Pick a channel"
+                none={t('Pick a channel')}
                 onChange={(channelId) => set({ channelId })}
               />
             </Field>
-            <Field label="Timezone">
+            <Field label={t('Timezone')}>
               <TimezoneSelect
                 value={value.timezone}
-                none={`Same as General (${timezone.replaceAll('_', ' ')})`}
-                onChange={(next) => set({ timezone: next })}
+                none={t('Same as General ({zone})', { zone: timezone.replaceAll('_', ' ') })}
+                onChange={(next: string | null) => set({ timezone: next })}
               />
             </Field>
-            <Field label="Default length">
+            <Field label={t('Default length')}>
               <Select
                 value={length}
                 options={withCurrent(
                   lengths.map((minutes) => ({
                     value: String(minutes),
-                    label: minutesLabel(minutes),
+                    label: minutesLabel(t, minutes),
                   })),
                   length,
-                  minutesLabel(value.defaultDurationMinutes),
+                  minutesLabel(t, value.defaultDurationMinutes),
                 )}
                 onChange={(next) => set({ defaultDurationMinutes: Number(next) })}
               />
             </Field>
-            <Field label="Reminder DM">
+            <Field label={t('Reminder DM')}>
               <Select
                 value={reminder}
-                options={withCurrent(reminders, reminder, `${reminder} minutes before`)}
+                options={withCurrent(
+                  translate(reminders),
+                  reminder,
+                  t('{count} minutes before', { count: value.reminderMinutes }),
+                )}
                 onChange={(next) => set({ reminderMinutes: Number(next) })}
               />
             </Field>
           </Fields>
           <div className="mx-field">
-            <span className="mx-label">RSVP reactions</span>
+            <span className="mx-label">{t('RSVP reactions')}</span>
             <div
               style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}
             >
               <TextInput
-                label="Going reaction"
+                label={t('Going reaction')}
                 value={value.rsvp.going}
                 maxLength={80}
                 onChange={(going) => set({ rsvp: { ...value.rsvp, going } })}
               />
               <TextInput
-                label="Maybe reaction"
+                label={t('Maybe reaction')}
                 value={value.rsvp.maybe}
                 maxLength={80}
                 onChange={(maybe) => set({ rsvp: { ...value.rsvp, maybe } })}
               />
               <TextInput
-                label="Can't reaction"
+                label={t("Can't reaction")}
                 value={value.rsvp.no}
                 maxLength={80}
                 onChange={(no) => set({ rsvp: { ...value.rsvp, no } })}
               />
             </div>
           </div>
-          <Field label="Reward for everyone going">
+          <Field label={t('Reward for everyone going')}>
             <NumberInput
               value={value.rewardAmount}
               min={0}
@@ -129,32 +138,36 @@ export function SettingsTab() {
           </Field>
         </PanelBody>
       </Panel>
-      <Panel title="Polls" span={6} id="polls-settings">
+      <Panel title={t('Polls')} span={6} id="polls-settings">
         <PanelBody>
           <Fields>
-            <Field label="Post polls in">
+            <Field label={t('Post polls in')}>
               <ChannelSelect
                 value={value.pollChannelId}
-                none="Same as events"
+                none={t('Same as events')}
                 onChange={(pollChannelId) => set({ pollChannelId })}
               />
             </Field>
-            <Field label="Default length">
+            <Field label={t('Default length')}>
               <Select
                 value={pollLength}
-                options={withCurrent(pollLengths, pollLength, `${pollLength} minutes`)}
+                options={withCurrent(
+                  translate(pollLengths),
+                  pollLength,
+                  t('{count} minutes', { count: value.pollDurationMinutes }),
+                )}
                 onChange={(next) => set({ pollDurationMinutes: Number(next) })}
               />
             </Field>
           </Fields>
           <ToggleRow
-            title="Result image when a poll ends"
+            title={t('Result image when a poll ends')}
             checked={value.pollResultImage}
             onChange={(pollResultImage) => set({ pollResultImage })}
           />
           <ToggleRow
-            title="Vote receipts by DM"
-            sub="For anonymous polls"
+            title={t('Vote receipts by DM')}
+            sub={t('For anonymous polls')}
             checked={value.voteReceipts}
             onChange={(voteReceipts) => set({ voteReceipts })}
           />

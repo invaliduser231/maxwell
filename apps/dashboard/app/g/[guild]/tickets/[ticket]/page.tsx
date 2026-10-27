@@ -1,16 +1,16 @@
 import { ticketsConfig } from '@maxwell/core/modules/tickets';
 import { TicketStore, TRANSCRIPT_LIMIT } from '@maxwell/core/stores/tickets';
-import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/module-shell';
 import { levelOf, requirePage } from '@/lib/access';
 import { db } from '@/lib/db';
+import { getT, titled } from '@/lib/i18n/server';
 import { namesOf } from '@/lib/people';
 import { padNumber } from '../format';
 import { messageViews, textIds, ticketView } from '../load';
 import { TranscriptView } from './transcript';
 
-export const metadata: Metadata = { title: 'Transcript' };
+export const generateMetadata = titled('Transcript');
 
 export default async function TranscriptPage({
   params,
@@ -23,9 +23,10 @@ export default async function TranscriptPage({
   const store = new TicketStore(db().sql);
   const ticket = await store.getInGuild(guild, ticketId);
   if (!ticket) notFound();
-  const [rows, config] = await Promise.all([
+  const [rows, config, t] = await Promise.all([
     store.messages(ticket.id, { limit: TRANSCRIPT_LIMIT }),
     db().modules.get(guild, 'tickets', ticketsConfig),
+    getT(),
   ]);
   const messages = messageViews(ticket, rows, config.modmail.internalMarker);
   const names = await namesOf(
@@ -39,7 +40,11 @@ export default async function TranscriptPage({
 
   return (
     <>
-      <PageHeader title={`Ticket #${padNumber(ticket.number)}`} page="tickets" pole="north" />
+      <PageHeader
+        title={t('Ticket #{number}', { number: padNumber(ticket.number) })}
+        page="tickets"
+        pole="north"
+      />
       <TranscriptView
         ticket={ticketView(ticket)}
         messages={messages}

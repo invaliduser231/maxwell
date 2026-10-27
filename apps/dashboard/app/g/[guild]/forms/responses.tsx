@@ -4,10 +4,12 @@ import type { FormsConfig } from '@maxwell/core/modules/forms';
 import { useState, useTransition } from 'react';
 import { Seg } from '@/components/controls';
 import { useGuild, useRoleName } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { useDraft, useReadOnly } from '@/components/module-shell';
 import { type Status, StatusText } from '@/components/status-text';
 import { Avatar, Empty, Panel } from '@/components/ui';
 import { usePoll } from '@/components/use-poll';
+import type { Key, Translator } from '@/lib/i18n';
 import type { Names } from '@/lib/people';
 import { dayTime } from '@/lib/time';
 import { decide, fetchSubmissions } from './actions';
@@ -15,12 +17,18 @@ import type { SubmissionView } from './load';
 
 export type Show = 'waiting' | 'decided';
 
-const shows = [
-  { value: 'waiting', label: 'Waiting' },
-  { value: 'decided', label: 'Decided' },
-] as const;
+function shows(t: Translator): { value: Show; label: string }[] {
+  return [
+    { value: 'waiting', label: t('Waiting') },
+    { value: 'decided', label: t('Decided') },
+  ];
+}
 
-const statusLabel = { pending: 'Waiting', accepted: 'Approved', declined: 'Declined' } as const;
+const statusLabel: Record<SubmissionView['status'], Key> = {
+  pending: 'Waiting',
+  accepted: 'Approved',
+  declined: 'Declined',
+};
 const statusColor = { pending: '#F2C14E', accepted: '#2EB67D', declined: '#EC5B78' } as const;
 
 export function tally(item: SubmissionView) {
@@ -54,14 +62,15 @@ export function ResponseList({
   onMore: () => void;
 }) {
   const { timezone } = useGuild();
+  const t = useT();
   return (
     <Panel
-      title="Responses"
+      title={t('Responses')}
       id="f-responses"
-      actions={<Seg label="Filter" value={show} options={shows} onChange={onShow} view />}
+      actions={<Seg label={t('Filter')} value={show} options={shows(t)} onChange={onShow} view />}
     >
       {items.length === 0 ? (
-        <Empty>{show === 'waiting' ? 'Nothing waiting.' : 'Nothing decided yet.'}</Empty>
+        <Empty>{show === 'waiting' ? t('Nothing waiting.') : t('Nothing decided yet.')}</Empty>
       ) : (
         items.map((item) => {
           const person = names[item.userId];
@@ -75,19 +84,21 @@ export function ResponseList({
                 aria-pressed={item.id === selected}
                 onClick={() => onSelect(item.id)}
               >
-                <span className="mx-row-title mx-ellipsis">{person?.name ?? 'Former member'}</span>
+                <span className="mx-row-title mx-ellipsis">
+                  {person?.name ?? t('Former member')}
+                </span>
                 <span className="mx-sub">
                   <span className="mx-mono">#{item.number}</span>,{' '}
-                  {dayTime(item.createdAt, now, timezone)}
+                  {dayTime(t, item.createdAt, now, timezone)}
                 </span>
               </button>
               <span className="mx-sub">
                 <span className="mx-up">{count.yes}</span> /{' '}
                 <span className="mx-down">{count.no}</span>
-                <span className="mx-sr"> votes for and against</span>
+                <span className="mx-sr"> {t('votes for and against')}</span>
               </span>
               <span className="mx-chip" style={{ color: statusColor[item.status] }}>
-                {statusLabel[item.status]}
+                {t(statusLabel[item.status])}
               </span>
             </div>
           );
@@ -96,7 +107,7 @@ export function ResponseList({
       {more ? (
         <div className="mx-row" style={{ justifyContent: 'center' }}>
           <button type="button" className="mx-btn" disabled={loading} onClick={onMore}>
-            {loading ? 'Loading' : 'Show more'}
+            {loading ? t('Loading') : t('Show more')}
           </button>
         </div>
       ) : null}
@@ -116,6 +127,7 @@ export function ResponseDetail({
   onDecided: () => void;
 }) {
   const { guildId, timezone } = useGuild();
+  const t = useT();
   const { value } = useDraft<FormsConfig>();
   const readOnly = useReadOnly();
   const roleName = useRoleName();
@@ -127,12 +139,13 @@ export function ResponseDetail({
   const form = value.forms.find((entry) => entry.id === item.formId);
   const person = names[item.userId];
   const needed = form?.votesToAccept ?? 0;
+  const formerMember = t('Former member');
   const sub =
     item.present === false
-      ? 'Left the server'
+      ? t('Left the server')
       : item.level !== null
-        ? `Level ${item.level}`
-        : dayTime(item.createdAt, now, timezone);
+        ? t('Level {level}', { level: item.level })
+        : dayTime(t, item.createdAt, now, timezone);
 
   const run = (decision: 'accept' | 'decline') =>
     start(async () => {
@@ -141,7 +154,10 @@ export function ResponseDetail({
         setStatus({ message: result.error, error: true });
         return;
       }
-      setStatus({ message: decision === 'accept' ? 'Approving.' : 'Declining.', error: false });
+      setStatus({
+        message: decision === 'accept' ? t('Approving.') : t('Declining.'),
+        error: false,
+      });
       setNote('');
       later(
         async () => {
@@ -165,14 +181,14 @@ export function ResponseDetail({
     <Panel
       title={
         <>
-          <span className="mx-mono mx-muted">#{item.number}</span> {person?.name ?? 'Former member'}
+          <span className="mx-mono mx-muted">#{item.number}</span> {person?.name ?? formerMember}
         </>
       }
       id="f-answer"
       actions={<span className="mx-sub">{sub}</span>}
     >
       <div className="mx-panel-body">
-        {item.answers.length === 0 ? <span className="mx-sub">No answers</span> : null}
+        {item.answers.length === 0 ? <span className="mx-sub">{t('No answers')}</span> : null}
         {item.answers.map((answer) => (
           <div className="mx-field" key={answer.questionId}>
             <span className="mx-label">{answer.label}</span>
@@ -183,33 +199,37 @@ export function ResponseDetail({
         ))}
       </div>
       <div className="mx-panel-head" style={{ borderTop: '1px solid var(--mx-line)' }}>
-        <h3>Team vote</h3>
+        <h3>{t('Team vote')}</h3>
         {needed > 0 ? (
           <span className="mx-sub">
-            {needed === 1 ? '1 approval needed' : `${needed} approvals needed`}
+            {t.plural(needed, '{n} approval needed', '{n} approvals needed')}
           </span>
         ) : null}
       </div>
       <div className="mx-panel-body">
         {item.votes.length > 0 ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {item.votes.map((vote) => (
-              <span className="mx-chip" key={vote.userId}>
-                {names[vote.userId]?.name ?? 'Former member'}{' '}
-                {vote.vote === 'accept' ? 'approved' : 'declined'}
-              </span>
-            ))}
+            {item.votes.map((vote) => {
+              const name = names[vote.userId]?.name ?? formerMember;
+              return (
+                <span className="mx-chip" key={vote.userId}>
+                  {vote.vote === 'accept'
+                    ? t('{name} approved', { name })
+                    : t('{name} declined', { name })}
+                </span>
+              );
+            })}
           </div>
         ) : (
-          <span className="mx-sub">No votes yet</span>
+          <span className="mx-sub">{t('No votes yet')}</span>
         )}
         {item.status === 'pending' ? (
           readOnly ? null : (
             <>
               <input
                 className="mx-input"
-                aria-label="Note"
-                placeholder="Note"
+                aria-label={t('Note')}
+                placeholder={t('Note')}
                 maxLength={500}
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
@@ -221,7 +241,7 @@ export function ResponseDetail({
                   disabled={pending}
                   onClick={() => run('decline')}
                 >
-                  Decline
+                  {t('Decline')}
                 </button>
                 <button
                   type="button"
@@ -229,7 +249,7 @@ export function ResponseDetail({
                   disabled={pending}
                   onClick={() => run('accept')}
                 >
-                  Approve
+                  {t('Approve')}
                 </button>
                 <StatusText status={status} />
               </div>
@@ -238,22 +258,26 @@ export function ResponseDetail({
         ) : (
           <>
             <span style={{ color: statusColor[item.status] }}>
-              {statusLabel[item.status]}
               {item.decidedBy
-                ? ` by ${names[item.decidedBy]?.name ?? 'Former member'}`
-                : ' by votes'}
+                ? t('{status} by {name}', {
+                    status: t(statusLabel[item.status]),
+                    name: names[item.decidedBy]?.name ?? formerMember,
+                  })
+                : t('{status} by votes', { status: t(statusLabel[item.status]) })}
             </span>
             {item.decidedAt ? (
-              <span className="mx-sub">{dayTime(item.decidedAt, now, timezone)}</span>
+              <span className="mx-sub">{dayTime(t, item.decidedAt, now, timezone)}</span>
             ) : null}
             {item.note ? <span className="mx-sub">{item.note}</span> : null}
             {item.applied ? (
               <span className="mx-sub">
                 {[
-                  ...item.applied.addedRoleIds.map((id) => `Got ${roleName(id)}`),
-                  ...item.applied.removedRoleIds.map((id) => `Lost ${roleName(id)}`),
-                  item.applied.ticketId ? 'Ticket opened' : null,
-                  item.applied.dmSent ? 'DM sent' : 'DM not delivered',
+                  ...item.applied.addedRoleIds.map((id) => t('Got {role}', { role: roleName(id) })),
+                  ...item.applied.removedRoleIds.map((id) =>
+                    t('Lost {role}', { role: roleName(id) }),
+                  ),
+                  item.applied.ticketId ? t('Ticket opened') : null,
+                  item.applied.dmSent ? t('DM sent') : t('DM not delivered'),
                 ]
                   .filter(Boolean)
                   .join(', ')}
@@ -281,17 +305,20 @@ export function ResponsesEmpty({
   loading: boolean;
   onMore: () => void;
 }) {
+  const t = useT();
   const text = !any
-    ? 'No responses yet.'
+    ? t('No responses yet.')
     : show === 'waiting'
-      ? 'Nothing waiting.'
-      : 'Nothing decided yet.';
+      ? t('Nothing waiting.')
+      : t('Nothing decided yet.');
   return (
     <Panel
-      title="Responses"
+      title={t('Responses')}
       id="f-responses"
       actions={
-        any ? <Seg label="Filter" value={show} options={shows} onChange={onShow} view /> : null
+        any ? (
+          <Seg label={t('Filter')} value={show} options={shows(t)} onChange={onShow} view />
+        ) : null
       }
     >
       <Empty
@@ -299,7 +326,7 @@ export function ResponsesEmpty({
         action={
           more ? (
             <button type="button" className="mx-btn" disabled={loading} onClick={onMore}>
-              {loading ? 'Loading' : 'Show more'}
+              {loading ? t('Loading') : t('Show more')}
             </button>
           ) : null
         }

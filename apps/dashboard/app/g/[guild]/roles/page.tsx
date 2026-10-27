@@ -1,14 +1,14 @@
 import { rolesConfig } from '@maxwell/core/modules/roles';
 import { RolesStore } from '@maxwell/core/stores/roles';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
 import { db } from '@/lib/db';
+import { getT, titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { people, personOf } from '@/lib/people';
 import { ago } from '@/lib/time';
 import { type Kept, type Posted, RolesForm } from './roles-form';
 
-export const metadata: Metadata = { title: 'Roles' };
+export const generateMetadata = titled('Roles');
 
 export default async function RolesPage({ params }: { params: Promise<{ guild: string }> }) {
   const { guild } = await params;
@@ -16,10 +16,11 @@ export default async function RolesPage({ params }: { params: Promise<{ guild: s
   const store = new RolesStore(db().sql);
   const timeRoleIds = [...new Set(loaded.config.timeRoles.map((step) => step.roleId))];
 
-  const [messages, counts, sticky] = await Promise.all([
+  const [messages, counts, sticky, t] = await Promise.all([
     store.menuMessages(guild),
     Promise.all(timeRoleIds.map((roleId) => store.timeGrantedCount(guild, roleId))),
     store.stickyMembers(guild, 8),
+    getT(),
   ]);
 
   const profiles = await people(sticky.map((member) => member.userId));
@@ -35,7 +36,7 @@ export default async function RolesPage({ params }: { params: Promise<{ guild: s
     name: personOf(profiles, member.userId).name,
     avatarUrl: personOf(profiles, member.userId).avatar,
     roleIds: member.stickyRoleIds.map(String),
-    left: member.leftAt ? ago(member.leftAt, now) : '',
+    left: member.leftAt ? ago(t, member.leftAt, now) : '',
   }));
 
   return (

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-
+import { useT } from '@/components/i18n';
 import type { CommunityEntry as Community } from '@/lib/communities';
 
 export type { Community };
@@ -25,6 +25,7 @@ function initials(name: string): string {
 }
 
 export function CommunityList({ communities }: { communities: Community[] }) {
+  const t = useT();
   const [filter, setFilter] = useState<(typeof filters)[number]['key']>('all');
   const [query, setQuery] = useState('');
   const needle = query.trim().toLowerCase();
@@ -35,9 +36,9 @@ export function CommunityList({ communities }: { communities: Community[] }) {
   return (
     <>
       <div className="mx-between">
-        <h1 className="mx-h1">Choose a community</h1>
+        <h1 className="mx-h1">{t('Choose a community')}</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div className="mx-seg" role="group" aria-label="Show">
+          <div className="mx-seg" role="group" aria-label={t('Show')}>
             {filters.map((entry) => (
               <button
                 key={entry.key}
@@ -45,15 +46,15 @@ export function CommunityList({ communities }: { communities: Community[] }) {
                 aria-pressed={filter === entry.key}
                 onClick={() => setFilter(entry.key)}
               >
-                {entry.name}
+                {t(entry.name)}
               </button>
             ))}
           </div>
           <input
             className="mx-input"
             type="search"
-            aria-label="Search communities"
-            placeholder="Search"
+            aria-label={t('Search communities')}
+            placeholder={t('Search')}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             style={{ width: 200 }}
@@ -110,7 +111,9 @@ export function CommunityList({ communities }: { communities: Community[] }) {
               <div className="mx-row-main">
                 <span className="mx-row-title mx-ellipsis">{entry.name}</span>
                 {entry.members !== null ? (
-                  <span className="mx-sub">{entry.members.toLocaleString('en')} members</span>
+                  <span className="mx-sub">
+                    {t.plural(entry.members, '{n} member', '{n} members')}
+                  </span>
                 ) : null}
               </div>
             </div>
@@ -120,12 +123,12 @@ export function CommunityList({ communities }: { communities: Community[] }) {
                 href={`/g/${entry.id}`}
                 style={{ justifyContent: 'center' }}
               >
-                Open dashboard
+                {t('Open dashboard')}
               </Link>
             ) : null}
             {entry.status === 'out' && entry.invite ? (
               <a className="mx-btn" href={entry.invite} style={{ justifyContent: 'center' }}>
-                Invite Maxwell
+                {t('Invite Maxwell')}
               </a>
             ) : null}
           </div>
@@ -133,7 +136,9 @@ export function CommunityList({ communities }: { communities: Community[] }) {
       </div>
       {list.length === 0 ? (
         <div className="mx-panel mx-empty">
-          {needle ? `No community called "${query.trim()}".` : 'No communities here.'}
+          {needle
+            ? t('No community called "{name}".', { name: query.trim() })
+            : t('No communities here.')}
         </div>
       ) : null}
     </>

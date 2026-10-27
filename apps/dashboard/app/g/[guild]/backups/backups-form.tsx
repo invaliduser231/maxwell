@@ -4,13 +4,15 @@ import type { BackupsConfig } from '@maxwell/core/modules/backups';
 import { useState, useTransition } from 'react';
 import { Checkbox, Select, ToggleRow } from '@/components/controls';
 import { useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { useDraft } from '@/components/module-shell';
 import { type Status, StatusText } from '@/components/status-text';
 import { TwoStep } from '@/components/two-step';
 import { Empty, Field, Grid, Panel, PanelBody } from '@/components/ui';
 import { usePoll } from '@/components/use-poll';
 import { runAction } from '@/lib/actions';
-import { bytes, clock, dayName, dayTime, plural, span } from '@/lib/time';
+import type { Key, Translator } from '@/lib/i18n';
+import { bytes, clock, dayName, dayTime, since } from '@/lib/time';
 import {
   applyTemplate,
   compareSnapshots,
@@ -36,15 +38,20 @@ function withCurrent(values: number[], current: number): number[] {
   return values.includes(current) ? values : [...values, current].sort((a, b) => a - b);
 }
 
-function kindText(snapshot: SnapshotRow): string {
-  if (snapshot.kind === 'daily') return 'Daily';
-  if (snapshot.label) return snapshot.label;
-  return snapshot.by ? `Manual, by ${snapshot.by}` : 'Manual';
+function kindText(t: Translator, snapshot: SnapshotRow): string {
+  if (snapshot.kind === 'daily') return t('Daily');
+  if (snapshot.label) return t.raw(snapshot.label);
+  return snapshot.by ? t('Manual, by {name}', { name: snapshot.by }) : t('Manual');
 }
 
-function counts(snapshot: SnapshotRow): string {
-  const parts = [plural(snapshot.roleCount, 'role'), plural(snapshot.channelCount, 'channel')];
-  if (snapshot.moduleCount > 0) parts.push(plural(snapshot.moduleCount, 'module'));
+function counts(t: Translator, snapshot: SnapshotRow): string {
+  const parts = [
+    t.plural(snapshot.roleCount, '{n} role', '{n} roles'),
+    t.plural(snapshot.channelCount, '{n} channel', '{n} channels'),
+  ];
+  if (snapshot.moduleCount > 0) {
+    parts.push(t.plural(snapshot.moduleCount, '{n} module', '{n} modules'));
+  }
   return parts.join(', ');
 }
 
@@ -82,26 +89,27 @@ function Stats({
   now: string;
 }) {
   const { timezone } = useGuild();
+  const t = useT();
   let next: [string, string];
   if (!enabled || !daily) {
-    next = ['Off', 'No daily snapshots'];
+    next = [t('Off'), t('No daily snapshots')];
   } else if (usage.lastDaily) {
     const at = new Date(
       Math.max(new Date(usage.lastDaily).getTime() + DAILY_GAP, new Date(now).getTime()),
     ).toISOString();
-    next = [clock(at, timezone), dayName(at, now, timezone)];
+    next = [clock(at, timezone), dayName(t, at, now, timezone)];
   } else {
-    next = ['Soon', 'Within the hour'];
+    next = [t('Soon'), t('Within the hour')];
   }
   const stats: [string, string, string][] = [
     [
-      'Last snapshot',
-      `${span(new Date(now).getTime() - new Date(newest.createdAt).getTime())} ago`,
-      dayTime(newest.createdAt, now, timezone),
+      t('Last snapshot'),
+      since(t, new Date(now).getTime() - new Date(newest.createdAt).getTime()),
+      dayTime(t, newest.createdAt, now, timezone),
     ],
-    ['Next', next[0], next[1]],
-    ['Kept', String(usage.count), usage.count === 1 ? 'Snapshot' : 'Snapshots'],
-    ['Size', bytes(usage.bytes), 'All snapshots'],
+    [t('Next'), next[0], next[1]],
+    [t('Kept'), t.count(usage.count), usage.count === 1 ? t('Snapshot') : t('Snapshots')],
+    [t('Size'), bytes(t, usage.bytes), t('All snapshots')],
   ];
   return (
     <div
@@ -118,6 +126,12 @@ function Stats({
     </div>
   );
 }
+
+const TOGGLES: ['snapshotBeforeRestore' | 'includeModules' | 'undoDeletions', Key][] = [
+  ['snapshotBeforeRestore', 'Snapshot before every restore'],
+  ['includeModules', 'Include Maxwell settings'],
+  ['undoDeletions', 'Offer undo for deleted roles and channels'],
+];
 
 function Snapshots({
   snapshots,
@@ -141,6 +155,7 @@ function Snapshots({
   wide: boolean;
 }) {
   const { timezone } = useGuild();
+  const t = useT();
   const { value, set, readOnly } = useDraft<BackupsConfig>();
   const [all, setAll] = useState(false);
   const shown = all ? snapshots : snapshots.slice(0, SHOWN);
@@ -152,16 +167,20 @@ function Snapshots({
       disabled={busy === 'taking'}
       onClick={onSnapshot}
     >
-      {busy === 'taking' ? 'Taking snapshot' : busy === 'saved' ? 'Snapshot saved' : 'Snapshot now'}
+      {busy === 'taking'
+        ? t('Taking snapshot')
+        : busy === 'saved'
+          ? t('Snapshot saved')
+          : t('Snapshot now')}
     </button>
   );
 
   return (
-    <Panel title="Snapshots" id="snaps" span={wide ? 12 : 5} actions={empty ? null : button}>
+    <Panel title={t('Snapshots')} id="snaps" span={wide ? 12 : 5} actions={empty ? null : button}>
       {empty ? (
         <Empty mood="sleeping">
           <div className="mx-stack" style={{ alignItems: 'center' }}>
-            <span>No snapshots yet.</span>
+            <span>{t('No snapshots yet.')}</span>
             {button}
             <StatusText status={status} />
           </div>
@@ -174,7 +193,7 @@ function Snapshots({
       {shown.map((snapshot) => {
         const isOld = snapshot.id === oldId;
         const isNew = snapshot.id === newId;
-        const when = dayTime(snapshot.createdAt, now, timezone);
+        const when = dayTime(t, snapshot.createdAt, now, timezone);
         return (
           <div
             key={snapshot.id}
@@ -186,14 +205,14 @@ function Snapshots({
             </span>
             <div className="mx-row-main">
               <span className="mx-row-title">{when}</span>
-              <span className="mx-sub">{`${kindText(snapshot)}, ${counts(snapshot)}`}</span>
+              <span className="mx-sub">{`${kindText(t, snapshot)}, ${counts(t, snapshot)}`}</span>
             </div>
-            <div className="mx-seg" role="group" aria-label={`Compare ${when}`}>
+            <div className="mx-seg" role="group" aria-label={t('Compare {when}', { when })}>
               <button type="button" aria-pressed={isOld} onClick={() => pick('old', snapshot.id)}>
-                Old
+                {t('Old')}
               </button>
               <button type="button" aria-pressed={isNew} onClick={() => pick('new', snapshot.id)}>
-                New
+                {t('New')}
               </button>
             </div>
           </div>
@@ -202,7 +221,7 @@ function Snapshots({
       {snapshots.length > SHOWN ? (
         <div className="mx-row">
           <button type="button" className="mx-btn mx-btn-ghost" onClick={() => setAll(!all)}>
-            {all ? 'Show fewer' : `Show ${snapshots.length - SHOWN} more`}
+            {all ? t('Show fewer') : t('Show {count} more', { count: snapshots.length - SHOWN })}
           </button>
         </div>
       ) : null}
@@ -211,49 +230,43 @@ function Snapshots({
           className="mx-fields"
           style={wide ? undefined : { gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}
         >
-          <Field label="Schedule">
+          <Field label={t('Schedule')}>
             <Select
               value={value.daily ? 'daily' : 'off'}
               options={[
-                { value: 'daily', label: 'Daily' },
-                { value: 'off', label: 'Only manual' },
+                { value: 'daily', label: t('Daily') },
+                { value: 'off', label: t('Only manual') },
               ]}
               onChange={(next) => set({ daily: next === 'daily' })}
             />
           </Field>
-          <Field label="Keep daily">
+          <Field label={t('Keep daily')}>
             <Select
               value={String(value.retentionDays)}
               options={withCurrent(KEEP_DAYS, value.retentionDays).map((days) => ({
                 value: String(days),
-                label: `${days} days`,
+                label: t.plural(days, '{n} day', '{n} days'),
               }))}
               onChange={(next) => set({ retentionDays: Number(next) })}
             />
           </Field>
-          <Field label="Keep manual">
+          <Field label={t('Keep manual')}>
             <Select
               value={String(value.maxManual)}
               options={withCurrent(KEEP_MANUAL, value.maxManual).map((count) => ({
                 value: String(count),
-                label: `Last ${count}`,
+                label: t('Last {count}', { count }),
               }))}
               onChange={(next) => set({ maxManual: Number(next) })}
             />
           </Field>
         </div>
         <div className="mx-stack" style={{ gap: 10 }}>
-          {(
-            [
-              ['snapshotBeforeRestore', 'Snapshot before every restore'],
-              ['includeModules', 'Include Maxwell settings'],
-              ['undoDeletions', 'Offer undo for deleted roles and channels'],
-            ] as const
-          ).map(([key, title]) => (
+          {TOGGLES.map(([key, title]) => (
             <ToggleRow
               key={key}
               order
-              title={title}
+              title={t(title)}
               checked={value[key]}
               onChange={(next) => set({ [key]: next } as Partial<BackupsConfig>)}
             />
@@ -276,6 +289,7 @@ function Changes({
   enabled: boolean;
 }) {
   const { guildId } = useGuild();
+  const t = useT();
   const { readOnly } = useDraft<BackupsConfig>();
   const [unchecked, setUnchecked] = useState<Set<string>>(() => new Set());
   const [status, setStatus] = useState<Status>(null);
@@ -295,7 +309,7 @@ function Changes({
   const restore = (all: boolean) => {
     if (!diff) return;
     if (!enabled) {
-      setStatus({ message: 'Turn Backups on first.', error: true });
+      setStatus({ message: t('Turn Backups on first.'), error: true });
       return;
     }
     start(async () => {
@@ -315,7 +329,7 @@ function Changes({
       const result = await restoreSnapshot(guildId, diff.oldId, pick);
       setStatus(
         result.ok
-          ? { message: 'Restoring now. Undo it in the audit trail.', error: false }
+          ? { message: t('Restoring now. Undo it in the audit trail.'), error: false }
           : { message: result.error, error: true },
       );
     });
@@ -329,18 +343,24 @@ function Changes({
       style={{ opacity: loading ? 0.6 : 1 }}
     >
       <div className="mx-panel-head">
-        <h2 id="diff-title">{diff ? `Changes from ${names.old} to ${names.new}` : 'Changes'}</h2>
-        {diff ? <span className="mx-sub">{plural(items.length, 'change')}</span> : null}
+        <h2 id="diff-title">
+          {diff
+            ? t('Changes from {old} to {new}', { old: names.old, new: names.new })
+            : t('Changes')}
+        </h2>
+        {diff ? (
+          <span className="mx-sub">{t.plural(items.length, '{n} change', '{n} changes')}</span>
+        ) : null}
       </div>
       {diff && items.length === 0 ? (
-        <Empty mood="neutral">Nothing changed between these two.</Empty>
+        <Empty mood="neutral">{t('Nothing changed between these two.')}</Empty>
       ) : null}
       {GROUPS.map((group) => {
         const list = items.filter((item) => item.group === group);
         if (list.length === 0) return null;
         return (
           <div key={group} className="mx-panel-body" style={{ ...DIVIDER, gap: 8 }}>
-            <span className="mx-label">{group}</span>
+            <span className="mx-label">{t(group)}</span>
             {list.map((item) =>
               item.restore ? (
                 <Checkbox
@@ -375,14 +395,17 @@ function Changes({
             ) : (
               <span className="mx-sub">
                 {restorable.length > 0
-                  ? `${chosen.length} of ${restorable.length} selected`
-                  : 'Nothing here can be brought back'}
+                  ? t('{chosen} of {total} selected', {
+                      chosen: chosen.length,
+                      total: restorable.length,
+                    })
+                  : t('Nothing here can be brought back')}
               </span>
             )}
             {readOnly ? null : (
               <div className="mx-inline">
                 <TwoStep
-                  label={`Restore everything from ${names.old}`}
+                  label={t('Restore everything from {name}', { name: names.old })}
                   disabled={pending}
                   run={() => restore(true)}
                 />
@@ -392,7 +415,7 @@ function Changes({
                   disabled={pending || chosen.length === 0}
                   onClick={() => restore(false)}
                 >
-                  Restore selected
+                  {t('Restore selected')}
                 </button>
               </div>
             )}
@@ -413,6 +436,7 @@ function Import({
   enabled: boolean;
 }) {
   const { guildId } = useGuild();
+  const t = useT();
   const { readOnly } = useDraft<BackupsConfig>();
   const [link, setLink] = useState('');
   const [view, setView] = useState<ImportView | null>(initial);
@@ -436,14 +460,17 @@ function Import({
       },
       () => {
         setBusy(false);
-        setStatus({ message: 'Maxwell has not answered yet. Try again in a moment.', error: true });
+        setStatus({
+          message: t('Maxwell has not answered yet. Try again in a moment.'),
+          error: true,
+        });
       },
       40,
     );
 
   const read = () => {
     if (!enabled) {
-      setStatus({ message: 'Turn Backups on first.', error: true });
+      setStatus({ message: t('Turn Backups on first.'), error: true });
       return;
     }
     setBusy(true);
@@ -452,7 +479,7 @@ function Import({
     readTemplate(guildId, link).then((result) => {
       if (!result.ok || !result.data) {
         setBusy(false);
-        setStatus({ message: result.ok ? 'That did not work.' : result.error, error: true });
+        setStatus({ message: result.ok ? t('That did not work.') : result.error, error: true });
         return;
       }
       watch(
@@ -460,7 +487,10 @@ function Import({
         (next) => next.status !== 'pending',
         (next) => {
           if (next.status === 'failed') {
-            setStatus({ message: next.error ?? 'That template could not be read.', error: true });
+            setStatus({
+              message: next.error ?? t('That template could not be read.'),
+              error: true,
+            });
             return;
           }
           setView(next);
@@ -486,13 +516,17 @@ function Import({
           setView(null);
           const created = next.created;
           if (next.status === 'failed') {
-            setStatus({ message: next.error ?? 'The import stopped partway.', error: true });
+            setStatus({ message: next.error ?? t('The import stopped partway.'), error: true });
           } else if (created) {
-            const failed = created.failed > 0 ? ` ${created.failed} failed.` : '';
-            setStatus({
-              message: `Created ${plural(created.roles, 'role')} and ${plural(created.channels, 'channel')}.${failed} Undo it in the audit trail.`,
-              error: false,
-            });
+            const parts = [
+              t('Created {roles} and {channels}.', {
+                roles: t.plural(created.roles, '{n} role', '{n} roles'),
+                channels: t.plural(created.channels, '{n} channel', '{n} channels'),
+              }),
+            ];
+            if (created.failed > 0) parts.push(t('{count} failed.', { count: created.failed }));
+            parts.push(t('Undo it in the audit trail.'));
+            setStatus({ message: parts.join(' '), error: false });
           }
         },
       );
@@ -501,21 +535,21 @@ function Import({
 
   const stats: [string, number][] = view
     ? [
-        ['Roles', view.roles],
-        ['Categories', view.categories],
-        ['Channels', view.channels],
-        ['Overwrites', view.overwrites],
+        [t('Roles'), view.roles],
+        [t('Categories'), view.categories],
+        [t('Channels'), view.channels],
+        [t('Overwrites'), view.overwrites],
       ]
     : [];
 
   return (
-    <Panel title="Import from Discord" id="import">
+    <Panel title={t('Import from Discord')} id="import">
       <PanelBody>
         <div className="mx-inline">
           <input
             className="mx-input mx-mono"
             style={{ flex: '1 1 360px', width: 'auto' }}
-            aria-label="Discord template link"
+            aria-label={t('Discord template link')}
             placeholder="https://discord.new/..."
             value={link}
             maxLength={200}
@@ -532,7 +566,7 @@ function Import({
               disabled={busy || link.trim().length === 0}
               onClick={read}
             >
-              {busy && !view ? 'Reading' : 'Read template'}
+              {busy && !view ? t('Reading') : t('Read template')}
             </button>
           )}
         </div>
@@ -543,7 +577,9 @@ function Import({
               <div className="mx-row-main" style={{ padding: '12px 14px 0' }}>
                 {view.name ? <span className="mx-row-title">{view.name}</span> : null}
                 {view.skipped > 0 ? (
-                  <span className="mx-sub">{`${plural(view.skipped, 'item')} skipped`}</span>
+                  <span className="mx-sub">
+                    {t.plural(view.skipped, '{n} item skipped', '{n} items skipped')}
+                  </span>
                 ) : null}
               </div>
             ) : null}
@@ -557,17 +593,17 @@ function Import({
                 <div key={label} className="mx-stat">
                   <span className="mx-stat-label">{label}</span>
                   <span className="mx-stat-value" style={{ fontSize: 18 }}>
-                    {count}
+                    {t.count(count)}
                   </span>
                 </div>
               ))}
             </div>
             <div className="mx-between" style={{ padding: '10px 14px 14px', ...DIVIDER }}>
-              <span className="mx-sub">Messages and members are not part of a template</span>
+              <span className="mx-sub">{t('Messages and members are not part of a template')}</span>
               {readOnly ? null : (
                 <TwoStep
                   primary
-                  label={busy ? 'Importing' : `Import into ${guildName}`}
+                  label={busy ? t('Importing') : t('Import into {name}', { name: guildName })}
                   disabled={busy}
                   run={apply}
                 />
@@ -598,6 +634,7 @@ export function BackupsForm({
   now: string;
 }) {
   const { guildId, timezone } = useGuild();
+  const t = useT();
   const { value } = useDraft<BackupsConfig>();
   const [snapshots, setSnapshots] = useState(initialSnapshots);
   const [usage, setUsage] = useState(initialUsage);
@@ -611,7 +648,7 @@ export function BackupsForm({
 
   const nameOf = (id: string | null) => {
     const snapshot = snapshots.find((entry) => entry.id === id);
-    return snapshot ? dayTime(snapshot.createdAt, now, timezone) : '';
+    return snapshot ? dayTime(t, snapshot.createdAt, now, timezone) : '';
   };
 
   const pick = (side: 'old' | 'new', id: string) => {
@@ -628,7 +665,7 @@ export function BackupsForm({
 
   const snapshot = () => {
     if (!enabled) {
-      setStatus({ message: 'Turn Backups on first.', error: true });
+      setStatus({ message: t('Turn Backups on first.'), error: true });
       return;
     }
     setBusy('taking');
@@ -662,7 +699,7 @@ export function BackupsForm({
         () => {
           setBusy('idle');
           setStatus({
-            message: 'The snapshot is taking long. Check back in a minute.',
+            message: t('The snapshot is taking long. Check back in a minute.'),
             error: true,
           });
         },

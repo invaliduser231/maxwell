@@ -1,6 +1,7 @@
 'use client';
 
 import { useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { EmbedPreview, MessagePreview } from '@/components/message-preview';
 import type { Names } from '@/lib/people';
 import { clock, dayTime } from '@/lib/time';
@@ -17,6 +18,7 @@ export function Message({
   now: number;
   full?: boolean;
 }) {
+  const t = useT();
   const { timezone } = useGuild();
   const maxwell = message.bot && message.authorName === 'Maxwell';
   return (
@@ -26,17 +28,19 @@ export function Message({
       bot={message.bot}
       avatarSize={30}
       style={message.deleted ? { opacity: 0.55 } : undefined}
-      time={full ? dayTime(message.createdAt, now, timezone) : clock(message.createdAt, timezone)}
+      time={
+        full ? dayTime(t, message.createdAt, now, timezone) : clock(message.createdAt, timezone)
+      }
       tags={
         <>
           {message.internal ? (
             <span className="mx-chip" style={{ marginLeft: 6 }}>
-              Internal
+              {t('Internal')}
             </span>
           ) : null}
-          {message.via === 'dm' ? <span className="mx-time">by DM</span> : null}
-          {message.edited ? <span className="mx-time">edited</span> : null}
-          {message.deleted ? <span className="mx-time">deleted</span> : null}
+          {message.via === 'dm' ? <span className="mx-time">{t('by DM')}</span> : null}
+          {message.edited ? <span className="mx-time">{t('edited')}</span> : null}
+          {message.deleted ? <span className="mx-time">{t('deleted')}</span> : null}
         </>
       }
       content={message.content}

@@ -1,14 +1,14 @@
 import { cardsConfig } from '@maxwell/core/modules/cards';
 import { levelCurves, levelsConfig } from '@maxwell/core/modules/levels';
 import { LevelStore } from '@maxwell/core/stores/levels';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
 import { db } from '@/lib/db';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { people, personOf } from '@/lib/people';
 import { LevelsForm } from './levels-form';
 
-export const metadata: Metadata = { title: 'Levels' };
+export const generateMetadata = titled('Levels');
 
 export default async function LevelsPage({ params }: { params: Promise<{ guild: string }> }) {
   const { guild } = await params;

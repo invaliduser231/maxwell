@@ -1,13 +1,13 @@
 import { schedulerConfig } from '@maxwell/core/modules/scheduler';
 import { MessageStateStore, ReminderStore } from '@maxwell/core/stores/scheduler';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
 import { db } from '@/lib/db';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { people, personOf } from '@/lib/people';
 import { SchedulerForm } from './scheduler-form';
 
-export const metadata: Metadata = { title: 'Scheduler' };
+export const generateMetadata = titled('Scheduler');
 
 const REMINDERS_SHOWN = 50;
 

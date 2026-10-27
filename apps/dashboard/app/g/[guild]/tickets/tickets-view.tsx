@@ -7,14 +7,16 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { AddPicker, Seg, Tabs, TextArea, TextInput } from '@/components/controls';
 import { useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { fingerprint, useLive } from '@/components/live';
 import { useDraft, useReadOnly } from '@/components/module-shell';
 import { type Status, StatusText } from '@/components/status-text';
 import { TwoStep } from '@/components/two-step';
 import { Empty, Panel, PanelBody } from '@/components/ui';
 import { usePoll } from '@/components/use-poll';
+import type { Key } from '@/lib/i18n';
 import type { Names } from '@/lib/people';
-import { ago, inSentence, plural, span } from '@/lib/time';
+import { ago, inSentence, span } from '@/lib/time';
 import {
   addTicketMember,
   claimTicket,
@@ -32,17 +34,17 @@ import { SettingsTab } from './settings';
 type Tab = 'open' | 'panels' | 'settings';
 type Show = 'all' | 'mine' | 'unclaimed';
 
-const tabs = [
+const tabs: { value: Tab; label: Key }[] = [
   { value: 'open', label: 'Open tickets' },
   { value: 'panels', label: 'Panels' },
   { value: 'settings', label: 'Settings' },
-] as const;
+];
 
-const shows = [
+const shows: { value: Show; label: Key }[] = [
   { value: 'all', label: 'All' },
   { value: 'mine', label: 'Mine' },
   { value: 'unclaimed', label: 'Unclaimed' },
-] as const;
+];
 
 const URGENT = 4 * 3_600_000;
 
@@ -61,33 +63,42 @@ function usePanelName(): (id: string) => string {
 }
 
 function Stats({ overview }: { overview: TicketOverview }) {
+  const t = useT();
   const median = overview.medianFirstResponseSeconds;
   const quiet = overview.open === 0 && overview.closedWeek === 0;
   const stats = [
     {
-      label: 'Open',
-      value: overview.open.toLocaleString('en-US'),
+      label: t('Open tickets'),
+      value: t.count(overview.open),
       note:
         overview.open === 0
           ? null
           : overview.unclaimed
-            ? `${overview.unclaimed} unclaimed`
-            : 'All claimed',
+            ? t('{count} unclaimed', { count: overview.unclaimed })
+            : t('All claimed'),
     },
     {
-      label: 'First reply, median',
-      value: median === null ? '0' : span(median * 1000),
-      note: median === null ? null : 'Last 30 days',
+      label: t('First reply, median'),
+      value: median === null ? '0' : span(t, median * 1000),
+      note: median === null ? null : t('Last 30 days'),
     },
     {
-      label: 'Closed, 7 days',
-      value: overview.closedWeek.toLocaleString('en-US'),
-      note: overview.closedWeekModmail ? `${overview.closedWeekModmail} via modmail` : null,
+      label: t('Closed, 7 days'),
+      value: t.count(overview.closedWeek),
+      note: overview.closedWeekModmail
+        ? t('{count} via modmail', { count: overview.closedWeekModmail })
+        : null,
     },
     {
-      label: 'Rating',
-      value: overview.averageRating === null ? '0' : overview.averageRating.toFixed(1),
-      note: overview.ratings ? plural(overview.ratings, 'rating') : null,
+      label: t('Rating'),
+      value:
+        overview.averageRating === null
+          ? '0'
+          : overview.averageRating.toLocaleString(t.locale, {
+              minimumFractionDigits: 1,
+              maximumFractionDigits: 1,
+            }),
+      note: overview.ratings ? t.plural(overview.ratings, '{n} rating', '{n} ratings') : null,
     },
   ];
   return (
@@ -119,6 +130,7 @@ function OpenList({
   selected: string | null;
   onSelect: (id: string) => void;
 }) {
+  const t = useT();
   const { userId } = useGuild();
   const panelName = usePanelName();
   const [show, setShow] = useState<Show>('all');
@@ -131,26 +143,32 @@ function OpenList({
   );
   return (
     <Panel
-      title="Open tickets"
+      title={t('Open tickets')}
       id="t-open"
       actions={
         open.length > 0 ? (
-          <Seg label="Filter" value={show} options={shows} onChange={setShow} view />
+          <Seg
+            label={t('Filter')}
+            value={show}
+            options={shows.map((option) => ({ ...option, label: t(option.label) }))}
+            onChange={setShow}
+            view
+          />
         ) : null
       }
     >
       {rows.length === 0 ? (
-        <Empty>{open.length === 0 ? 'No open tickets right now.' : 'Nothing here.'}</Empty>
+        <Empty>{open.length === 0 ? t('No open tickets right now.') : t('Nothing here.')}</Empty>
       ) : (
         <div className="mx-scroll">
           <table className="mx-table">
             <thead>
               <tr>
-                <th scope="col">Ticket</th>
-                <th scope="col">Opened by</th>
-                <th scope="col">Panel</th>
-                <th scope="col">Claimed by</th>
-                <th scope="col">Waiting</th>
+                <th scope="col">{t('Ticket')}</th>
+                <th scope="col">{t('Opened by')}</th>
+                <th scope="col">{t('Panel')}</th>
+                <th scope="col">{t('Claimed by')}</th>
+                <th scope="col">{t('Waiting')}</th>
               </tr>
             </thead>
             <tbody>
@@ -171,7 +189,7 @@ function OpenList({
                       </button>
                     </td>
                     <td>
-                      {names[ticket.openerId]?.name ?? 'Former member'}
+                      {names[ticket.openerId]?.name ?? t('Former member')}
                       {ticket.source === 'modmail' ? (
                         <span className="mx-chip" style={{ marginLeft: 4 }}>
                           Modmail
@@ -181,8 +199,8 @@ function OpenList({
                     <td>{panelName(ticket.panelId)}</td>
                     <td style={{ color: ticket.claimedBy ? 'inherit' : '#F2C14E' }}>
                       {ticket.claimedBy
-                        ? (names[ticket.claimedBy]?.name ?? 'Former member')
-                        : 'Unclaimed'}
+                        ? (names[ticket.claimedBy]?.name ?? t('Former member'))
+                        : t('Unclaimed')}
                     </td>
                     <td
                       style={{
@@ -190,7 +208,7 @@ function OpenList({
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {span(waiting)}
+                      {span(t, waiting)}
                     </td>
                   </tr>
                 );
@@ -212,6 +230,7 @@ function TicketDetail({
   now: number;
   onChanged: (next: Detail) => void;
 }) {
+  const t = useT();
   const { guildId, userId } = useGuild();
   const { value } = useDraft<TicketsConfig>();
   const readOnly = useReadOnly();
@@ -239,9 +258,9 @@ function TicketDetail({
 
   if (!detail) {
     return (
-      <Panel title="Ticket" id="t-detail">
+      <Panel title={t('Ticket')} id="t-detail">
         <PanelBody>
-          <span className="mx-sub">Loading</span>
+          <span className="mx-sub">{t('Loading')}</span>
         </PanelBody>
       </Panel>
     );
@@ -290,7 +309,7 @@ function TicketDetail({
         <>
           <span className="mx-sub">{panelName(ticket.panelId)}</span>
           <Link className="mx-btn mx-btn-ghost" href={`/g/${guildId}/tickets/${ticket.id}`}>
-            Transcript
+            {t('Transcript')}
           </Link>
         </>
       }
@@ -301,10 +320,10 @@ function TicketDetail({
           ref={scroller}
           style={{ maxHeight: 380, overflowY: 'auto' }}
           role="log"
-          aria-label="Latest messages"
+          aria-label={t('Latest messages')}
         >
           {detail.messages.length === 0 ? (
-            <span className="mx-sub">No messages saved.</span>
+            <span className="mx-sub">{t('No messages saved.')}</span>
           ) : (
             detail.messages.map((message) => (
               <Message key={message.id} message={message} names={detail.names} now={now} />
@@ -315,8 +334,8 @@ function TicketDetail({
           <>
             <TextArea
               rows={2}
-              label="Reply"
-              placeholder="Reply as staff"
+              label={t('Reply')}
+              placeholder={t('Reply as staff')}
               maxLength={2000}
               value={draft}
               onChange={setDraft}
@@ -326,8 +345,8 @@ function TicketDetail({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <TextInput
                     mono
-                    label="Member ID"
-                    placeholder="User ID"
+                    label={t('Member ID')}
+                    placeholder={t('User ID')}
                     value={member}
                     onChange={setMember}
                   />
@@ -346,14 +365,14 @@ function TicketDetail({
                     setMember(null);
                   }}
                 >
-                  Add
+                  {t('Add')}
                 </button>
                 <button
                   type="button"
                   className="mx-btn mx-btn-ghost"
                   onClick={() => setMember(null)}
                 >
-                  Cancel
+                  {t('Cancel')}
                 </button>
               </div>
             ) : null}
@@ -379,16 +398,16 @@ function TicketDetail({
                     )
                   }
                 >
-                  {mine ? 'Unclaim' : 'Claim'}
+                  {mine ? t('Unclaim') : t('Claim')}
                 </button>
                 {member !== null ? null : (
                   <button type="button" className="mx-btn" onClick={() => setMember('')}>
-                    Add member
+                    {t('Add member')}
                   </button>
                 )}
                 {value.cannedReplies.length > 0 ? (
                   <AddPicker
-                    label="Saved reply"
+                    label={t('Saved reply')}
                     options={value.cannedReplies.map((reply) => ({
                       value: reply.name,
                       label: reply.name,
@@ -404,7 +423,7 @@ function TicketDetail({
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <StatusText status={status} />
                 <TwoStep
-                  label="Close"
+                  label={t('Close')}
                   danger
                   disabled={pending}
                   run={() =>
@@ -429,7 +448,7 @@ function TicketDetail({
                     setDraft('');
                   }}
                 >
-                  Send
+                  {t('Send')}
                 </button>
               </div>
             </div>
@@ -452,6 +471,7 @@ function Closed({
   names: Names;
   now: number;
 }) {
+  const t = useT();
   const { guildId } = useGuild();
   const { value } = useDraft<TicketsConfig>();
   const panelName = usePanelName();
@@ -495,21 +515,23 @@ function Closed({
 
   return (
     <Panel
-      title="Recently closed"
+      title={t('Recently closed')}
       id="t-closed"
-      actions={value.transcripts ? null : <span className="mx-sub">Transcripts are off</span>}
+      actions={
+        value.transcripts ? null : <span className="mx-sub">{t('Transcripts are off')}</span>
+      }
     >
       {items.length === 0 ? (
-        <Empty>Nothing closed yet.</Empty>
+        <Empty>{t('Nothing closed yet.')}</Empty>
       ) : (
         <>
           {items.map((ticket) => {
             const closer = ticket.closedBy
-              ? (names[ticket.closedBy]?.name ?? 'Former member')
+              ? (names[ticket.closedBy]?.name ?? t('Former member'))
               : 'Maxwell';
             const when = ticket.closedAt
-              ? `closed ${inSentence(ago(ticket.closedAt, now))}`
-              : 'closed';
+              ? t('closed {when}', { when: inSentence(t, ago(t, ticket.closedAt, now)) })
+              : t('closed');
             return (
               <div className="mx-row" key={ticket.id}>
                 <span className="mx-mono mx-muted" style={{ width: 52, flexShrink: 0 }}>
@@ -530,7 +552,7 @@ function Closed({
                   </span>
                 ) : null}
                 <Link className="mx-btn mx-btn-ghost" href={`/g/${guildId}/tickets/${ticket.id}`}>
-                  Transcript
+                  {t('Transcript')}
                 </Link>
               </div>
             );
@@ -538,7 +560,7 @@ function Closed({
           {more ? (
             <div className="mx-row" style={{ justifyContent: 'center' }}>
               <button type="button" className="mx-btn" disabled={pending} onClick={loadMore}>
-                {pending ? 'Loading' : 'Show more'}
+                {pending ? t('Loading') : t('Show more')}
               </button>
               <StatusText status={status} />
             </div>
@@ -550,34 +572,43 @@ function Closed({
 }
 
 function Ratings({ overview }: { overview: TicketOverview }) {
+  const t = useT();
   const counts = overview.ratingCounts;
   const top = Math.max(1, ...counts);
   return (
     <Panel
-      title="Ratings, 30 days"
+      title={t('Ratings, 30 days')}
       id="t-ratings"
       actions={
         overview.averageRating === null ? null : (
-          <span className="mx-sub">{overview.averageRating.toFixed(1)} average</span>
+          <span className="mx-sub">
+            {t('{value} average', {
+              value: overview.averageRating.toLocaleString(t.locale, {
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1,
+              }),
+            })}
+          </span>
         )
       }
     >
       {overview.ratings === 0 ? (
-        <Empty>No ratings yet.</Empty>
+        <Empty>{t('No ratings yet.')}</Empty>
       ) : (
         <div className="mx-panel-body">
           {[5, 4, 3, 2, 1].map((stars) => {
             const count = counts[stars - 1] ?? 0;
+            const label = t.plural(stars, '{n} star', '{n} stars');
             return (
               <div key={stars} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span className="mx-sub" style={{ width: 52 }}>
-                  {stars === 1 ? '1 star' : `${stars} stars`}
+                <span className="mx-sub" style={{ width: 60 }}>
+                  {label}
                 </span>
                 <div
                   className="mx-bar"
                   style={{ flex: 1 }}
                   role="img"
-                  aria-label={`${stars} stars: ${count}`}
+                  aria-label={`${label}: ${count}`}
                 >
                   <span style={{ width: `${Math.round((count / top) * 100)}%` }} />
                 </div>
@@ -612,6 +643,7 @@ export function TicketsView({
   saved: TicketsConfig;
   published: Published[];
 }) {
+  const t = useT();
   const { guildId } = useGuild();
   const { value } = useDraft<TicketsConfig>();
   const readOnly = useReadOnly();
@@ -672,15 +704,20 @@ export function TicketsView({
   return (
     <>
       {hasStats ? <Stats overview={overview} /> : null}
-      <Tabs label="Tickets" value={tab} options={tabs} onChange={setTab} />
+      <Tabs
+        label={t('Tickets')}
+        value={tab}
+        options={tabs.map((option) => ({ ...option, label: t(option.label) }))}
+        onChange={setTab}
+      />
       {tab === 'open' && nothing ? (
         <Panel id="t-open">
           <Empty mood="sleeping">
             <div className="mx-stack" style={{ alignItems: 'center' }}>
               <span>
                 {value.panels.length === 0
-                  ? 'No tickets yet. Members open them from a panel.'
-                  : 'No tickets yet.'}
+                  ? t('No tickets yet. Members open them from a panel.')
+                  : t('No tickets yet.')}
               </span>
               {value.panels.length === 0 && !readOnly ? (
                 <button
@@ -688,7 +725,7 @@ export function TicketsView({
                   className="mx-btn mx-btn-primary"
                   onClick={() => setTab('panels')}
                 >
-                  Set up a panel
+                  {t('Set up a panel')}
                 </button>
               ) : null}
             </div>

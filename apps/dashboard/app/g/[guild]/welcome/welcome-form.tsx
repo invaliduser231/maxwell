@@ -14,12 +14,14 @@ import {
   ToggleRow,
 } from '@/components/controls';
 import { useChannelName, useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { MessagePreview } from '@/components/message-preview';
 import { useDraft } from '@/components/module-shell';
 import { outcome, type Status, StatusText } from '@/components/status-text';
 import { TwoStep } from '@/components/two-step';
 import { Avatar, Empty, Field, Fields, Grid, Panel, PanelBody, Row } from '@/components/ui';
 import { runAction } from '@/lib/actions';
+import type { Key, Translator } from '@/lib/i18n';
 import { minutesLabel } from '@/lib/time';
 
 export interface Sample {
@@ -35,25 +37,26 @@ export interface Sample {
 type SendAs = 'channel' | 'dm' | 'both' | 'none';
 type Target = 'join' | 'dm';
 
-const sendAsOptions = [
+const sendAsOptions: { value: SendAs; label: Key }[] = [
   { value: 'channel', label: 'Channel message' },
   { value: 'dm', label: 'Direct message' },
   { value: 'both', label: 'Both' },
   { value: 'none', label: 'Nothing' },
-] as const;
+];
 
 const tokens = ['user', 'name', 'username', 'server', 'count', 'ordinal', 'created'] as const;
 
 const delays = [5, 10, 30, 60, 1440, 10080];
 
-function ordinal(value: number): string {
+function ordinal(t: Translator, value: number): string {
+  if (t.lang === 'de') return `${t.count(value)}.`;
   const tens = value % 100;
-  if (tens >= 11 && tens <= 13) return `${value}th`;
+  if (tens >= 11 && tens <= 13) return `${t.count(value)}th`;
   const suffix = ['th', 'st', 'nd', 'rd'][value % 10] ?? 'th';
-  return `${value}${suffix}`;
+  return `${t.count(value)}${suffix}`;
 }
 
-function variables(sample: Sample, offset = 0): Record<string, string> {
+function variables(t: Translator, sample: Sample, offset = 0): Record<string, string> {
   const members = sample.members === null ? null : Math.max(sample.members + offset, 0);
   return {
     user: `@${sample.name}`,
@@ -61,8 +64,8 @@ function variables(sample: Sample, offset = 0): Record<string, string> {
     username: sample.username,
     id: sample.id,
     server: sample.server,
-    count: members === null ? '?' : members.toLocaleString('en-US'),
-    ordinal: members === null ? '?' : ordinal(members),
+    count: members === null ? '?' : t.count(members),
+    ordinal: members === null ? '?' : ordinal(t, members),
     created: sample.created,
   };
 }
@@ -120,6 +123,7 @@ function sendAsOf(value: WelcomeConfig): SendAs {
 }
 
 function MessagePanel() {
+  const t = useT();
   const { value, set, readOnly } = useDraft<WelcomeConfig>();
   const sendAs = sendAsOf(value);
   const channel = sendAs === 'channel' || sendAs === 'both';
@@ -167,16 +171,20 @@ function MessagePanel() {
 
   return (
     <Panel
-      title="Welcome message"
+      title={t('Welcome message')}
       id="w-msg"
-      actions={<span className="mx-sub">{length.toLocaleString('en-US')} / 2,000</span>}
+      actions={
+        <span className="mx-sub">
+          {t.count(length)} / {t.count(2000)}
+        </span>
+      }
     >
       <PanelBody>
         <Fields>
-          <Field label="Send as">
+          <Field label={t('Send as')}>
             <Select
               value={sendAs}
-              options={sendAsOptions}
+              options={sendAsOptions.map((option) => ({ ...option, label: t(option.label) }))}
               onChange={(next) =>
                 set({
                   join: { ...value.join, enabled: next === 'channel' || next === 'both' },
@@ -186,7 +194,7 @@ function MessagePanel() {
             />
           </Field>
           {channel ? (
-            <Field label="Channel">
+            <Field label={t('Channel')}>
               <ChannelSelect
                 value={value.join.channelId}
                 onChange={(channelId) => setJoin({ channelId })}
@@ -195,13 +203,13 @@ function MessagePanel() {
           ) : null}
         </Fields>
         {channel
-          ? box('join', 'Message', value.join.message, (message) => setJoin({ message }))
+          ? box('join', t('Message'), value.join.message, (message) => setJoin({ message }))
           : null}
         {direct
-          ? box('dm', 'Direct message', value.dm.message, (message) => setDm({ message }))
+          ? box('dm', t('Direct message'), value.dm.message, (message) => setDm({ message }))
           : null}
         {(channel || direct) && !readOnly ? (
-          <div className="mx-chips" role="group" aria-label="Insert a variable">
+          <div className="mx-chips" role="group" aria-label={t('Insert a variable')}>
             {tokens.map((token) => (
               <button
                 key={token}
@@ -218,16 +226,16 @@ function MessagePanel() {
       </PanelBody>
       {channel ? (
         <div style={{ borderTop: '1px solid var(--mx-line)' }}>
-          <Row title="Ping the member">
+          <Row title={t('Ping the member')}>
             <Switch
-              label="Ping the member"
+              label={t('Ping the member')}
               checked={value.join.ping}
               onChange={(ping) => setJoin({ ping })}
             />
           </Row>
-          <Row title="Welcome card" sub="Uses the style from Cards">
+          <Row title={t('Welcome card')} sub={t('Uses the style from Cards')}>
             <Switch
-              label="Welcome card"
+              label={t('Welcome card')}
               checked={value.join.card}
               onChange={(card) => setJoin({ card })}
             />
@@ -235,14 +243,14 @@ function MessagePanel() {
           {value.join.card ? (
             <PanelBody>
               <Fields>
-                <Field label="Card title">
+                <Field label={t('Card title')}>
                   <TextInput
                     value={value.join.cardTitle}
                     maxLength={80}
                     onChange={(cardTitle) => setJoin({ cardTitle })}
                   />
                 </Field>
-                <Field label="Card subtitle">
+                <Field label={t('Card subtitle')}>
                   <TextInput
                     value={value.join.cardSubtitle}
                     maxLength={120}
@@ -259,6 +267,7 @@ function MessagePanel() {
 }
 
 function RulesGate({ posted }: { posted: { channelId: string; messageId: string } | null }) {
+  const t = useT();
   const { value, set, readOnly } = useDraft<WelcomeConfig>();
   const { guildId } = useGuild();
   const channelName = useChannelName();
@@ -286,9 +295,12 @@ function RulesGate({ posted }: { posted: { channelId: string; messageId: string 
 
   return (
     <>
-      <Row title="Rules gate" sub={where ? `A reaction on the rules post in ${where}` : undefined}>
+      <Row
+        title={t('Rules gate')}
+        sub={where ? t('A reaction on the rules post in {channel}', { channel: where }) : undefined}
+      >
         <Switch
-          label="Rules gate"
+          label={t('Rules gate')}
           checked={rules.enabled}
           onChange={(enabled) => setRules({ enabled })}
         />
@@ -296,16 +308,16 @@ function RulesGate({ posted }: { posted: { channelId: string; messageId: string 
       {rules.enabled ? (
         <PanelBody>
           <Fields>
-            <Field label="Rules channel">
+            <Field label={t('Rules channel')}>
               <ChannelSelect
                 value={rules.channelId}
                 onChange={(channelId) => setRules({ channelId })}
               />
             </Field>
-            <Field label="Role for accepting">
+            <Field label={t('Role for accepting')}>
               <RoleSelect value={rules.roleId} onChange={(roleId) => setRules({ roleId })} />
             </Field>
-            <Field label="Reaction">
+            <Field label={t('Reaction')}>
               <TextInput
                 mono
                 value={rules.emoji}
@@ -313,11 +325,11 @@ function RulesGate({ posted }: { posted: { channelId: string; messageId: string 
                 onChange={(emoji) => setRules({ emoji: emoji.trim() })}
               />
             </Field>
-            <Field label="Existing message ID">
+            <Field label={t('Existing message ID')}>
               <TextInput
                 mono
                 value={rules.messageId ?? ''}
-                placeholder="Optional"
+                placeholder={t('Optional')}
                 maxLength={21}
                 onChange={(next) => {
                   const id = next.replace(/\D/g, '');
@@ -328,7 +340,7 @@ function RulesGate({ posted }: { posted: { channelId: string; messageId: string 
           </Fields>
           {rules.messageId ? null : (
             <>
-              <Field label="Title">
+              <Field label={t('Title')}>
                 <TextInput
                   value={rules.title}
                   maxLength={256}
@@ -336,8 +348,8 @@ function RulesGate({ posted }: { posted: { channelId: string; messageId: string 
                 />
               </Field>
               <Field
-                label="Rules"
-                aside={`${rules.content.length.toLocaleString('en-US')} / 3,800`}
+                label={t('Rules')}
+                aside={`${t.count(rules.content.length)} / ${t.count(3800)}`}
               >
                 <TextArea
                   value={rules.content}
@@ -349,13 +361,15 @@ function RulesGate({ posted }: { posted: { channelId: string; messageId: string 
             </>
           )}
           <ToggleRow
-            title="Take the role back when the reaction goes"
+            title={t('Take the role back when the reaction goes')}
             checked={rules.removeOnUnreact}
             onChange={(removeOnUnreact) => setRules({ removeOnUnreact })}
           />
           {readOnly ? (
             posted ? (
-              <span className="mx-sub">Posted in {channelName(posted.channelId)}</span>
+              <span className="mx-sub">
+                {t('Posted in {channel}', { channel: channelName(posted.channelId) })}
+              </span>
             ) : null
           ) : (
             <div className="mx-inline">
@@ -367,11 +381,15 @@ function RulesGate({ posted }: { posted: { channelId: string; messageId: string 
                   run('rules.publish', rules.messageId || posted ? 'Updating.' : 'Posting.')
                 }
               >
-                {rules.messageId ? 'Add the reaction' : posted ? 'Update post' : 'Post rules'}
+                {rules.messageId
+                  ? t('Add the reaction')
+                  : posted
+                    ? t('Update post')
+                    : t('Post rules')}
               </button>
               {posted && !rules.messageId ? (
                 <TwoStep
-                  label="Remove post"
+                  label={t('Remove post')}
                   danger
                   disabled={pending}
                   run={() => run('rules.remove', 'Removing.')}
@@ -380,7 +398,9 @@ function RulesGate({ posted }: { posted: { channelId: string; messageId: string 
               {status ? (
                 <StatusText status={status} />
               ) : posted && !rules.messageId ? (
-                <span className="mx-sub">Posted in {channelName(posted.channelId)}</span>
+                <span className="mx-sub">
+                  {t('Posted in {channel}', { channel: channelName(posted.channelId) })}
+                </span>
               ) : null}
             </div>
           )}
@@ -391,19 +411,25 @@ function RulesGate({ posted }: { posted: { channelId: string; messageId: string 
 }
 
 function JoinPanel({ posted }: { posted: { channelId: string; messageId: string } | null }) {
+  const t = useT();
   const { value, set, update } = useDraft<WelcomeConfig>();
   const delay = value.delayedRoles[0]?.delayMinutes ?? 10;
   const gate = value.rules.enabled && value.rules.roleId !== null;
-  const from = gate ? 'after the rules' : 'after joining';
   const options = (delays.includes(delay) ? delays : [...delays, delay].sort((a, b) => a - b)).map(
-    (minutes) => ({ value: String(minutes), label: `${minutesLabel(minutes)} ${from}` }),
+    (minutes) => {
+      const span = minutesLabel(t, minutes);
+      return {
+        value: String(minutes),
+        label: gate ? t('{span} after the rules', { span }) : t('{span} after joining', { span }),
+      };
+    },
   );
 
   return (
-    <Panel title="On join" id="w-join">
+    <Panel title={t('On join')} id="w-join">
       <PanelBody>
         <div className="mx-field">
-          <span className="mx-label">Roles later</span>
+          <span className="mx-label">{t('Roles later')}</span>
           <RoleMulti
             value={value.delayedRoles.map((entry) => entry.roleId)}
             onChange={(ids) =>
@@ -421,9 +447,9 @@ function JoinPanel({ posted }: { posted: { channelId: string; messageId: string 
         </div>
         {value.delayedRoles.length > 0 ? (
           <Fields>
-            <Field label="Give roles">
+            <Field label={t('Give roles')}>
               <Select
-                label="Give roles"
+                label={t('Give roles')}
                 value={String(delay)}
                 options={options}
                 onChange={(next) =>
@@ -441,9 +467,9 @@ function JoinPanel({ posted }: { posted: { channelId: string; messageId: string 
         ) : null}
       </PanelBody>
       <div style={{ borderTop: '1px solid var(--mx-line)' }}>
-        <Row title="Skip bots">
+        <Row title={t('Skip bots')}>
           <Switch
-            label="Skip bots"
+            label={t('Skip bots')}
             checked={value.ignoreBots}
             onChange={(ignoreBots) => set({ ignoreBots })}
           />
@@ -455,6 +481,7 @@ function JoinPanel({ posted }: { posted: { channelId: string; messageId: string 
 }
 
 function GoodbyePanel() {
+  const t = useT();
   const { value, set } = useDraft<WelcomeConfig>();
   const leave = value.leave;
   const setLeave = (patch: Partial<WelcomeConfig['leave']>) =>
@@ -462,11 +489,11 @@ function GoodbyePanel() {
 
   return (
     <Panel
-      title="Goodbye"
+      title={t('Goodbye')}
       id="w-bye"
       actions={
         <Switch
-          label="Goodbye message"
+          label={t('Goodbye message')}
           checked={leave.enabled}
           onChange={(enabled) => setLeave({ enabled })}
         />
@@ -475,14 +502,14 @@ function GoodbyePanel() {
       {leave.enabled ? (
         <PanelBody>
           <Fields>
-            <Field label="Channel">
+            <Field label={t('Channel')}>
               <ChannelSelect
                 value={leave.channelId}
                 onChange={(channelId) => setLeave({ channelId })}
               />
             </Field>
           </Fields>
-          <Field label="Message">
+          <Field label={t('Message')}>
             <TextInput
               value={leave.message}
               maxLength={2000}
@@ -490,20 +517,20 @@ function GoodbyePanel() {
             />
           </Field>
           <ToggleRow
-            title="Goodbye card"
+            title={t('Goodbye card')}
             checked={leave.card}
             onChange={(card) => setLeave({ card })}
           />
           {leave.card ? (
             <Fields>
-              <Field label="Card title">
+              <Field label={t('Card title')}>
                 <TextInput
                   value={leave.cardTitle}
                   maxLength={80}
                   onChange={(cardTitle) => setLeave({ cardTitle })}
                 />
               </Field>
-              <Field label="Card subtitle">
+              <Field label={t('Card subtitle')}>
                 <TextInput
                   value={leave.cardSubtitle}
                   maxLength={120}
@@ -519,13 +546,14 @@ function GoodbyePanel() {
 }
 
 function PreviewPanel({ sample }: { sample: Sample }) {
+  const t = useT();
   const { value, readOnly } = useDraft<WelcomeConfig>();
   const { guildId, userId } = useGuild();
   const channelName = useChannelName();
   const [status, setStatus] = useState<Status>(null);
   const [pending, start] = useTransition();
-  const vars = variables(sample);
-  const leaveVars = variables(sample, -1);
+  const vars = variables(t, sample);
+  const leaveVars = variables(t, sample, -1);
   const plain = { ...vars, user: sample.name };
   const plainLeave = { ...leaveVars, user: sample.name };
   const kind = value.join.enabled ? 'join' : value.dm.enabled ? 'dm' : null;
@@ -540,14 +568,14 @@ function PreviewPanel({ sample }: { sample: Sample }) {
 
   return (
     <Panel
-      title="Preview"
+      title={t('Preview')}
       id="w-prev"
       actions={
         <>
-          <span className="mx-sub">As @{sample.username}</span>
+          <span className="mx-sub">{t('As @{name}', { name: sample.username })}</span>
           {readOnly || !kind ? null : (
             <button type="button" className="mx-btn mx-btn-ghost" disabled={pending} onClick={test}>
-              Send test
+              {t('Send test')}
             </button>
           )}
           <StatusText status={status} />
@@ -555,14 +583,14 @@ function PreviewPanel({ sample }: { sample: Sample }) {
       }
     >
       {empty ? (
-        <Empty mood="sleeping">Nothing is sent yet.</Empty>
+        <Empty mood="sleeping">{t('Nothing is sent yet.')}</Empty>
       ) : (
         <PanelBody>
           <div className="mx-preview">
             {value.join.enabled ? (
               <>
                 <span className="mx-sub">
-                  {value.join.channelId ? channelName(value.join.channelId) : 'No channel'}
+                  {value.join.channelId ? channelName(value.join.channelId) : t('No channel')}
                 </span>
                 <MessagePreview content={value.join.message} vars={vars}>
                   {value.join.card ? (
@@ -577,7 +605,9 @@ function PreviewPanel({ sample }: { sample: Sample }) {
             ) : null}
             {value.dm.enabled ? (
               <>
-                <span className="mx-sub">Direct message to {sample.name}</span>
+                <span className="mx-sub">
+                  {t('Direct message to {name}', { name: sample.name })}
+                </span>
                 <MessagePreview
                   content={value.dm.message}
                   vars={vars}
@@ -588,7 +618,7 @@ function PreviewPanel({ sample }: { sample: Sample }) {
             {value.leave.enabled ? (
               <>
                 <span className="mx-sub">
-                  {value.leave.channelId ? channelName(value.leave.channelId) : 'No channel'}
+                  {value.leave.channelId ? channelName(value.leave.channelId) : t('No channel')}
                 </span>
                 <MessagePreview
                   content={value.leave.message}
@@ -622,6 +652,7 @@ export function WelcomeForm({
   recent: { joined: number; accepted: number; quickLeaves: number };
   sample: Sample;
 }) {
+  const t = useT();
   const quiet = recent.joined === 0 && recent.accepted === 0 && recent.quickLeaves === 0;
   return (
     <Grid>
@@ -632,22 +663,22 @@ export function WelcomeForm({
       </div>
       <div className="mx-s5 mx-stack" style={{ gap: 16, minWidth: 0 }}>
         <PreviewPanel sample={sample} />
-        <Panel title="Last 7 days" id="w-stats">
+        <Panel title={t('Last 7 days')} id="w-stats">
           <div
             className={quiet ? 'mx-stat-quiet' : undefined}
             style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}
           >
             <div className="mx-stat">
-              <span className="mx-stat-label">Joined</span>
-              <span className="mx-stat-value">{recent.joined.toLocaleString('en-US')}</span>
+              <span className="mx-stat-label">{t('Joined')}</span>
+              <span className="mx-stat-value">{t.count(recent.joined)}</span>
             </div>
             <div className="mx-stat">
-              <span className="mx-stat-label">Passed the gate</span>
-              <span className="mx-stat-value">{recent.accepted.toLocaleString('en-US')}</span>
+              <span className="mx-stat-label">{t('Passed the gate')}</span>
+              <span className="mx-stat-value">{t.count(recent.accepted)}</span>
             </div>
             <div className="mx-stat">
-              <span className="mx-stat-label">Left within a day</span>
-              <span className="mx-stat-value">{recent.quickLeaves.toLocaleString('en-US')}</span>
+              <span className="mx-stat-label">{t('Left within a day')}</span>
+              <span className="mx-stat-value">{t.count(recent.quickLeaves)}</span>
             </div>
           </div>
         </Panel>

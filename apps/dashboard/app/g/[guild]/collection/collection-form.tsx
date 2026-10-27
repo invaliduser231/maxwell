@@ -20,14 +20,14 @@ import {
   TextInput,
 } from '@/components/controls';
 import { useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { MessagePreview } from '@/components/message-preview';
 import { useDraft, useReadOnly } from '@/components/module-shell';
 import { type Status, StatusText } from '@/components/status-text';
 import { TwoStep } from '@/components/two-step';
 import { CloseIcon, Empty, Field, Fields, Grid, Panel, PanelBody, Row } from '@/components/ui';
-import { plural } from '@/lib/time';
+import type { Key, Translator } from '@/lib/i18n';
 import { Invite, Small, StatStrip } from '../economy/bits';
-import { amount } from '../economy/format';
 import { addCard, removeCard, setCardActive } from './actions';
 import type { CardView } from './cards';
 
@@ -41,7 +41,7 @@ const activityDays = [7, 14, 30, 60, 90, 180, 365];
 
 type Tab = 'decks' | 'drops' | 'shop' | 'trading';
 
-const tabs: { value: Tab; label: string }[] = [
+const tabs: { value: Tab; label: Key }[] = [
   { value: 'decks', label: 'Decks' },
   { value: 'drops', label: 'Rarity and drops' },
   { value: 'shop', label: 'Packs and sets' },
@@ -73,7 +73,7 @@ function slug(name: string, taken: readonly string[], fallback: string): string 
   return id;
 }
 
-function tierShares(tiers: readonly RarityTier[]): { share: number; who: string }[] {
+function tierShares(t: Translator, tiers: readonly RarityTier[]): { share: number; who: string }[] {
   const total = tiers.reduce((sum, tier) => sum + tier.weight, 0) || 1;
   const out = tiers.map(() => ({ share: 0, who: '' }));
   let reach = 0;
@@ -83,20 +83,23 @@ function tierShares(tiers: readonly RarityTier[]): { share: number; who: string 
     reach += share;
     out[i] = {
       share,
-      who: i === 0 ? 'Everyone else' : `Top ${Math.max(1, Math.round(reach))}% by activity`,
+      who:
+        i === 0
+          ? t('Everyone else')
+          : t('Top {percent}% by activity', { percent: Math.max(1, Math.round(reach)) }),
     };
   }
   return out;
 }
 
-function newPack(packs: readonly CardPack[]): CardPack {
+function newPack(t: Translator, packs: readonly CardPack[]): CardPack {
   return {
     id: slug(
       'pack',
       packs.map((pack) => pack.id),
       'pack',
     ),
-    name: 'New pack',
+    name: t('New pack'),
     price: 250,
     size: 3,
     guaranteed: null,
@@ -105,14 +108,14 @@ function newPack(packs: readonly CardPack[]): CardPack {
   };
 }
 
-function newSet(sets: readonly CardSet[]): CardSet {
+function newSet(t: Translator, sets: readonly CardSet[]): CardSet {
   return {
     id: slug(
       'set',
       sets.map((entry) => entry.id),
       'set',
     ),
-    name: 'New set',
+    name: t('New set'),
     deckId: null,
     cardIds: [],
     rewardAmount: 0,
@@ -120,19 +123,24 @@ function newSet(sets: readonly CardSet[]): CardSet {
   };
 }
 
+function cardCount(t: Translator, count: number): string {
+  return t.plural(count, '{n} card', '{n} cards');
+}
+
 function SampleCard({ sample, tiers }: { sample: Sample; tiers: RarityTier[] }) {
+  const t = useT();
   const [shown, setShown] = useState(Math.min(2, tiers.length - 1));
   const tier = tiers[Math.min(shown, tiers.length - 1)] ?? tiers[0];
   const color = tier?.color ?? '#8A8F98';
-  const name = tier?.name ?? 'Common';
+  const name = tier?.name ?? t('Common');
   const initial = [...sample.name.trim()][0]?.toUpperCase() ?? '?';
 
   return (
-    <Panel title="Sample card" span={4} id="sample">
+    <Panel title={t('Sample card')} span={4} id="sample">
       <div className="mx-panel-body" style={{ alignItems: 'center' }}>
         <div
           role="img"
-          aria-label={`Sample ${name} card for ${sample.name}`}
+          aria-label={t('Sample {rarity} card for {name}', { rarity: name, name: sample.name })}
           style={{
             width: 228,
             aspectRatio: '5 / 7',
@@ -204,7 +212,7 @@ function SampleCard({ sample, tiers }: { sample: Sample; tiers: RarityTier[] }) 
             <div style={{ fontWeight: 600, fontSize: 18 }} className="mx-ellipsis">
               {sample.name}
             </div>
-            <div className="mx-sub">Community</div>
+            <div className="mx-sub">{t('Community')}</div>
           </div>
           <div
             style={{
@@ -236,7 +244,7 @@ function SampleCard({ sample, tiers }: { sample: Sample; tiers: RarityTier[] }) 
         <div
           className="mx-inline"
           role="group"
-          aria-label="Rarity shown"
+          aria-label={t('Rarity shown')}
           style={{ justifyContent: 'center', gap: 12 }}
         >
           {tiers.map((entry, i) => (
@@ -279,6 +287,7 @@ function CardsPanel({
   saved: boolean;
 }) {
   const { guildId } = useGuild();
+  const t = useT();
   const { value, set, readOnly } = useDraft<CollectionConfig>();
   const [name, setName] = useState('');
   const [rarity, setRarity] = useState(value.tiers[0]?.id ?? 'common');
@@ -291,7 +300,7 @@ function CardsPanel({
 
   const pick = (file: File) => {
     if (file.size > 1_000_000) {
-      setStatus({ message: 'Use an image under 1 MB.', error: true });
+      setStatus({ message: t('Use an image under 1 MB.'), error: true });
       return;
     }
     const reader = new FileReader();
@@ -308,7 +317,7 @@ function CardsPanel({
         setName('');
         setDescription('');
         setImage(null);
-        setStatus({ message: 'Added.', error: false });
+        setStatus({ message: t('Added.'), error: false });
       } else if (!result.ok) {
         setStatus({ message: result.error, error: true });
       }
@@ -318,28 +327,26 @@ function CardsPanel({
 
   return (
     <Panel
-      title={`Cards in ${deck.name}`}
+      title={t('Cards in {deck}', { deck: deck.name })}
       span={12}
       id="cards"
       actions={
         <>
-          <span className="mx-sub">
-            {list.length === 1 ? '1 card' : `${amount(list.length)} cards`}
-          </span>
+          <span className="mx-sub">{cardCount(t, list.length)}</span>
           {readOnly || list.length > 0 ? null : (
             <button
               type="button"
               className="mx-btn mx-btn-danger"
               onClick={() => set({ decks: value.decks.filter((entry) => entry.id !== deck.id) })}
             >
-              Remove deck
+              {t('Remove deck')}
             </button>
           )}
         </>
       }
     >
       <PanelBody>
-        <Field label="Deck name">
+        <Field label={t('Deck name')}>
           <TextInput
             value={deck.name}
             maxLength={64}
@@ -353,7 +360,7 @@ function CardsPanel({
           />
         </Field>
       </PanelBody>
-      {list.length === 0 ? <Empty mood="thinking">No cards in this deck yet.</Empty> : null}
+      {list.length === 0 ? <Empty mood="thinking">{t('No cards in this deck yet.')}</Empty> : null}
       {list.map((card) => {
         const tier = tierOf(card.rarity);
         return (
@@ -377,8 +384,8 @@ function CardsPanel({
             <div className="mx-row-main">
               <span className="mx-row-title">{card.name}</span>
               <span className="mx-sub">
-                {`#${card.number}, ${card.owners === 1 ? '1 owner' : `${amount(card.owners)} owners`}`}
-                {card.active ? '' : ', retired'}
+                {`#${card.number}, ${t.plural(card.owners, '{n} owner', '{n} owners')}`}
+                {card.active ? '' : `, ${t('retired')}`}
               </span>
             </div>
             <span className="mx-chip">
@@ -387,10 +394,10 @@ function CardsPanel({
             </span>
             {readOnly ? null : (
               <TwoStep
-                label="Delete"
-                confirm="Click again"
+                label={t('Delete')}
+                confirm={t('Click again')}
                 ghost
-                ariaLabel={`Delete ${card.name}`}
+                ariaLabel={t('Delete {name}', { name: card.name })}
                 run={() =>
                   start(async () => {
                     const result = await removeCard(guildId, card.id);
@@ -401,7 +408,11 @@ function CardsPanel({
               />
             )}
             <Switch
-              label={`${card.name} ${card.active ? 'drops' : 'retired'}`}
+              label={
+                card.active
+                  ? t('{name} drops', { name: card.name })
+                  : t('{name} retired', { name: card.name })
+              }
               checked={card.active}
               disabled={pending}
               onChange={(active) =>
@@ -423,23 +434,23 @@ function CardsPanel({
           {saved ? (
             <>
               <Fields>
-                <Field label="Card name">
+                <Field label={t('Card name')}>
                   <TextInput value={name} maxLength={64} onChange={setName} />
                 </Field>
-                <Field label="Rarity">
+                <Field label={t('Rarity')}>
                   <Select
                     value={rarity}
                     options={value.tiers.map((tier) => ({ value: tier.id, label: tier.name }))}
                     onChange={setRarity}
                   />
                 </Field>
-                <Field label="Description">
+                <Field label={t('Description')}>
                   <TextInput value={description} maxLength={200} onChange={setDescription} />
                 </Field>
               </Fields>
               <div className="mx-inline">
                 <label className="mx-btn">
-                  {image ? 'Change image' : 'Upload image'}
+                  {image ? t('Change image') : t('Upload image')}
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
@@ -454,7 +465,7 @@ function CardsPanel({
                 {image ? (
                   <img
                     src={image}
-                    alt="New card"
+                    alt={t('New card')}
                     width={34}
                     height={44}
                     style={{ borderRadius: 5, objectFit: 'cover' }}
@@ -466,13 +477,13 @@ function CardsPanel({
                   disabled={pending || !name.trim()}
                   onClick={add}
                 >
-                  Add card
+                  {t('Add card')}
                 </button>
                 <StatusText status={status} />
               </div>
             </>
           ) : (
-            <span className="mx-sub">Save to add cards.</span>
+            <span className="mx-sub">{t('Save to add cards.')}</span>
           )}
         </div>
       )}
@@ -493,6 +504,7 @@ function DecksPanel({
   editing: string | null;
   setEditing: (id: string | null) => void;
 }) {
+  const t = useT();
   const { value, set, readOnly } = useDraft<CollectionConfig>();
   const legendary = value.tiers.at(-1)?.color ?? '#F26B3A';
   const accents = ['#B48CF2', '#2EB67D', '#3A9EEA', '#E8B23A'];
@@ -504,13 +516,13 @@ function DecksPanel({
       value.decks.map((deck) => deck.id),
       'deck',
     );
-    set({ decks: [...value.decks, { id, name: 'New deck', enabled: true }] });
+    set({ decks: [...value.decks, { id, name: t('New deck'), enabled: true }] });
     setEditing(id);
   };
 
   return (
     <Panel
-      title="Decks"
+      title={t('Decks')}
       span={8}
       id="decks"
       actions={
@@ -521,18 +533,21 @@ function DecksPanel({
             onClick={addDeck}
             disabled={value.decks.length >= 25}
           >
-            New deck
+            {t('New deck')}
           </button>
         )
       }
     >
       <Row
-        title="Community deck"
-        sub={`${members === 1 ? '1 member' : `${amount(members)} members`} opted in with ${prefix}cards optin`}
+        title={t('Community deck')}
+        sub={t('{members} opted in with {command}', {
+          members: t.plural(members, '{n} member', '{n} members'),
+          command: `${prefix}cards optin`,
+        })}
         leading={<span aria-hidden="true" style={thumb(legendary)} />}
       >
         <Switch
-          label={`Community deck ${value.community.enabled ? 'on' : 'off'}`}
+          label={value.community.enabled ? t('Community deck on') : t('Community deck off')}
           checked={value.community.enabled}
           onChange={(enabled) => set({ community: { ...value.community, enabled } })}
         />
@@ -544,7 +559,7 @@ function DecksPanel({
           <Row
             key={deck.id}
             title={deck.name}
-            sub={`${list.length === 1 ? '1 card' : `${amount(list.length)} cards`}${retired > 0 ? `, ${retired} retired` : ''}`}
+            sub={`${cardCount(t, list.length)}${retired > 0 ? `, ${t('{count} retired', { count: retired })}` : ''}`}
             leading={
               <span aria-hidden="true" style={thumb(accents[i % accents.length] ?? '#8A8F98')} />
             }
@@ -553,13 +568,17 @@ function DecksPanel({
               type="button"
               className="mx-btn mx-btn-ghost"
               aria-pressed={editing === deck.id}
-              aria-label={`Cards in ${deck.name}`}
+              aria-label={t('Cards in {deck}', { deck: deck.name })}
               onClick={() => setEditing(editing === deck.id ? null : deck.id)}
             >
-              Cards
+              {t('Cards')}
             </button>
             <Switch
-              label={`${deck.name} ${deck.enabled ? 'on' : 'off'}`}
+              label={
+                deck.enabled
+                  ? t('{name} on', { name: deck.name })
+                  : t('{name} off', { name: deck.name })
+              }
               checked={deck.enabled}
               onChange={(enabled) =>
                 set({
@@ -577,19 +596,20 @@ function DecksPanel({
 }
 
 function RarityPanel() {
+  const t = useT();
   const { value, set } = useDraft<CollectionConfig>();
   const readOnly = useReadOnly();
-  const shares = tierShares(value.tiers);
+  const shares = tierShares(t, value.tiers);
   const days = activityDays.includes(value.community.activityDays)
     ? activityDays
     : [...activityDays, value.community.activityDays].sort((a, b) => a - b);
 
   return (
     <Panel
-      title="Rarity"
+      title={t('Rarity')}
       span={7}
       id="rarity"
-      actions={<span className="mx-sub">Member cards follow activity</span>}
+      actions={<span className="mx-sub">{t('Member cards follow activity')}</span>}
     >
       {value.tiers.map((tier, i) => (
         <div key={tier.id} className="mx-row">
@@ -619,7 +639,7 @@ function RarityPanel() {
             }}
           />
           <span className="mx-mono" style={{ width: 44, textAlign: 'right' }}>
-            {`${(shares[i]?.share ?? 0) < 1 ? (shares[i]?.share ?? 0).toFixed(1) : Math.round(shares[i]?.share ?? 0)}%`}
+            {`${(shares[i]?.share ?? 0) < 1 ? (shares[i]?.share ?? 0).toLocaleString(t.locale, { maximumFractionDigits: 1, minimumFractionDigits: 1 }) : Math.round(shares[i]?.share ?? 0)}%`}
           </span>
           <span className="mx-sub" style={{ width: 150 }}>
             {shares[i]?.who}
@@ -628,10 +648,13 @@ function RarityPanel() {
       ))}
       <div className="mx-panel-body" style={line}>
         <Fields>
-          <Field label="Activity counted over">
+          <Field label={t('Activity counted over')}>
             <Select
               value={String(value.community.activityDays)}
-              options={days.map((day) => ({ value: String(day), label: `Last ${day} days` }))}
+              options={days.map((day) => ({
+                value: String(day),
+                label: t('Last {count} days', { count: day }),
+              }))}
               onChange={(next) =>
                 set({ community: { ...value.community, activityDays: Number(next) } })
               }
@@ -644,17 +667,18 @@ function RarityPanel() {
 }
 
 function DropsPanel({ prefix }: { prefix: string }) {
+  const t = useT();
   const { value, set } = useDraft<CollectionConfig>();
   const drops = value.drops;
 
   return (
     <Panel
-      title="Drops"
+      title={t('Drops')}
       span={5}
       id="drops"
       actions={
         <Switch
-          label={`Drops ${drops.enabled ? 'on' : 'off'}`}
+          label={drops.enabled ? t('Drops on') : t('Drops off')}
           checked={drops.enabled}
           onChange={(enabled) => set({ drops: { ...drops, enabled } })}
         />
@@ -662,17 +686,17 @@ function DropsPanel({ prefix }: { prefix: string }) {
     >
       <PanelBody>
         <div className="mx-field">
-          <span className="mx-label">Channels</span>
+          <span className="mx-label">{t('Channels')}</span>
           <ChannelMulti
             value={drops.channelIds}
             onChange={(channelIds) => set({ drops: { ...drops, channelIds } })}
           />
         </div>
         <Fields>
-          <Field label="Drop after (messages)">
+          <Field label={t('Drop after (messages)')}>
             <OptionalNumber
               integer
-              label="Drop after (messages)"
+              label={t('Drop after (messages)')}
               value={drops.everyMessages}
               placeholder="50"
               min={5}
@@ -681,10 +705,10 @@ function DropsPanel({ prefix }: { prefix: string }) {
               }
             />
           </Field>
-          <Field label="At most every (minutes)">
+          <Field label={t('At most every (minutes)')}>
             <OptionalNumber
               integer
-              label="At most every (minutes)"
+              label={t('At most every (minutes)')}
               value={drops.minMinutes}
               placeholder="15"
               min={1}
@@ -693,10 +717,10 @@ function DropsPanel({ prefix }: { prefix: string }) {
               }
             />
           </Field>
-          <Field label="Claim window (minutes)">
+          <Field label={t('Claim window (minutes)')}>
             <OptionalNumber
               integer
-              label="Claim window (minutes)"
+              label={t('Claim window (minutes)')}
               value={drops.claimMinutes}
               placeholder="10"
               min={1}
@@ -709,7 +733,13 @@ function DropsPanel({ prefix }: { prefix: string }) {
         <div className="mx-preview">
           <MessagePreview
             avatarSize={30}
-            content={`**A card dropped**\n-# First to type \`${prefix}claim\` gets it. Gone in ${plural(drops.claimMinutes, 'minute')}.`}
+            content={t(
+              '**A card dropped**\n-# First to type `{command}` gets it. Gone in {span}.',
+              {
+                command: `${prefix}claim`,
+                span: t.plural(drops.claimMinutes, '{n} minute', '{n} minutes'),
+              },
+            )}
           />
         </div>
       </PanelBody>
@@ -718,37 +748,42 @@ function DropsPanel({ prefix }: { prefix: string }) {
 }
 
 function PacksPanel({ currency }: { currency: { name: string; symbol: string } }) {
+  const t = useT();
   const { value, set, readOnly } = useDraft<CollectionConfig>();
   const packs = value.packs;
   const decks = [
-    { value: '', label: 'All decks' },
-    { value: COMMUNITY_DECK, label: 'Community' },
+    { value: '', label: t('All decks') },
+    { value: COMMUNITY_DECK, label: t('Community') },
     ...value.decks.map((deck) => ({ value: deck.id, label: deck.name })),
   ];
   const guarantees = [
-    { value: '', label: 'Nothing' },
-    ...value.tiers.slice(1).map((tier) => ({ value: tier.id, label: `${tier.name} or better` })),
+    { value: '', label: t('Nothing') },
+    ...value.tiers
+      .slice(1)
+      .map((tier) => ({ value: tier.id, label: t('{rarity} or better', { rarity: tier.name }) })),
   ];
   const patch = (id: string, next: Partial<CardPack>) =>
     set({ packs: packs.map((pack) => (pack.id === id ? { ...pack, ...next } : pack)) });
 
   const add = () => {
     if (packs.length >= 20) return;
-    set({ packs: [...packs, newPack(packs)] });
+    set({ packs: [...packs, newPack(t, packs)] });
   };
 
   return (
     <Panel
-      title="Packs"
+      title={t('Packs')}
       span={12}
       id="packs"
       actions={
         packs.length === 0 ? null : (
           <>
-            <span className="mx-sub">{`Bought with ${currency.name}`}</span>
+            <span className="mx-sub">
+              {t('Bought with {currency}', { currency: currency.name })}
+            </span>
             {readOnly ? null : (
               <button type="button" className="mx-btn" onClick={add} disabled={packs.length >= 20}>
-                New pack
+                {t('New pack')}
               </button>
             )}
           </>
@@ -761,26 +796,26 @@ function PacksPanel({ currency }: { currency: { name: string; symbol: string } }
           action={
             readOnly ? null : (
               <button type="button" className="mx-btn mx-btn-primary" onClick={add}>
-                New pack
+                {t('New pack')}
               </button>
             )
           }
         >
-          No packs yet.
+          {t('No packs yet.')}
         </Invite>
       ) : (
         <div className="mx-scroll">
           <table className="mx-table">
             <thead>
               <tr>
-                <th scope="col">Pack</th>
-                <th scope="col">{`Price (${currency.symbol})`}</th>
-                <th scope="col">Cards</th>
-                <th scope="col">Last card at least</th>
-                <th scope="col">From</th>
-                <th scope="col">For sale</th>
+                <th scope="col">{t('Pack')}</th>
+                <th scope="col">{t('Price ({symbol})', { symbol: currency.symbol })}</th>
+                <th scope="col">{t('Cards')}</th>
+                <th scope="col">{t('Last card at least')}</th>
+                <th scope="col">{t('From')}</th>
+                <th scope="col">{t('For sale')}</th>
                 <th scope="col">
-                  <span className="mx-sr">Remove</span>
+                  <span className="mx-sr">{t('Remove')}</span>
                 </th>
               </tr>
             </thead>
@@ -789,7 +824,7 @@ function PacksPanel({ currency }: { currency: { name: string; symbol: string } }
                 <tr key={pack.id}>
                   <td style={{ minWidth: 160 }}>
                     <TextInput
-                      label={`${pack.name} name`}
+                      label={t('{name} name', { name: pack.name })}
                       value={pack.name}
                       maxLength={64}
                       onChange={(name) => patch(pack.id, { name })}
@@ -797,7 +832,7 @@ function PacksPanel({ currency }: { currency: { name: string; symbol: string } }
                   </td>
                   <td>
                     <Small
-                      label={`${pack.name} price`}
+                      label={t('{name} price', { name: pack.name })}
                       value={pack.price}
                       width={96}
                       onChange={(price) => patch(pack.id, { price })}
@@ -805,7 +840,7 @@ function PacksPanel({ currency }: { currency: { name: string; symbol: string } }
                   </td>
                   <td>
                     <Small
-                      label={`${pack.name} size`}
+                      label={t('{name} size', { name: pack.name })}
                       value={pack.size}
                       min={1}
                       max={10}
@@ -815,7 +850,7 @@ function PacksPanel({ currency }: { currency: { name: string; symbol: string } }
                   </td>
                   <td style={{ minWidth: 150 }}>
                     <Select
-                      label={`${pack.name} guarantee`}
+                      label={t('{name} guarantee', { name: pack.name })}
                       value={pack.guaranteed ?? ''}
                       options={guarantees}
                       onChange={(next) => patch(pack.id, { guaranteed: next || null })}
@@ -823,19 +858,23 @@ function PacksPanel({ currency }: { currency: { name: string; symbol: string } }
                   </td>
                   <td style={{ minWidth: 140 }}>
                     <Select
-                      label={`${pack.name} deck`}
+                      label={t('{name} deck', { name: pack.name })}
                       value={pack.deckId ?? ''}
                       options={
                         decks.some((deck) => deck.value === (pack.deckId ?? ''))
                           ? decks
-                          : [...decks, { value: pack.deckId ?? '', label: 'Deleted deck' }]
+                          : [...decks, { value: pack.deckId ?? '', label: t('Deleted deck') }]
                       }
                       onChange={(next) => patch(pack.id, { deckId: next || null })}
                     />
                   </td>
                   <td>
                     <Switch
-                      label={`${pack.name} ${pack.enabled ? 'for sale' : 'hidden'}`}
+                      label={
+                        pack.enabled
+                          ? t('{name} for sale', { name: pack.name })
+                          : t('{name} hidden', { name: pack.name })
+                      }
                       checked={pack.enabled}
                       onChange={(enabled) => patch(pack.id, { enabled })}
                     />
@@ -845,12 +884,12 @@ function PacksPanel({ currency }: { currency: { name: string; symbol: string } }
                       <button
                         type="button"
                         className="mx-btn mx-btn-ghost"
-                        aria-label={`Remove ${pack.name}`}
+                        aria-label={t('Remove {name}', { name: pack.name })}
                         onClick={() =>
                           set({ packs: packs.filter((entry) => entry.id !== pack.id) })
                         }
                       >
-                        Remove
+                        {t('Remove')}
                       </button>
                     )}
                   </td>
@@ -877,48 +916,49 @@ function SetsPanel({
   selected: string | null;
   setSelected: (id: string | null) => void;
 }) {
+  const t = useT();
   const { value, set, readOnly } = useDraft<CollectionConfig>();
   const { roles } = useGuild();
   const sets = value.sets;
   const current = sets.find((entry) => entry.id === selected) ?? null;
   const deckName = (id: string | null) =>
     id === COMMUNITY_DECK
-      ? 'Community'
-      : (value.decks.find((deck) => deck.id === id)?.name ?? 'Deleted deck');
-  const cardName = (id: string) => cards.find((card) => card.id === id)?.name ?? 'Deleted card';
+      ? t('Community')
+      : (value.decks.find((deck) => deck.id === id)?.name ?? t('Deleted deck'));
+  const cardName = (id: string) => cards.find((card) => card.id === id)?.name ?? t('Deleted card');
 
   const patch = (id: string, next: Partial<CardSet>) =>
     set({ sets: sets.map((entry) => (entry.id === id ? { ...entry, ...next } : entry)) });
 
   const add = () => {
     if (sets.length >= 50) return;
-    const entry = newSet(sets);
+    const entry = newSet(t, sets);
     set({ sets: [...sets, entry] });
     setSelected(entry.id);
   };
 
   const reward = (entry: CardSet) => {
     const role = entry.rewardRoleId
-      ? (roles.find((r) => r.id === entry.rewardRoleId)?.name ?? 'Deleted role')
+      ? (roles.find((r) => r.id === entry.rewardRoleId)?.name ?? t('Deleted role'))
       : null;
     const parts = [
-      entry.rewardAmount > 0 ? `${amount(entry.rewardAmount)} ${currency.symbol}` : null,
-      role ? `Role ${role}` : null,
+      entry.rewardAmount > 0 ? `${t.count(entry.rewardAmount)} ${currency.symbol}` : null,
+      role ? t('Role {name}', { name: role }) : null,
     ].filter(Boolean);
-    return parts.length > 0 ? parts.join(', ') : 'No reward';
+    return parts.length > 0 ? parts.join(', ') : t('No reward');
   };
 
   const available = cards.filter((card) => !current?.cardIds.includes(card.id));
 
   return (
     <Panel
-      title="Sets"
+      title={t('Sets')}
       span={12}
       id="sets"
       actions={
         readOnly || sets.length === 0 ? null : (
           <button type="button" className="mx-btn" onClick={add} disabled={sets.length >= 50}>
-            New set
+            {t('New set')}
           </button>
         )
       }
@@ -929,12 +969,12 @@ function SetsPanel({
           action={
             readOnly ? null : (
               <button type="button" className="mx-btn mx-btn-primary" onClick={add}>
-                New set
+                {t('New set')}
               </button>
             )
           }
         >
-          No sets yet.
+          {t('No sets yet.')}
         </Invite>
       ) : null}
       {sets.map((entry) => (
@@ -947,61 +987,59 @@ function SetsPanel({
             <span className="mx-row-title">{entry.name}</span>
             <span className="mx-sub">
               {entry.deckId
-                ? `Every card in ${deckName(entry.deckId)}`
-                : entry.cardIds.length === 1
-                  ? '1 card'
-                  : `${entry.cardIds.length} cards`}
+                ? t('Every card in {deck}', { deck: deckName(entry.deckId) })
+                : cardCount(t, entry.cardIds.length)}
             </span>
           </div>
           <span className="mx-chip">{reward(entry)}</span>
           <span className="mx-sub" style={{ width: 70, textAlign: 'right' }}>
-            {`${amount(done[entry.id] ?? 0)} done`}
+            {t('{count} done', { count: done[entry.id] ?? 0 })}
           </span>
           <button
             type="button"
             className="mx-btn mx-btn-ghost"
-            aria-label={`Edit ${entry.name}`}
+            aria-label={t('Edit {name}', { name: entry.name })}
             aria-pressed={entry.id === selected}
             onClick={() => setSelected(entry.id === selected ? null : entry.id)}
           >
-            Edit
+            {t('Edit')}
           </button>
         </div>
       ))}
       {current ? (
         <div className="mx-panel-body" style={line}>
           <Fields>
-            <Field label="Name">
+            <Field label={t('Name')}>
               <TextInput
                 value={current.name}
                 maxLength={64}
                 onChange={(name) => patch(current.id, { name })}
               />
             </Field>
-            <Field label="Cards">
+            <Field label={t('Cards')}>
               <Select
                 value={current.deckId ?? ''}
                 options={[
-                  { value: '', label: 'Picked by hand' },
-                  { value: COMMUNITY_DECK, label: 'Every community card' },
+                  { value: '', label: t('Picked by hand') },
+                  { value: COMMUNITY_DECK, label: t('Every community card') },
                   ...value.decks.map((deck) => ({
                     value: deck.id,
-                    label: `Every card in ${deck.name}`,
+                    label: t('Every card in {deck}', { deck: deck.name }),
                   })),
                 ]}
                 onChange={(next) => patch(current.id, { deckId: next || null })}
               />
             </Field>
-            <Field label={`Reward (${currency.symbol})`}>
+            <Field label={t('Reward ({symbol})', { symbol: currency.symbol })}>
               <OptionalNumber
                 integer
-                label="Reward amount"
+                label={t('Reward amount')}
                 value={current.rewardAmount}
                 placeholder="0"
                 onChange={(next) => patch(current.id, { rewardAmount: next ?? 0 })}
               />
             </Field>
-            <Field label="Reward role">
+            <Field label={t('Reward role')}>
               <RoleSelect
                 value={current.rewardRoleId}
                 onChange={(rewardRoleId) => patch(current.id, { rewardRoleId })}
@@ -1010,7 +1048,7 @@ function SetsPanel({
           </Fields>
           {current.deckId ? null : (
             <div className="mx-field">
-              <span className="mx-label">Picked cards</span>
+              <span className="mx-label">{t('Picked cards')}</span>
               <div className="mx-chips">
                 {current.cardIds.map((id) => (
                   <span key={id} className="mx-chip">
@@ -1019,7 +1057,7 @@ function SetsPanel({
                       <button
                         type="button"
                         className="mx-chip-x"
-                        aria-label={`Remove ${cardName(id)}`}
+                        aria-label={t('Remove {name}', { name: cardName(id) })}
                         onClick={() =>
                           patch(current.id, {
                             cardIds: current.cardIds.filter((entry) => entry !== id),
@@ -1033,7 +1071,7 @@ function SetsPanel({
                 ))}
                 {readOnly || available.length === 0 || current.cardIds.length >= 100 ? null : (
                   <AddPicker
-                    label="Add card"
+                    label={t('Add card')}
                     options={available.map((card) => ({
                       value: card.id,
                       label: card.name,
@@ -1043,7 +1081,7 @@ function SetsPanel({
                   />
                 )}
                 {readOnly && current.cardIds.length === 0 ? (
-                  <span className="mx-sub">None</span>
+                  <span className="mx-sub">{t('None')}</span>
                 ) : null}
               </div>
             </div>
@@ -1058,7 +1096,7 @@ function SetsPanel({
                   setSelected(null);
                 }}
               >
-                Remove set
+                {t('Remove set')}
               </button>
             </div>
           )}
@@ -1070,21 +1108,25 @@ function SetsPanel({
 
 function TradingPanel({ currency, prefix }: { currency: { name: string }; prefix: string }) {
   const { guildId } = useGuild();
+  const t = useT();
   const { value, set } = useDraft<CollectionConfig>();
   const trading = value.trading;
 
   return (
-    <Panel title="Trading" span={12} id="trading">
-      <Row title="Allow trades" sub={`${prefix}cards trade, both sides confirm`}>
+    <Panel title={t('Trading')} span={12} id="trading">
+      <Row
+        title={t('Allow trades')}
+        sub={t('{command}, both sides confirm', { command: `${prefix}cards trade` })}
+      >
         <Switch
-          label={`Trades ${trading.enabled ? 'on' : 'off'}`}
+          label={trading.enabled ? t('Trades on') : t('Trades off')}
           checked={trading.enabled}
           onChange={(enabled) => set({ trading: { ...trading, enabled } })}
         />
       </Row>
-      <Row title="Cards per side">
+      <Row title={t('Cards per side')}>
         <Small
-          label="Cards per side"
+          label={t('Cards per side')}
           value={trading.maxCards}
           min={1}
           max={10}
@@ -1093,9 +1135,9 @@ function TradingPanel({ currency, prefix }: { currency: { name: string }; prefix
           }
         />
       </Row>
-      <Row title="Offers stay open">
+      <Row title={t('Offers stay open')}>
         <Small
-          label="Offers stay open (minutes)"
+          label={t('Offers stay open (minutes)')}
           value={trading.expiryMinutes}
           min={1}
           max={60}
@@ -1107,10 +1149,10 @@ function TradingPanel({ currency, prefix }: { currency: { name: string }; prefix
       </Row>
       <div className="mx-row">
         <span className="mx-sub" style={{ flex: 1 }}>
-          {`Packs and set rewards use ${currency.name}.`}
+          {t('Packs and set rewards use {currency}.', { currency: currency.name })}
         </span>
         <a className="mx-btn mx-btn-ghost" href={`/g/${guildId}/economy`}>
-          Economy
+          {t('Economy')}
         </a>
       </div>
     </Panel>
@@ -1134,6 +1176,7 @@ export function CollectionForm({
   currency: { name: string; symbol: string };
   sample: Sample;
 }) {
+  const t = useT();
   const { value, set, readOnly } = useDraft<CollectionConfig>();
   const [cards, setCards] = useState(initialCards);
   const [editing, setEditing] = useState<string | null>(null);
@@ -1156,31 +1199,38 @@ export function CollectionForm({
         quiet={quiet}
         stats={[
           {
-            label: 'Cards claimed',
-            value: amount(overview.claimed),
-            note: `${amount(overview.claimedWeek)} new this week`,
+            label: t('Cards claimed'),
+            value: t.count(overview.claimed),
+            note: t('{count} new this week', { count: overview.claimedWeek }),
           },
           {
-            label: 'Collectors',
-            value: amount(overview.collectors),
+            label: t('Collectors'),
+            value: t.count(overview.collectors),
             note:
               memberCount && memberCount > 0
-                ? `${Math.round((overview.collectors / memberCount) * 100)}% of members`
-                : `${amount(overview.members)} member cards`,
+                ? t('{percent}% of members', {
+                    percent: Math.round((overview.collectors / memberCount) * 100),
+                  })
+                : t.plural(overview.members, '{n} member card', '{n} member cards'),
           },
           {
-            label: 'Trades, 7 days',
-            value: amount(overview.tradesWeek),
-            note: value.trading.enabled ? 'Trading is on' : 'Trading is off',
+            label: t('Trades, 7 days'),
+            value: t.count(overview.tradesWeek),
+            note: value.trading.enabled ? t('Trading is on') : t('Trading is off'),
           },
           {
-            label: 'Sets completed',
-            value: amount(setsDone),
-            note: topSet && topSetName ? `${topSetName}: ${amount(topSet[1])}` : undefined,
+            label: t('Sets completed'),
+            value: t.count(setsDone),
+            note: topSet && topSetName ? `${topSetName}: ${t.count(topSet[1])}` : undefined,
           },
         ]}
       />
-      <Tabs label="Collection" value={tab} options={tabs} onChange={setTab} />
+      <Tabs
+        label={t('Collection')}
+        value={tab}
+        options={tabs.map((entry) => ({ ...entry, label: t(entry.label) }))}
+        onChange={setTab}
+      />
       {tab === 'decks' ? (
         <Grid>
           <DecksPanel
@@ -1211,7 +1261,7 @@ export function CollectionForm({
       {tab === 'shop' ? (
         <Grid>
           {bare ? (
-            <Panel title="Packs and sets" span={12} id="packs">
+            <Panel title={t('Packs and sets')} span={12} id="packs">
               <Invite
                 mood="sleeping"
                 action={
@@ -1220,26 +1270,26 @@ export function CollectionForm({
                       <button
                         type="button"
                         className="mx-btn mx-btn-primary"
-                        onClick={() => set({ packs: [newPack(value.packs)] })}
+                        onClick={() => set({ packs: [newPack(t, value.packs)] })}
                       >
-                        New pack
+                        {t('New pack')}
                       </button>
                       <button
                         type="button"
                         className="mx-btn"
                         onClick={() => {
-                          const entry = newSet(value.sets);
+                          const entry = newSet(t, value.sets);
                           set({ sets: [entry] });
                           setSelectedSet(entry.id);
                         }}
                       >
-                        New set
+                        {t('New set')}
                       </button>
                     </>
                   )
                 }
               >
-                No packs or sets yet.
+                {t('No packs or sets yet.')}
               </Invite>
             </Panel>
           ) : (

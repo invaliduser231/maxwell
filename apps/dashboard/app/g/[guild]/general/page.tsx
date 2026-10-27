@@ -1,12 +1,12 @@
 import { builtinCommands, generalConfig } from '@maxwell/core';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
 import { db } from '@/lib/db';
 import { botProfile } from '@/lib/fluxer';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { GeneralForm } from './general-form';
 
-export const metadata: Metadata = { title: 'General' };
+export const generateMetadata = titled('General');
 
 export default async function GeneralPage({ params }: { params: Promise<{ guild: string }> }) {
   const { guild } = await params;

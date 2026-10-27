@@ -16,13 +16,15 @@ import {
   useRoleOptions,
 } from '@/components/controls';
 import { useChannelName, useGuild, useRoleName } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { EmbedPreview, MessagePreview } from '@/components/message-preview';
 import { useDraft } from '@/components/module-shell';
 import { failed, type Status, StatusText, sorted } from '@/components/status-text';
 import { TwoStep } from '@/components/two-step';
 import { Field, Fields, Grid, Panel, PanelBody, roleColor } from '@/components/ui';
 import { runAction } from '@/lib/actions';
-import { DAY, duration, fullDate, plural, relative } from '@/lib/time';
+import type { Key, Translator } from '@/lib/i18n';
+import { DAY, duration, fullDate, relative } from '@/lib/time';
 
 interface Active {
   id: string;
@@ -53,28 +55,23 @@ interface Ended {
 
 const MAX_LENGTH = 60 * DAY;
 
-const starts = [
+const starts: { value: 'now' | 'later'; label: Key }[] = [
   { value: 'now', label: 'Now' },
   { value: 'later', label: 'Later' },
-] as const;
+];
 
-const endModes = [
+const endModes: { value: 'after' | 'at'; label: Key }[] = [
   { value: 'after', label: 'After' },
   { value: 'at', label: 'At' },
-] as const;
+];
 
 function localMs(value: string, timezone: string): number {
   const local = parseLocalDateTime(value);
   return local ? fromLocal(local, timezone) : Number.NaN;
 }
 
-function entryCount(n: number): string {
-  return n === 1 ? '1 entry' : `${n.toLocaleString('en-US')} entries`;
-}
-
-function names(list: readonly string[]): string {
-  if (list.length <= 1) return list[0] ?? '';
-  return `${list.slice(0, -1).join(', ')} and ${list.at(-1)}`;
+function entryCount(t: Translator, n: number): string {
+  return t.plural(n, '{n} entry', '{n} entries');
 }
 
 function useJob() {
@@ -111,19 +108,23 @@ function useJob() {
 }
 
 function ActivePanel({ active, now }: { active: Active[]; now: number }) {
+  const t = useT();
   const channelName = useChannelName();
   const roleName = useRoleName();
   const readOnly = useDraft<GiveawaysConfig>().readOnly;
   const { busy, error, run } = useJob();
   const running = active.filter((item) => item.status === 'running').length;
   const planned = active.length - running;
-  const summary = [running ? `${running} running` : '', planned ? `${planned} planned` : '']
+  const summary = [
+    running ? t('{count} running', { count: running }) : '',
+    planned ? t('{count} planned', { count: planned }) : '',
+  ]
     .filter(Boolean)
     .join(', ');
 
   return (
     <Panel
-      title="Running and planned"
+      title={t('Running and planned')}
       actions={
         <>
           <StatusText status={error ? failed(error) : null} />
@@ -135,14 +136,14 @@ function ActivePanel({ active, now }: { active: Active[]; now: number }) {
         <table className="mx-table">
           <thead>
             <tr>
-              <th scope="col">Prize</th>
-              <th scope="col">Channel</th>
-              <th scope="col">Ends</th>
-              <th scope="col">Entries</th>
-              <th scope="col">Winners</th>
-              <th scope="col">Requirements</th>
+              <th scope="col">{t('Prize')}</th>
+              <th scope="col">{t('Channel')}</th>
+              <th scope="col">{t('Ends')}</th>
+              <th scope="col">{t('Entries')}</th>
+              <th scope="col">{t('Winners')}</th>
+              <th scope="col">{t('Requirements')}</th>
               <th scope="col">
-                <span className="mx-sr">Actions</span>
+                <span className="mx-sr">{t('Actions')}</span>
               </th>
             </tr>
           </thead>
@@ -151,9 +152,9 @@ function ActivePanel({ active, now }: { active: Active[]; now: number }) {
               const scheduled = item.status === 'scheduled';
               const requirements = [
                 item.requiredRoleId ? roleName(item.requiredRoleId) : '',
-                item.excludedRoleId ? `Not ${roleName(item.excludedRoleId)}` : '',
-                item.minLevel > 0 ? `Level ${item.minLevel}` : '',
-                item.minMemberDays > 0 ? plural(item.minMemberDays, 'day') : '',
+                item.excludedRoleId ? t('Not {role}', { role: roleName(item.excludedRoleId) }) : '',
+                item.minLevel > 0 ? t('Level {level}', { level: item.minLevel }) : '',
+                item.minMemberDays > 0 ? t.plural(item.minMemberDays, '{n} day', '{n} days') : '',
               ].filter(Boolean);
               return (
                 <tr key={item.id}>
@@ -162,22 +163,22 @@ function ActivePanel({ active, now }: { active: Active[]; now: number }) {
                     <span style={{ fontWeight: 600 }}>{item.prize}</span>
                     {scheduled ? (
                       <span className="mx-chip" style={{ marginLeft: 8 }}>
-                        Planned
+                        {t('Planned')}
                       </span>
                     ) : null}
                   </td>
                   <td>{channelName(item.channelId)}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>
                     {scheduled
-                      ? `starts ${relative(item.startsAt, now)}`
-                      : relative(item.endsAt, now)}
+                      ? t('starts {when}', { when: relative(t, item.startsAt, now) })
+                      : relative(t, item.endsAt, now)}
                   </td>
-                  <td>{item.entries.toLocaleString('en-US')}</td>
+                  <td>{t.count(item.entries)}</td>
                   <td>{item.winners}</td>
                   <td>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {requirements.length === 0 ? (
-                        <span className="mx-sub">None</span>
+                        <span className="mx-sub">{t('None')}</span>
                       ) : (
                         requirements.map((entry) => (
                           <span key={entry} className="mx-chip">
@@ -194,17 +195,19 @@ function ActivePanel({ active, now }: { active: Active[]; now: number }) {
                       <>
                         {scheduled ? null : (
                           <TwoStep
-                            label="End now"
+                            label={t('End now')}
                             ghost
-                            confirm="Click again to end"
-                            run={() => run(item.id, 'Ending', 'end', { giveawayId: item.id })}
+                            confirm={t('Click again to end')}
+                            run={() => run(item.id, t('Ending'), 'end', { giveawayId: item.id })}
                           />
                         )}
                         <TwoStep
-                          label="Cancel"
+                          label={t('Cancel')}
                           ghost
-                          confirm="Click again to cancel"
-                          run={() => run(item.id, 'Cancelling', 'cancel', { giveawayId: item.id })}
+                          confirm={t('Click again to cancel')}
+                          run={() =>
+                            run(item.id, t('Cancelling'), 'cancel', { giveawayId: item.id })
+                          }
                         />
                       </>
                     )}
@@ -272,6 +275,7 @@ function NewGiveaway({
   setForm: (patch: Partial<Draft>) => void;
   now: number;
 }) {
+  const t = useT();
   const { readOnly } = useDraft<GiveawaysConfig>();
   const { roles, timezone } = useGuild();
   const { run } = useJob();
@@ -282,24 +286,24 @@ function NewGiveaway({
   const [more, setMore] = useState(false);
   const { start, end, length } = timing(form, timezone, Date.now());
   const errors = {
-    prize: form.prize.trim() ? null : 'Name the prize.',
-    channel: form.channelId ? null : 'Pick a channel.',
+    prize: form.prize.trim() ? null : t('Name the prize.'),
+    channel: form.channelId ? null : t('Pick a channel.'),
     winners:
       Number.isInteger(form.winners) && form.winners >= 1 && form.winners <= 50
         ? null
-        : 'Pick 1 to 50 winners.',
+        : t('Pick 1 to 50 winners.'),
     start:
       form.later && (!Number.isFinite(start) || start <= Date.now())
-        ? 'Pick a start in the future.'
+        ? t('Pick a start in the future.')
         : null,
     end: !Number.isFinite(end)
-      ? 'Pick an end time.'
+      ? t('Pick an end time.')
       : end - start < 60_000
         ? form.endMode === 'at'
-          ? 'Pick an end at least a minute after the start.'
-          : 'Run it for at least a minute.'
+          ? t('Pick an end at least a minute after the start.')
+          : t('Run it for at least a minute.')
         : end - start > MAX_LENGTH
-          ? 'Giveaways can run for 60 days at most.'
+          ? t('Giveaways can run for 60 days at most.')
           : null,
   };
   const shown = tried
@@ -336,7 +340,7 @@ function NewGiveaway({
     if (failure === null) {
       setForm({ prize: '', description: '' });
       setTried(false);
-      setStatus(sorted(form.later ? 'Planned.' : 'Starting.'));
+      setStatus(sorted(form.later ? t('Planned.') : t('Starting.')));
     } else {
       setStatus(failed(failure));
     }
@@ -344,7 +348,7 @@ function NewGiveaway({
 
   return (
     <Panel
-      title="New giveaway"
+      title={t('New giveaway')}
       span={7}
       actions={
         readOnly ? null : (
@@ -356,7 +360,7 @@ function NewGiveaway({
               disabled={pending}
               onClick={startGiveaway}
             >
-              {form.later ? 'Plan' : 'Start'}
+              {form.later ? t('Plan') : t('Start')}
             </button>
           </>
         )
@@ -365,7 +369,7 @@ function NewGiveaway({
       <PanelBody>
         <Fields>
           <div style={{ gridColumn: '1 / -1' }}>
-            <Field label="Prize">
+            <Field label={t('Prize')}>
               <TextInput
                 value={form.prize}
                 maxLength={256}
@@ -377,7 +381,7 @@ function NewGiveaway({
               <FieldError text={shown.prize} />
             </Field>
           </div>
-          <Field label="Channel">
+          <Field label={t('Channel')}>
             <ChannelSelect
               value={form.channelId}
               none={null}
@@ -385,7 +389,7 @@ function NewGiveaway({
             />
             <FieldError text={shown.channel} />
           </Field>
-          <Field label="Winners">
+          <Field label={t('Winners')}>
             <NumberInput
               value={form.winners}
               min={1}
@@ -395,12 +399,12 @@ function NewGiveaway({
             <FieldError text={shown.winners} />
           </Field>
           <div className="mx-field mx-field-wide">
-            <span className="mx-label">Start</span>
+            <span className="mx-label">{t('Start')}</span>
             <div className="mx-when">
               <Seg
-                label="Start"
+                label={t('Start')}
                 value={form.later ? 'later' : 'now'}
-                options={starts}
+                options={starts.map((entry) => ({ ...entry, label: t(entry.label) }))}
                 onChange={(next) =>
                   setForm({
                     later: next === 'later',
@@ -412,7 +416,7 @@ function NewGiveaway({
                 <input
                   type="datetime-local"
                   className="mx-input"
-                  aria-label="Starts at"
+                  aria-label={t('Starts at')}
                   value={form.startsAt}
                   readOnly={readOnly}
                   onChange={(event) => setForm({ startsAt: event.target.value })}
@@ -422,12 +426,12 @@ function NewGiveaway({
             <FieldError text={shown.start} />
           </div>
           <div className="mx-field mx-field-wide">
-            <span className="mx-label">Ends</span>
+            <span className="mx-label">{t('Ends')}</span>
             <div className="mx-when">
               <Seg
-                label="Ends"
+                label={t('Ends')}
                 value={form.endMode}
-                options={endModes}
+                options={endModes.map((entry) => ({ ...entry, label: t(entry.label) }))}
                 onChange={(endMode) =>
                   setForm({
                     endMode,
@@ -441,7 +445,7 @@ function NewGiveaway({
                 <input
                   type="datetime-local"
                   className="mx-input"
-                  aria-label="Ends at"
+                  aria-label={t('Ends at')}
                   value={form.endsAt}
                   readOnly={readOnly}
                   onChange={(event) => setForm({ endsAt: event.target.value })}
@@ -452,23 +456,23 @@ function NewGiveaway({
                     value={form.days}
                     min={0}
                     max={60}
-                    label="Days"
-                    suffix="d"
+                    label={t('Days')}
+                    suffix={t('d')}
                     onChange={(days) => setForm({ days: Math.max(0, Math.round(days)) })}
                   />
                   <NumberInput
                     value={form.hours}
                     min={0}
                     max={23}
-                    label="Hours"
-                    suffix="h"
+                    label={t('Hours')}
+                    suffix={t('h')}
                     onChange={(hours) => setForm({ hours: Math.max(0, Math.round(hours)) })}
                   />
                   <NumberInput
                     value={form.minutes}
                     min={0}
                     max={59}
-                    label="Minutes"
+                    label={t('Minutes')}
                     suffix="min"
                     onChange={(minutes) => setForm({ minutes: Math.max(0, Math.round(minutes)) })}
                   />
@@ -480,8 +484,8 @@ function NewGiveaway({
             ) : Number.isFinite(end) && !errors.end ? (
               <span className="mx-sub">
                 {form.endMode === 'at'
-                  ? `Runs for ${duration(end - start)}`
-                  : `Ends ${fullDate(end, timezone)}`}
+                  ? t('Runs for {span}', { span: duration(t, end - start) })
+                  : t('Ends {when}', { when: fullDate(t, end, timezone) })}
               </span>
             ) : null}
           </div>
@@ -493,17 +497,17 @@ function NewGiveaway({
             aria-expanded={more}
             onClick={() => setMore(!more)}
           >
-            {more ? 'Fewer options' : 'More options'}
+            {more ? t('Fewer options') : t('More options')}
           </button>
           {!more && extras > 0 ? (
-            <span className="mx-sub">{plural(extras, 'option')} set</span>
+            <span className="mx-sub">{t.plural(extras, '{n} option set', '{n} options set')}</span>
           ) : null}
         </div>
       </PanelBody>
       {more ? (
         <>
           <PanelBody>
-            <Field label="Description">
+            <Field label={t('Description')}>
               <TextArea
                 value={form.description}
                 rows={3}
@@ -513,25 +517,25 @@ function NewGiveaway({
             </Field>
           </PanelBody>
           <div className="mx-panel-head" style={{ borderTop: '1px solid var(--mx-line)' }}>
-            <h3>Who can enter</h3>
+            <h3>{t('Who can enter')}</h3>
           </div>
           <PanelBody>
             <Fields>
-              <Field label="Needs role">
+              <Field label={t('Needs role')}>
                 <RoleSelect
                   value={form.requiredRoleId}
-                  none="Anyone"
+                  none={t('Anyone')}
                   onChange={(requiredRoleId) => setForm({ requiredRoleId })}
                 />
               </Field>
-              <Field label="Not for role">
+              <Field label={t('Not for role')}>
                 <RoleSelect
                   value={form.excludedRoleId}
-                  none="Nobody excluded"
+                  none={t('Nobody excluded')}
                   onChange={(excludedRoleId) => setForm({ excludedRoleId })}
                 />
               </Field>
-              <Field label="Minimum level">
+              <Field label={t('Minimum level')}>
                 <NumberInput
                   value={form.minLevel}
                   min={0}
@@ -541,12 +545,12 @@ function NewGiveaway({
                   }
                 />
               </Field>
-              <Field label="Member for at least">
+              <Field label={t('Member for at least')}>
                 <NumberInput
                   value={form.minMemberDays}
                   min={0}
                   max={3650}
-                  suffix="days"
+                  suffix={t('days')}
                   onChange={(minMemberDays) =>
                     setForm({
                       minMemberDays: Math.min(Math.max(Math.round(minMemberDays), 0), 3650),
@@ -557,10 +561,10 @@ function NewGiveaway({
             </Fields>
           </PanelBody>
           <div className="mx-panel-head" style={{ borderTop: '1px solid var(--mx-line)' }}>
-            <h3>Bonus entries</h3>
+            <h3>{t('Bonus entries')}</h3>
             {readOnly || form.bonus.length >= 25 || bonusOptions.length === 0 ? null : (
               <AddPicker
-                label="Add role"
+                label={t('Add role')}
                 options={bonusOptions}
                 onPick={(roleId) => setForm({ bonus: [...form.bonus, { roleId, entries: 1 }] })}
               />
@@ -568,12 +572,12 @@ function NewGiveaway({
           </div>
           {form.bonus.length === 0 ? (
             <PanelBody>
-              <span className="mx-sub">None</span>
+              <span className="mx-sub">{t('None')}</span>
             </PanelBody>
           ) : null}
           {form.bonus.map((entry) => {
             const role = roles.find((item) => item.id === entry.roleId);
-            const name = role?.name ?? 'Deleted role';
+            const name = role?.name ?? t('Deleted role');
             return (
               <div className="mx-row" key={entry.roleId}>
                 <span className="mx-dot" style={{ background: roleColor(role?.color ?? 0) }} />
@@ -585,8 +589,8 @@ function NewGiveaway({
                     value={entry.entries}
                     min={1}
                     max={50}
-                    label={`Extra entries for ${name}`}
-                    suffix="extra"
+                    label={t('Extra entries for {name}', { name })}
+                    suffix={t('extra')}
                     onChange={(entries) =>
                       setForm({
                         bonus: form.bonus.map((item) =>
@@ -602,32 +606,32 @@ function NewGiveaway({
                   <button
                     type="button"
                     className="mx-btn mx-btn-ghost"
-                    aria-label={`Remove bonus for ${name}`}
+                    aria-label={t('Remove bonus for {name}', { name })}
                     onClick={() =>
                       setForm({ bonus: form.bonus.filter((item) => item.roleId !== entry.roleId) })
                     }
                   >
-                    Remove
+                    {t('Remove')}
                   </button>
                 )}
               </div>
             );
           })}
           <div className="mx-panel-head" style={{ borderTop: '1px solid var(--mx-line)' }}>
-            <h3>Announcing</h3>
+            <h3>{t('Announcing')}</h3>
           </div>
           <PanelBody>
             <Fields>
-              <Field label="Ping when it starts">
+              <Field label={t('Ping when it starts')}>
                 <RoleSelect
                   value={form.pingRoleId}
-                  none="Nobody"
+                  none={t('Nobody')}
                   onChange={(pingRoleId) => setForm({ pingRoleId })}
                 />
               </Field>
             </Fields>
             <ToggleRow
-              title="Message the winners"
+              title={t('Message the winners')}
               checked={form.dmWinners}
               onChange={(dmWinners) => setForm({ dmWinners })}
             />
@@ -639,24 +643,29 @@ function NewGiveaway({
 }
 
 function PreviewPanel({ form, host }: { form: Draft; host: string }) {
+  const t = useT();
   const channelName = useChannelName();
   const roleName = useRoleName();
   const { timezone } = useGuild();
   const { start, end } = timing(form, timezone, Date.now());
   const requirements = [
-    form.requiredRoleId ? `role ${roleName(form.requiredRoleId)}` : '',
-    form.minLevel > 0 ? `level ${form.minLevel}` : '',
-    form.minMemberDays > 0 ? `member for ${plural(form.minMemberDays, 'day')}` : '',
+    form.requiredRoleId ? t('role {name}', { name: roleName(form.requiredRoleId) }) : '',
+    form.minLevel > 0 ? t('level {level}', { level: form.minLevel }) : '',
+    form.minMemberDays > 0
+      ? t.plural(form.minMemberDays, 'member for {n} day', 'member for {n} days')
+      : '',
   ].filter(Boolean);
-  const winners = form.winners;
+  const winners = t.plural(form.winners, '{n} winner.', '{n} winners.');
   const ends =
-    Number.isFinite(end) && end > start ? `Ends ${fullDate(end, timezone)}.` : 'No end set.';
+    Number.isFinite(end) && end > start
+      ? t('Ends {when}.', { when: fullDate(t, end, timezone) })
+      : t('No end set.');
   return (
     <Panel
-      title="Preview"
+      title={t('Preview')}
       actions={
         <span className="mx-sub">
-          {form.channelId ? channelName(form.channelId) : 'No channel'}
+          {form.channelId ? channelName(form.channelId) : t('No channel')}
         </span>
       }
     >
@@ -668,32 +677,34 @@ function PreviewPanel({ form, host }: { form: Draft; host: string }) {
               color="#F26B3A"
               title={
                 <span style={{ fontSize: 15, overflowWrap: 'anywhere' }}>
-                  {form.prize.trim() || 'Prize'}
+                  {form.prize.trim() || t('Prize')}
                 </span>
               }
-              description={`${form.description.trim() ? `${form.description.trim()}\n\n` : ''}${winners === 1 ? '1 winner.' : `${winners} winners.`} ${ends}`}
-              footer={`Hosted by ${host}`}
+              description={`${form.description.trim() ? `${form.description.trim()}\n\n` : ''}${winners} ${ends}`}
+              footer={t('Hosted by {name}', { name: host })}
             >
               <span className="mx-sub">
                 {requirements.length > 0
-                  ? `Requires ${requirements.join(', ')}.`
-                  : 'Open to everyone.'}
+                  ? t('Requires {what}.', { what: requirements.join(', ') })
+                  : t('Open to everyone.')}
               </span>
               {form.excludedRoleId ? (
-                <span className="mx-sub">Not for {roleName(form.excludedRoleId)}.</span>
+                <span className="mx-sub">
+                  {t('Not for {role}.', { role: roleName(form.excludedRoleId) })}
+                </span>
               ) : null}
               {form.bonus.length > 0 ? (
                 <span className="mx-sub">
-                  Extra entries:{' '}
-                  {form.bonus
-                    .map((entry) => `${roleName(entry.roleId)} +${entry.entries}`)
-                    .join(', ')}
-                  .
+                  {t('Extra entries: {list}.', {
+                    list: form.bonus
+                      .map((entry) => `${roleName(entry.roleId)} +${entry.entries}`)
+                      .join(', '),
+                  })}
                 </span>
               ) : null}
             </EmbedPreview>
             <div style={{ display: 'flex', gap: 6 }}>
-              <span className="mx-chip">Enter 0</span>
+              <span className="mx-chip">{t('Enter {count}', { count: 0 })}</span>
             </div>
           </MessagePreview>
         </div>
@@ -703,17 +714,24 @@ function PreviewPanel({ form, host }: { form: Draft; host: string }) {
 }
 
 function HistoryPanel({ history, now }: { history: Ended[]; now: number }) {
+  const t = useT();
   const readOnly = useDraft<GiveawaysConfig>().readOnly;
   const { busy, error, run } = useJob();
   return (
-    <Panel title="Ended" actions={<StatusText status={error ? failed(error) : null} />}>
+    <Panel title={t('Ended')} actions={<StatusText status={error ? failed(error) : null} />}>
       {history.map((item) => {
         const extra = item.winnerCount - item.winners.length;
         const won =
           item.winnerCount === 0
-            ? 'Nobody won'
-            : `Won by ${names(extra > 0 ? [...item.winners, plural(extra, 'other')] : item.winners)}`;
-        const rerolled = item.winnerCount > item.planned ? ', rerolled' : '';
+            ? t('Nobody won')
+            : t('Won by {names}', {
+                names: t.list(
+                  extra > 0
+                    ? [...item.winners, t.plural(extra, '{n} other', '{n} others')]
+                    : item.winners,
+                ),
+              });
+        const rerolled = item.winnerCount > item.planned ? `, ${t('rerolled')}` : '';
         return (
           <div className="mx-row" key={item.id}>
             <div className="mx-row-main">
@@ -721,8 +739,8 @@ function HistoryPanel({ history, now }: { history: Ended[]; now: number }) {
                 <span className="mx-mono mx-muted">#{item.number}</span> {item.prize}
               </span>
               <span className="mx-sub">
-                {won}, {entryCount(item.entries)}
-                {rerolled}, {relative(item.endedAt, now)}
+                {won}, {entryCount(t, item.entries)}
+                {rerolled}, {relative(t, item.endedAt, now)}
               </span>
             </div>
             {busy[item.id] ? (
@@ -731,9 +749,11 @@ function HistoryPanel({ history, now }: { history: Ended[]; now: number }) {
               <button
                 type="button"
                 className="mx-btn mx-btn-ghost"
-                onClick={() => run(item.id, 'Drawing', 'reroll', { giveawayId: item.id, count: 1 })}
+                onClick={() =>
+                  run(item.id, t('Drawing'), 'reroll', { giveawayId: item.id, count: 1 })
+                }
               >
-                Reroll
+                {t('Reroll')}
               </button>
             )}
           </div>
@@ -744,36 +764,37 @@ function HistoryPanel({ history, now }: { history: Ended[]; now: number }) {
 }
 
 function SettingsPanel() {
+  const t = useT();
   const { value, set } = useDraft<GiveawaysConfig>();
   return (
-    <Panel title="Defaults">
+    <Panel title={t('Defaults')}>
       <PanelBody>
         <Fields>
-          <Field label="Entry emoji">
+          <Field label={t('Entry emoji')}>
             <TextInput
               value={value.emoji ?? ''}
               maxLength={100}
-              placeholder="Default"
+              placeholder={t('Default')}
               onChange={(emoji) => set({ emoji: emoji.trim() ? emoji : null })}
             />
           </Field>
-          <Field label="Ping when it starts">
+          <Field label={t('Ping when it starts')}>
             <RoleSelect
               value={value.pingRoleId}
-              none="Nobody"
+              none={t('Nobody')}
               onChange={(pingRoleId) => set({ pingRoleId })}
             />
           </Field>
-          <Field label="Not for role">
+          <Field label={t('Not for role')}>
             <RoleSelect
               value={value.excludedRoleId}
-              none="Nobody excluded"
+              none={t('Nobody excluded')}
               onChange={(excludedRoleId) => set({ excludedRoleId })}
             />
           </Field>
         </Fields>
         <ToggleRow
-          title="Message the winners"
+          title={t('Message the winners')}
           checked={value.dmWinners}
           onChange={(dmWinners) => set({ dmWinners })}
         />

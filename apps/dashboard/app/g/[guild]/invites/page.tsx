@@ -1,13 +1,13 @@
 import { invitesConfig } from '@maxwell/core/modules/invites';
 import { InviteStatsStore } from '@maxwell/core/stores/invites';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
 import { db } from '@/lib/db';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { people, personOf } from '@/lib/people';
 import { InvitesView } from './invites-view';
 
-export const metadata: Metadata = { title: 'Invites' };
+export const generateMetadata = titled('Invites');
 
 export default async function InvitesPage({ params }: { params: Promise<{ guild: string }> }) {
   const { guild } = await params;

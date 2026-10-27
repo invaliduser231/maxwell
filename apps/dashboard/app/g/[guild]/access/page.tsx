@@ -1,12 +1,12 @@
-import type { Metadata } from 'next';
 import { requirePage } from '@/lib/access';
 import { db } from '@/lib/db';
 import { userProfile } from '@/lib/fluxer';
+import { getT, titled } from '@/lib/i18n/server';
 import { POLE_COLOR, pageGroups } from '@/lib/pages';
 import { people, personOf } from '@/lib/people';
 import { AccessView, type ModuleGroupRow } from './access-view';
 
-export const metadata: Metadata = { title: 'Dashboard access' };
+export const generateMetadata = titled('Dashboard access');
 
 export default async function AccessPage({ params }: { params: Promise<{ guild: string }> }) {
   const { guild } = await params;
@@ -15,21 +15,22 @@ export default async function AccessPage({ params }: { params: Promise<{ guild: 
   const userIds = [
     ...new Set(grants.filter((grant) => grant.subjectType === 'user').map((g) => g.subjectId)),
   ].slice(0, 80);
-  const [owner, users] = await Promise.all([
+  const [owner, users, t] = await Promise.all([
     userProfile(access.guild.ownerId).catch(() => null),
     people(userIds),
+    getT(),
   ]);
 
   const groups: ModuleGroupRow[] = pageGroups
     .filter((group) => group.title)
     .map((group) => ({
-      title: group.title,
+      title: group.title ? t(group.title) : '',
       color: POLE_COLOR[group.pages[0]?.pole ?? 'neutral'],
       modules: group.pages
         .filter((page) => page.module === page.key && !page.adminOnly)
         .map((page) => ({
           key: page.key,
-          name: page.key === 'moderation' ? 'Moderation and member files' : page.name,
+          name: page.key === 'moderation' ? t('Moderation and member files') : t(page.name),
         })),
     }))
     .filter((group) => group.modules.length > 0);
@@ -46,7 +47,7 @@ export default async function AccessPage({ params }: { params: Promise<{ guild: 
         const person = personOf(users, id);
         return { id, name: person.name, avatar: person.avatar };
       })}
-      ownerName={owner?.displayName ?? 'Owner'}
+      ownerName={owner?.displayName ?? t('Owner')}
       groups={groups}
     />
   );

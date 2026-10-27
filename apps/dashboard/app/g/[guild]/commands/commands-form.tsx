@@ -22,45 +22,47 @@ import {
   ToggleRow,
 } from '@/components/controls';
 import { ChannelType, useChannelName, useGuild, useRoleName } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { EmbedPreview, MessagePreview } from '@/components/message-preview';
 import { ModuleShell, useDraft, useReadOnly } from '@/components/module-shell';
 import { type Status, StatusText } from '@/components/status-text';
 import { CloseIcon, Empty, Field, Fields, Grid, Panel, PanelBody } from '@/components/ui';
 import { usePoll } from '@/components/use-poll';
 import { runAction } from '@/lib/actions';
+import type { Key } from '@/lib/i18n';
 import type { ShellProps } from '@/lib/module';
 import { forgetDeleted, testResult } from './actions';
 
-const kinds = [
+const kinds: { value: TriggerType; label: Key }[] = [
   { value: 'command', label: 'Command' },
   { value: 'keyword', label: 'Keyword' },
   { value: 'regex', label: 'Regex' },
-] as const;
+];
 
-const kindNames: Record<TriggerType, string> = {
+const kindNames: Record<TriggerType, Key> = {
   command: 'Command',
   keyword: 'Keyword',
   regex: 'Regex',
 };
 
-const patternLabels: Record<TriggerType, string> = {
+const patternLabels: Record<TriggerType, Key> = {
   command: 'Command name',
   keyword: 'Words',
   regex: 'Pattern',
 };
 
-const modes: { value: KeywordMode; label: string }[] = [
+const modes: { value: KeywordMode; label: Key }[] = [
   { value: 'word', label: 'As whole words' },
   { value: 'contains', label: 'Anywhere in the message' },
   { value: 'startsWith', label: 'At the start' },
   { value: 'exact', label: 'The whole message' },
 ];
 
-const scopes = [
+const scopes: { value: 'user' | 'channel' | 'guild'; label: Key }[] = [
   { value: 'user', label: 'Per member' },
   { value: 'channel', label: 'Per channel' },
   { value: 'guild', label: 'Whole server' },
-] as const;
+];
 
 const variables = [
   '{user}',
@@ -73,15 +75,14 @@ const variables = [
   '{random:a|b|c}',
 ];
 
-const problemText: Record<PatternProblem, string> = {
+const problemText: Record<Exclude<PatternProblem, 'too_long'>, Key> = {
   empty: 'Needs a trigger.',
-  too_long: `At most ${PATTERN_MAX} characters.`,
   invalid: 'That pattern is not valid.',
   unsafe: 'That pattern could take too long. Remove the nested repeats.',
   name: 'Command names have no spaces and none of < > @ # `',
 };
 
-const testProblems: Record<NonNullable<CommandTestResult['problem']>, string> = {
+const testProblems: Record<NonNullable<CommandTestResult['problem']>, Key> = {
   no_match: 'No match',
   invalid_pattern: 'Pattern is not valid',
   timeout: 'Pattern took too long',
@@ -151,15 +152,16 @@ function CommandList({
   onAdd: () => void;
   onToggle: (id: string, enabled: boolean) => void;
 }) {
+  const t = useT();
   const readOnly = useReadOnly();
   return (
     <Panel
-      title="Commands"
+      title={t('Commands')}
       id="commands-list"
       actions={
         readOnly || commands.length >= COMMAND_LIMIT ? null : (
           <button type="button" className="mx-btn" onClick={onAdd}>
-            New
+            {t('New')}
           </button>
         )
       }
@@ -180,13 +182,13 @@ function CommandList({
                 {name}
               </span>
               <span className="mx-sub">
-                {`${kindNames[command.trigger]}, used ${uses.toLocaleString('en-US')} ${uses === 1 ? 'time' : 'times'}`}
+                {`${t(kindNames[command.trigger])}, ${t.plural(uses, 'used {n} time', 'used {n} times')}`}
               </span>
             </button>
             <Switch
               order
               checked={command.enabled}
-              label={`${name} ${command.enabled ? 'on' : 'off'}`}
+              label={command.enabled ? t('{name} on', { name }) : t('{name} off', { name })}
               onChange={(enabled) => onToggle(command.id, enabled)}
             />
           </div>
@@ -207,6 +209,7 @@ function Replies({
   responses: string[];
   onChange: (next: string[]) => void;
 }) {
+  const t = useT();
   const readOnly = useReadOnly();
   const list = responses.length > 0 ? responses : [''];
   const [focus, setFocus] = useState(list.length - 1);
@@ -233,7 +236,7 @@ function Replies({
             maxLength={2000}
             value={text}
             readOnly={readOnly}
-            aria-label={`Reply ${index + 1}`}
+            aria-label={t('Reply {number}', { number: index + 1 })}
             onFocus={() => setFocus(index)}
             onChange={(event) =>
               onChange(list.map((entry, i) => (i === index ? event.target.value : entry)))
@@ -243,7 +246,7 @@ function Replies({
             <button
               type="button"
               className="mx-btn mx-btn-ghost"
-              aria-label={`Remove reply ${index + 1}`}
+              aria-label={t('Remove reply {number}', { number: index + 1 })}
               onClick={() => {
                 setKeys(ids.filter((_, i) => i !== index));
                 setFocus(0);
@@ -255,7 +258,7 @@ function Replies({
           )}
         </div>
       ))}
-      {list.length > 1 ? <span className="mx-hint">One is picked at random.</span> : null}
+      {list.length > 1 ? <span className="mx-hint">{t('One is picked at random.')}</span> : null}
       {readOnly ? null : (
         <div className="mx-between">
           <div className="mx-inline" style={{ gap: 6 }}>
@@ -264,7 +267,7 @@ function Replies({
                 key={token}
                 type="button"
                 className="mx-kbd"
-                aria-label={`Insert ${token}`}
+                aria-label={t('Insert {token}', { token })}
                 style={tokenButton}
                 onClick={() => insert(token)}
               >
@@ -282,7 +285,7 @@ function Replies({
                 onChange([...list, '']);
               }}
             >
-              Add reply
+              {t('Add reply')}
             </button>
           ) : null}
         </div>
@@ -301,6 +304,7 @@ function TryIt({
   me: { id: string; name: string };
 }) {
   const { guildId, channels } = useGuild();
+  const t = useT();
   const channelName = useChannelName();
   const roleName = useRoleName();
   const readOnly = useReadOnly();
@@ -351,31 +355,33 @@ function TryIt({
         },
         () => {
           setWaiting(false);
-          setStatus({ message: 'Maxwell did not answer. Try again in a moment.', error: true });
+          setStatus({ message: t('Maxwell did not answer. Try again in a moment.'), error: true });
         },
       );
     });
 
   const label = waiting
-    ? 'Testing'
+    ? t('Testing')
     : result
       ? result.matched
-        ? 'Matches'
-        : (testProblems[result.problem ?? 'no_match'] ?? 'No match')
+        ? t('Matches')
+        : t(testProblems[result.problem ?? 'no_match'] ?? 'No match')
       : null;
   const extras = [
     result?.addRoles.length
-      ? `gives ${result.addRoles.map((id) => `@${roleName(id)}`).join(', ')}`
+      ? t('gives {roles}', { roles: result.addRoles.map((id) => `@${roleName(id)}`).join(', ') })
       : '',
     result?.removeRoles.length
-      ? `removes ${result.removeRoles.map((id) => `@${roleName(id)}`).join(', ')}`
+      ? t('removes {roles}', {
+          roles: result.removeRoles.map((id) => `@${roleName(id)}`).join(', '),
+        })
       : '',
-    command.deleteTrigger ? 'deletes the message' : '',
+    command.deleteTrigger ? t('deletes the message') : '',
   ].filter(Boolean);
 
   return (
     <Panel
-      title="Try it"
+      title={t('Try it')}
       id="commands-try"
       actions={
         label ? <span className={result?.matched ? 'mx-sub mx-up' : 'mx-sub'}>{label}</span> : null
@@ -384,7 +390,9 @@ function TryIt({
       <PanelBody>
         <div className="mx-field">
           <label className="mx-label" htmlFor={`try-${command.id}`}>
-            {`As ${me.name}${channelId ? ` in ${channelName(channelId)}` : ''}`}
+            {channelId
+              ? t('As {name} in {channel}', { name: me.name, channel: channelName(channelId) })
+              : t('As {name}', { name: me.name })}
           </label>
           <div style={{ display: 'flex', gap: 8 }}>
             <input
@@ -407,7 +415,7 @@ function TryIt({
               disabled={readOnly || pending || waiting || !text.trim()}
               onClick={run}
             >
-              Try
+              {t('Try')}
             </button>
           </div>
         </div>
@@ -419,9 +427,9 @@ function TryIt({
               {result.content && result.embed ? (
                 <EmbedPreview color={hex(command.color)} description={result.content} />
               ) : null}
-              {result.content ? null : <span className="mx-sub">No reply</span>}
+              {result.content ? null : <span className="mx-sub">{t('No reply')}</span>}
               {extras.length > 0 ? (
-                <span className="mx-sub">{`Then ${extras.join(' and ')}`}</span>
+                <span className="mx-sub">{t('Then {what}', { what: t.list(extras) })}</span>
               ) : null}
             </MessagePreview>
           </div>
@@ -446,6 +454,7 @@ function Editor({
   onChange: (patch: Partial<CustomCommand>) => void;
   onDelete: () => void;
 }) {
+  const t = useT();
   const readOnly = useReadOnly();
   const pattern = command.pattern.trim();
   const problem = validatePattern(command.trigger, command.pattern);
@@ -453,17 +462,22 @@ function Editor({
   const clash =
     command.trigger === 'command' && !problem
       ? builtins.includes(lower)
-        ? `${prefix}${pattern} is already a Maxwell command.`
+        ? t('{command} is already a Maxwell command.', { command: `${prefix}${pattern}` })
         : commands.some(
               (other) =>
                 other.id !== command.id &&
                 other.trigger === 'command' &&
                 other.pattern.trim().toLowerCase() === lower,
             )
-          ? 'Another custom command has this name.'
+          ? t('Another custom command has this name.')
           : null
       : null;
-  const warning = problem && problem !== 'empty' ? problemText[problem] : clash;
+  const warning =
+    problem && problem !== 'empty'
+      ? problem === 'too_long'
+        ? t('At most {count} characters.', { count: PATTERN_MAX })
+        : t(problemText[problem])
+      : clash;
   const cooldown = command.cooldown;
 
   return (
@@ -473,7 +487,7 @@ function Editor({
       actions={
         readOnly ? null : (
           <button type="button" className="mx-btn mx-btn-danger" onClick={onDelete}>
-            Delete
+            {t('Delete')}
           </button>
         )
       }
@@ -481,17 +495,17 @@ function Editor({
       <PanelBody>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-start' }}>
           <div className="mx-field">
-            <span className="mx-label">Trigger</span>
+            <span className="mx-label">{t('Trigger')}</span>
             <Seg
-              label="Trigger"
+              label={t('Trigger')}
               value={command.trigger}
-              options={kinds}
+              options={kinds.map((kind) => ({ ...kind, label: t(kind.label) }))}
               onChange={(trigger) => onChange({ trigger })}
             />
           </div>
           <div className="mx-field" style={{ flex: '1 1 220px' }}>
             <label className="mx-label" htmlFor={`pattern-${command.id}`}>
-              {patternLabels[command.trigger]}
+              {t(patternLabels[command.trigger])}
             </label>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               {command.trigger === 'command' ? (
@@ -513,10 +527,10 @@ function Editor({
         </div>
         {command.trigger === 'keyword' ? (
           <Fields>
-            <Field label="Match">
+            <Field label={t('Match')}>
               <Select
                 value={command.mode}
-                options={modes}
+                options={modes.map((mode) => ({ ...mode, label: t(mode.label) }))}
                 onChange={(mode) => onChange({ mode })}
               />
             </Field>
@@ -525,14 +539,14 @@ function Editor({
         {command.trigger === 'command' ? null : (
           <ToggleRow
             order
-            title="Case sensitive"
+            title={t('Case sensitive')}
             checked={command.caseSensitive}
             onChange={(caseSensitive) => onChange({ caseSensitive })}
           />
         )}
       </PanelBody>
 
-      <Section title="Reply">
+      <Section title={t('Reply')}>
         <Replies
           key={command.id}
           responses={command.responses}
@@ -541,24 +555,24 @@ function Editor({
         <Fields>
           <ToggleRow
             order
-            title="Reply to the message"
+            title={t('Reply to the message')}
             checked={command.reply}
             onChange={(reply) => onChange({ reply })}
           />
           <ToggleRow
             order
-            title="Delete the trigger message"
+            title={t('Delete the trigger message')}
             checked={command.deleteTrigger}
             onChange={(deleteTrigger) => onChange({ deleteTrigger })}
           />
           <div className="mx-toggle-row">
             <div className="mx-row-main">
-              <span className="mx-row-title">Send as embed</span>
+              <span className="mx-row-title">{t('Send as embed')}</span>
             </div>
             {command.embed ? (
               <input
                 type="color"
-                aria-label="Embed color"
+                aria-label={t('Embed color')}
                 value={hex(command.color)}
                 disabled={readOnly}
                 onChange={(event) =>
@@ -568,7 +582,7 @@ function Editor({
             ) : null}
             <Switch
               order
-              label="Send as embed"
+              label={t('Send as embed')}
               checked={command.embed}
               onChange={(embed) => onChange({ embed })}
             />
@@ -576,67 +590,69 @@ function Editor({
         </Fields>
       </Section>
 
-      <Section title="Roles">
+      <Section title={t('Roles')}>
         <Fields>
           <div className="mx-field">
-            <span className="mx-label">Give</span>
+            <span className="mx-label">{t('Give')}</span>
             <RoleMulti
               value={command.addRoles}
               onChange={(addRoles) => onChange({ addRoles: addRoles.slice(0, 10) })}
             />
             {readOnly && command.addRoles.length === 0 ? (
-              <span className="mx-sub">None</span>
+              <span className="mx-sub">{t('None')}</span>
             ) : null}
           </div>
           <div className="mx-field">
-            <span className="mx-label">Take</span>
+            <span className="mx-label">{t('Take')}</span>
             <RoleMulti
               value={command.removeRoles}
               onChange={(removeRoles) => onChange({ removeRoles: removeRoles.slice(0, 10) })}
             />
             {readOnly && command.removeRoles.length === 0 ? (
-              <span className="mx-sub">None</span>
+              <span className="mx-sub">{t('None')}</span>
             ) : null}
           </div>
         </Fields>
       </Section>
 
-      <Section title="Limits">
+      <Section title={t('Limits')}>
         <Fields>
           <div className="mx-field">
-            <span className="mx-label">Who can use it</span>
+            <span className="mx-label">{t('Who can use it')}</span>
             <RoleMulti
               value={command.allowedRoles}
               onChange={(allowedRoles) => onChange({ allowedRoles })}
             />
-            {command.allowedRoles.length === 0 ? <span className="mx-hint">Everyone</span> : null}
+            {command.allowedRoles.length === 0 ? (
+              <span className="mx-hint">{t('Everyone')}</span>
+            ) : null}
           </div>
           <div className="mx-field">
-            <span className="mx-label">Where</span>
+            <span className="mx-label">{t('Where')}</span>
             <ChannelMulti
               value={command.allowedChannels}
               onChange={(allowedChannels) => onChange({ allowedChannels })}
             />
             {command.allowedChannels.length === 0 ? (
-              <span className="mx-hint">Every channel</span>
+              <span className="mx-hint">{t('Every channel')}</span>
             ) : null}
           </div>
-          <Field label="Cooldown">
+          <Field label={t('Cooldown')}>
             <NumberInput
               value={cooldown}
               min={0}
               max={86_400}
-              suffix="seconds"
+              suffix={t('seconds')}
               onChange={(next) =>
                 onChange({ cooldown: Math.min(86_400, Math.max(0, Math.round(next))) })
               }
             />
           </Field>
           {cooldown > 0 ? (
-            <Field label="Counted">
+            <Field label={t('Counted')}>
               <Select
                 value={command.cooldownScope}
-                options={scopes}
+                options={scopes.map((scope) => ({ ...scope, label: t(scope.label) }))}
                 onChange={(cooldownScope) => onChange({ cooldownScope })}
               />
             </Field>
@@ -681,6 +697,7 @@ export function CommandsForm({
   usage: Record<string, number>;
   builtins: string[];
 }) {
+  const t = useT();
   const { value, update, readOnly } = useDraft<CommandsConfig>();
   const [selected, setSelected] = useState<string | null>(value.commands[0]?.id ?? null);
   const current =
@@ -705,7 +722,7 @@ export function CommandsForm({
       pattern: name,
       mode: 'word',
       caseSensitive: false,
-      responses: ['Hello {user}.'],
+      responses: [t('Hello {user}.')],
       embed: false,
       color: null,
       reply: true,
@@ -741,12 +758,12 @@ export function CommandsForm({
             action={
               readOnly ? null : (
                 <button type="button" className="mx-btn mx-btn-primary" onClick={add}>
-                  New command
+                  {t('New command')}
                 </button>
               )
             }
           >
-            No custom commands yet.
+            {t('No custom commands yet.')}
           </Empty>
         </Panel>
       </Grid>

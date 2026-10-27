@@ -1,12 +1,12 @@
 import { builtinCommands } from '@maxwell/core';
 import { commandsConfig } from '@maxwell/core/modules/commands';
 import { CommandStore } from '@maxwell/core/stores/commands';
-import type { Metadata } from 'next';
 import { db } from '@/lib/db';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { CommandsForm, CommandsShell } from './commands-form';
 
-export const metadata: Metadata = { title: 'Custom commands' };
+export const generateMetadata = titled('Custom commands');
 
 export default async function CommandsPage({ params }: { params: Promise<{ guild: string }> }) {
   const { guild } = await params;

@@ -1,12 +1,12 @@
 import { feedsConfig } from '@maxwell/core/modules/feeds';
 import { FeedStore } from '@maxwell/core/stores/feeds';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
 import { db } from '@/lib/db';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { FeedsForm } from './feeds-form';
 
-export const metadata: Metadata = { title: 'Feeds' };
+export const generateMetadata = titled('Feeds');
 
 export default async function FeedsPage({ params }: { params: Promise<{ guild: string }> }) {
   const { guild } = await params;

@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { Seg, Select } from '@/components/controls';
 import { useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { useLive } from '@/components/live';
 import { Avatar, Chip, Empty, Field, Fields, PanelBody } from '@/components/ui';
+import type { Key } from '@/lib/i18n';
 import { ago, fullDate } from '@/lib/time';
 import { loadAudit } from './actions';
 import type { AuditRow } from './data';
@@ -14,7 +16,7 @@ import { UndoButton, UndoneChip } from './undo';
 
 const SNOWFLAKE = /\b\d{15,21}\b/g;
 
-const kinds: { value: AuditQuery['kind']; label: string }[] = [
+const kinds: { value: AuditQuery['kind']; label: Key }[] = [
   { value: 'all', label: 'All' },
   { value: 'settings', label: 'Settings' },
   { value: 'mod', label: 'Mod actions' },
@@ -35,10 +37,11 @@ function useNames(): (text: string) => string {
 
 function Diff({ lines, id }: { lines: DiffLine[]; id: string }) {
   const names = useNames();
+  const t = useT();
   if (lines.length === 0) {
     return (
       <div id={id} className="mx-sub" style={{ margin: '0 16px 12px 54px' }}>
-        No details recorded.
+        {t('No details recorded.')}
       </div>
     );
   }
@@ -81,7 +84,7 @@ function Diff({ lines, id }: { lines: DiffLine[]; id: string }) {
             {line.sign}
           </span>
           <span className="mx-sr">
-            {line.sign === '+' ? 'Added' : line.sign === '-' ? 'Removed' : ''}
+            {line.sign === '+' ? t('Added') : line.sign === '-' ? t('Removed') : ''}
           </span>
           <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{names(line.text)}</span>
         </div>
@@ -102,9 +105,10 @@ function Entry({
   onUndone: () => void;
 }) {
   const { timezone } = useGuild();
+  const t = useT();
   const [open, setOpen] = useState(false);
   const kind = kindInfo[kindOf(row.actorId, row.action)];
-  const { text, byline } = sentence(row.actorId ? row.actorName : null, row.summary);
+  const { text, byline } = sentence(t, row.actorId ? row.actorName : null, row.summary);
   const diffId = `audit-diff-${row.id}`;
   return (
     <div style={{ borderTop: first ? 0 : '1px solid var(--mx-line)' }}>
@@ -113,15 +117,15 @@ function Entry({
         <div className="mx-row-main" style={{ minWidth: 200 }}>
           <span>{text}</span>
           <span className="mx-sub">
-            <time dateTime={row.createdAt} title={fullDate(row.createdAt, timezone)}>
-              {ago(row.createdAt, now, timezone)}
+            <time dateTime={row.createdAt} title={fullDate(t, row.createdAt, timezone)}>
+              {ago(t, row.createdAt, now, timezone)}
             </time>
             {byline || !row.actorId ? `, ${row.actorName}` : null}
           </span>
         </div>
         <div className="mx-inline">
           <Chip>{row.moduleName}</Chip>
-          <Chip>{kind.name}</Chip>
+          <Chip>{t(kind.name)}</Chip>
         </div>
         <button
           type="button"
@@ -130,15 +134,19 @@ function Entry({
           aria-controls={open ? diffId : undefined}
           onClick={() => setOpen(!open)}
         >
-          {open ? 'Hide' : 'Details'}
+          {open ? t('Hide') : t('Details')}
         </button>
         {row.undoneAt ? (
           <UndoneChip />
         ) : row.undoable ? (
-          <UndoButton entryId={row.id} label={`Undo: ${row.summary}`} onUndone={onUndone} />
+          <UndoButton
+            entryId={row.id}
+            label={t('Undo: {summary}', { summary: row.summary })}
+            onUndone={onUndone}
+          />
         ) : row.hasUndo ? (
           <span className="mx-sub" style={{ whiteSpace: 'nowrap' }}>
-            Too old to undo
+            {t('Too old to undo')}
           </span>
         ) : null}
       </div>
@@ -163,6 +171,7 @@ export function AuditView({
   modules: { value: string; label: string }[];
 }) {
   const { guildId } = useGuild();
+  const t = useT();
   const [query, setQuery] = useState(initialQuery);
   const [search, setSearch] = useState(initialQuery.search);
   const [rows, setRows] = useState(initial);
@@ -257,18 +266,18 @@ export function AuditView({
 
   if (rows.length === 0 && !filtered && !pending && !error) {
     return (
-      <section className="mx-panel" aria-label="Changes and actions">
-        <Empty mood="sleeping">Nothing has happened here yet.</Empty>
+      <section className="mx-panel" aria-label={t('Changes and actions')}>
+        <Empty mood="sleeping">{t('Nothing has happened here yet.')}</Empty>
       </section>
     );
   }
 
   return (
     <>
-      <section className="mx-panel" aria-label="Filters">
+      <section className="mx-panel" aria-label={t('Filters')}>
         <PanelBody>
           <Fields>
-            <Field label="Search">
+            <Field label={t('Search')}>
               <input
                 className="mx-input"
                 type="text"
@@ -276,30 +285,30 @@ export function AuditView({
                 enterKeyHint="search"
                 value={search}
                 maxLength={100}
-                placeholder="@n0tabot, #memes, case #41"
+                placeholder={t('@n0tabot, #memes, case #41')}
                 onChange={(event) => setSearch(event.target.value)}
               />
             </Field>
-            <Field label="Who">
+            <Field label={t('Who')}>
               <Select
                 value={query.actor ?? ''}
                 searchable={actors.length > 8}
-                options={[{ value: '', label: 'Everyone' }, ...actors]}
+                options={[{ value: '', label: t('Everyone') }, ...actors]}
                 onChange={(actor) => setQuery({ ...query, actor: actor || null })}
               />
             </Field>
-            <Field label="Module">
+            <Field label={t('Module')}>
               <Select
                 value={query.module ?? ''}
                 searchable={modules.length > 8}
-                options={[{ value: '', label: 'All modules' }, ...modules]}
+                options={[{ value: '', label: t('All modules') }, ...modules]}
                 onChange={(module) => setQuery({ ...query, module: module || null })}
               />
             </Field>
-            <Field label="When">
+            <Field label={t('When')}>
               <Select
                 value={query.range}
-                options={ranges}
+                options={ranges.map((range) => ({ ...range, label: t(range.label) }))}
                 onChange={(range) => setQuery({ ...query, range })}
               />
             </Field>
@@ -310,22 +319,23 @@ export function AuditView({
       <section className="mx-panel" aria-labelledby="audit-entries" aria-busy={pending}>
         <div className="mx-panel-head">
           <div className="mx-inline" style={{ gap: 12 }}>
-            <h2 id="audit-entries">Changes and actions</h2>
+            <h2 id="audit-entries">{t('Changes and actions')}</h2>
             {error ? (
               <span className="mx-status mx-status-error" role="status">
-                {error}
+                {t.raw(error)}
               </span>
             ) : (
               <span className="mx-sub">
-                {rows.length}
-                {more ? '+' : ''} {rows.length === 1 && !more ? 'entry' : 'entries'}
+                {more
+                  ? t('{count}+ entries', { count: rows.length })
+                  : t.plural(rows.length, '{n} change', '{n} changes')}
               </span>
             )}
           </div>
           <Seg
-            label="Type"
+            label={t('Type')}
             value={query.kind}
-            options={kinds}
+            options={kinds.map((kind) => ({ ...kind, label: t(kind.label) }))}
             onChange={(kind) => setQuery({ ...query, kind })}
             view
           />
@@ -342,9 +352,9 @@ export function AuditView({
         {rows.length === 0 ? (
           <Empty mood="thinking">
             <div className="mx-stack" style={{ alignItems: 'center' }}>
-              <span>Nothing matches these filters.</span>
+              <span>{t('Nothing matches these filters.')}</span>
               <button type="button" className="mx-btn" onClick={clear}>
-                Clear filters
+                {t('Clear filters')}
               </button>
             </div>
           </Empty>
@@ -359,7 +369,7 @@ export function AuditView({
             }}
           >
             <button type="button" className="mx-btn" disabled={pending} onClick={loadMore}>
-              {pending ? 'Loading' : 'Load more'}
+              {pending ? t('Loading') : t('Load more')}
             </button>
           </div>
         ) : null}

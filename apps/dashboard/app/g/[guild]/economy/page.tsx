@@ -1,15 +1,15 @@
 import { collectionConfig } from '@maxwell/core/modules/collection';
 import { economyConfig } from '@maxwell/core/modules/economy';
 import { EconomyStore } from '@maxwell/core/stores/economy';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
 import { db } from '@/lib/db';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { people, personOf } from '@/lib/people';
 import { EconomyForm } from './economy-form';
 import { ledgerPage } from './ledger';
 
-export const metadata: Metadata = { title: 'Economy' };
+export const generateMetadata = titled('Economy');
 
 export default async function EconomyPage({ params }: { params: Promise<{ guild: string }> }) {
   const { guild } = await params;

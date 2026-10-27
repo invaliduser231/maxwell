@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { Switch } from '@/components/controls';
 import { useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { LockIcon } from '@/components/ui';
 import { setModuleEnabled } from '@/lib/actions';
 
@@ -19,6 +20,7 @@ export interface ModuleTile {
 
 export function ModuleGrid({ tiles }: { tiles: ModuleTile[] }) {
   const { guildId } = useGuild();
+  const t = useT();
   const [states, setStates] = useState(() =>
     Object.fromEntries(tiles.map((tile) => [tile.key, tile.enabled])),
   );
@@ -53,7 +55,7 @@ export function ModuleGrid({ tiles }: { tiles: ModuleTile[] }) {
       setBusy(null);
       if (!result?.ok) {
         setStates((previous) => ({ ...previous, [tile.key]: !next }));
-        setError(result && !result.ok ? result.error : 'That did not work.');
+        setError(result && !result.ok ? t.raw(result.error) : t('That did not work.'));
       }
     });
   };
@@ -61,14 +63,14 @@ export function ModuleGrid({ tiles }: { tiles: ModuleTile[] }) {
   return (
     <section className="mx-panel mx-s5" aria-labelledby="overview-modules">
       <div className="mx-panel-head">
-        <h2 id="overview-modules">Modules</h2>
+        <h2 id="overview-modules">{t('Modules')}</h2>
         {error ? (
           <span className="mx-status mx-status-error" role="status">
             {error}
           </span>
         ) : (
           <span className="mx-sub">
-            {active} of {tiles.length} on
+            {t('{active} of {total} on', { active, total: tiles.length })}
           </span>
         )}
       </div>
@@ -104,11 +106,13 @@ export function ModuleGrid({ tiles }: { tiles: ModuleTile[] }) {
               >
                 {tile.name}
               </Link>
-              {tile.locked ? <LockIcon /> : null}
+              {tile.locked ? <LockIcon label={t('Locked until you vote')} /> : null}
               <Switch
                 checked={on}
                 order={tile.south}
-                label={`${tile.name} ${on ? 'on' : 'off'}`}
+                label={
+                  on ? t('{name} on', { name: tile.name }) : t('{name} off', { name: tile.name })
+                }
                 disabled={!tile.editable || tile.locked || busy === tile.key}
                 onChange={() => toggle(tile)}
               />

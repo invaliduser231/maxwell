@@ -17,10 +17,12 @@ import {
   ToggleRow,
 } from '@/components/controls';
 import { useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { MessagePreview } from '@/components/message-preview';
 import { useDraft } from '@/components/module-shell';
 import { type Status, StatusText } from '@/components/status-text';
 import { Callout, CloseIcon, Empty, Field, Fields, Grid, Panel, PanelBody } from '@/components/ui';
+import type { Key, Translator } from '@/lib/i18n';
 import { duration } from '@/lib/time';
 import { setCommand } from './actions';
 
@@ -35,7 +37,7 @@ const banDeleteDays = [0, 1, 2, 3, 7];
 const expiryOptions = [30, 90, 180, 365];
 const windowOptions = [7, 14, 30, 60, 90];
 
-const dmNames: Record<(typeof dmActions)[number], string> = {
+const dmNames: Record<(typeof dmActions)[number], Key> = {
   warn: 'Warn',
   timeout: 'Timeout',
   kick: 'Kick',
@@ -59,17 +61,17 @@ function stepKey(step: Omit<EscalationStep, 'warns'>): string {
   return `${step.action}:${minutes}:${step.review ? 1 : 0}`;
 }
 
-function stepLabel(step: Omit<EscalationStep, 'warns'>): string {
-  const length = step.durationMinutes !== null ? duration(step.durationMinutes * 60_000) : null;
+function stepLabel(t: Translator, step: Omit<EscalationStep, 'warns'>): string {
+  const length = step.durationMinutes !== null ? duration(t, step.durationMinutes * 60_000) : null;
   const base =
     step.action === 'timeout'
-      ? `Timeout ${length ?? 'default length'}`
+      ? t('Timeout {length}', { length: length ?? t('default length') })
       : step.action === 'kick'
-        ? 'Kick'
+        ? t('Kick')
         : length
-          ? `Ban ${length}`
-          : 'Ban';
-  return step.review ? `${base}, held for review` : base;
+          ? t('Ban {length}', { length })
+          : t('Ban');
+  return step.review ? t('{action}, held for review', { action: base }) : base;
 }
 
 function parseStep(key: string): Omit<EscalationStep, 'warns'> {
@@ -81,8 +83,8 @@ function parseStep(key: string): Omit<EscalationStep, 'warns'> {
   };
 }
 
-function days(value: number): string {
-  return value === 1 ? '1 day' : `${value} days`;
+function days(t: Translator, value: number): string {
+  return t.plural(value, '{n} day', '{n} days');
 }
 
 function ArrowIcon() {
@@ -101,6 +103,7 @@ function ArrowIcon() {
 }
 
 function CommandsPanel({ commands, prefix }: { commands: CommandRow[]; prefix: string }) {
+  const t = useT();
   const { guildId } = useGuild();
   const [state, setState] = useState(() =>
     Object.fromEntries(commands.map((command) => [command.name, command.on])),
@@ -109,23 +112,24 @@ function CommandsPanel({ commands, prefix }: { commands: CommandRow[]; prefix: s
   const [pending, start] = useTransition();
 
   return (
-    <Panel title="Commands" span={5} actions={<StatusText status={status} />}>
+    <Panel title={t('Commands')} span={5} actions={<StatusText status={status} />}>
       {commands.length === 0 ? (
-        <Empty mood="sleeping">Maxwell lists them once it is online.</Empty>
+        <Empty mood="sleeping">{t('Maxwell lists them once it is online.')}</Empty>
       ) : (
         commands.map((command) => {
           const on = state[command.name] ?? true;
+          const name = `${prefix}${command.name}`;
           return (
             <div key={command.name} className="mx-row">
               <div className="mx-row-main">
-                <span className="mx-row-title mx-mono">{`${prefix}${command.name}`}</span>
+                <span className="mx-row-title mx-mono">{name}</span>
                 <span className="mx-sub">{command.description}</span>
               </div>
               <Switch
                 order
                 checked={on}
                 disabled={pending}
-                label={`${prefix}${command.name} ${on ? 'on' : 'off'}`}
+                label={on ? t('{name} on', { name }) : t('{name} off', { name })}
                 onChange={(next) => {
                   setState((previous) => ({ ...previous, [command.name]: next }));
                   start(async () => {
@@ -148,6 +152,7 @@ function CommandsPanel({ commands, prefix }: { commands: CommandRow[]; prefix: s
 }
 
 function EscalationPanel() {
+  const t = useT();
   const { value, set, readOnly } = useDraft<ModerationConfig>();
   const steps = value.escalationSteps;
   const expiry = value.warnExpiryDays;
@@ -173,46 +178,50 @@ function EscalationPanel() {
 
   return (
     <Panel
-      title="Escalation"
+      title={t('Escalation')}
       span={7}
       id="escalation"
       actions={
         <Switch
           order
           checked={value.escalationEnabled}
-          label="Escalation"
+          label={t('Escalation')}
           onChange={(escalationEnabled) => set({ escalationEnabled })}
         />
       }
     >
       <PanelBody>
         <Fields>
-          <Field label="Count warns from the last">
+          <Field label={t('Count warns from the last')}>
             <Select
-              label="Count warns from the last"
+              label={t('Count warns from the last')}
               value={String(value.escalationWindowDays)}
-              options={windowList.map((option) => ({ value: String(option), label: days(option) }))}
+              options={windowList.map((option) => ({
+                value: String(option),
+                label: days(t, option),
+              }))}
               onChange={(next) => set({ escalationWindowDays: Number(next) })}
             />
           </Field>
-          <Field label="Warns expire after">
+          <Field label={t('Warns expire after')}>
             <Select
-              label="Warns expire after"
+              label={t('Warns expire after')}
               value={expiry === null ? 'never' : String(expiry)}
               options={[
-                ...expiryList.map((option) => ({ value: String(option), label: days(option) })),
-                { value: 'never', label: 'Never' },
+                ...expiryList.map((option) => ({ value: String(option), label: days(t, option) })),
+                { value: 'never', label: t('Never') },
               ]}
               onChange={(next) => set({ warnExpiryDays: next === 'never' ? null : Number(next) })}
             />
           </Field>
         </Fields>
       </PanelBody>
-      {steps.length === 0 ? <Empty>No steps. Warns stay warns.</Empty> : null}
+      {steps.length === 0 ? <Empty>{t('No steps. Warns stay warns.')}</Empty> : null}
       {rows.map(({ step, id }, index) => {
         const key = stepKey(step);
         const known = presetSteps.some((preset) => stepKey(preset) === key);
         const options = known ? presetSteps : [...presetSteps, step];
+        const number = String(index + 1);
         return (
           <div className="mx-row" key={id}>
             <div style={{ width: 120, flexShrink: 0 }}>
@@ -220,8 +229,8 @@ function EscalationPanel() {
                 value={step.warns}
                 min={1}
                 max={100}
-                suffix="warns"
-                label={`Warns for step ${index + 1}`}
+                suffix={t('warns')}
+                label={t('Warns for step {number}', { number })}
                 onChange={(next) => {
                   if (Number.isInteger(next) && next >= 1 && next <= 100) {
                     update(index, { warns: next });
@@ -232,11 +241,11 @@ function EscalationPanel() {
             <ArrowIcon />
             <div style={{ flex: 1, minWidth: 0 }}>
               <Select
-                label={`Action for step ${index + 1}`}
+                label={t('Action for step {number}', { number })}
                 value={key}
                 options={options.map((option) => ({
                   value: stepKey(option),
-                  label: stepLabel(option),
+                  label: stepLabel(t, option),
                 }))}
                 onChange={(next) => update(index, parseStep(next))}
               />
@@ -245,7 +254,7 @@ function EscalationPanel() {
               <button
                 type="button"
                 className="mx-chip-x"
-                aria-label={`Remove step ${index + 1}`}
+                aria-label={t('Remove step {number}', { number })}
                 onClick={() => {
                   ids.current.splice(index, 1);
                   set({ escalationSteps: steps.filter((_, position) => position !== index) });
@@ -260,15 +269,17 @@ function EscalationPanel() {
       {doubled !== undefined || !(readOnly || steps.length >= 10) ? (
         <PanelBody>
           {doubled !== undefined ? (
-            <Callout tone="warn">{`Two steps at ${doubled} warns. Only the last one counts.`}</Callout>
+            <Callout tone="warn">
+              {t('Two steps at {count} warns. Only the last one counts.', { count: doubled })}
+            </Callout>
           ) : null}
           {readOnly || steps.length >= 10 ? null : (
             <div className="mx-inline">
               <AddPicker
-                label="Add step"
+                label={t('Add step')}
                 options={presetSteps.map((option) => ({
                   value: stepKey(option),
-                  label: stepLabel(option),
+                  label: stepLabel(t, option),
                 }))}
                 onPick={(next) => {
                   const top = Math.max(0, ...counts);
@@ -299,6 +310,7 @@ export function SettingsTab({
   guildName: string;
   viewerName: string;
 }) {
+  const t = useT();
   const { value, set, readOnly } = useDraft<ModerationConfig>();
   const [leftEmpty, setLeftEmpty] = useState(false);
   const timeoutList = timeoutMinutes.includes(value.defaultTimeoutMinutes)
@@ -310,49 +322,52 @@ export function SettingsTab({
   const dmVars = {
     user: viewerName,
     server: guildName,
-    action: 'timed out for 1 hour',
-    reason: 'Spam in #general',
-    duration: '1 hour',
+    action: t('timed out for 1 hour'),
+    reason: t('Spam in #general'),
+    duration: t('1 hour'),
   };
   const templateEmpty = !value.dmTemplate.trim();
 
   return (
     <Grid>
-      <Panel title="General" span={6} id="general">
+      <Panel title={t('General')} span={6} id="general">
         <PanelBody>
           <Fields>
-            <Field label="Mod log">
+            <Field label={t('Mod log')}>
               <ChannelSelect
-                label="Mod log"
+                label={t('Mod log')}
                 value={value.logChannelId}
                 onChange={(logChannelId) => set({ logChannelId })}
               />
             </Field>
-            <Field label="Default timeout">
+            <Field label={t('Default timeout')}>
               <Select
-                label="Default timeout"
+                label={t('Default timeout')}
                 value={String(value.defaultTimeoutMinutes)}
                 options={timeoutList.map((minutes) => ({
                   value: String(minutes),
-                  label: duration(minutes * 60_000),
+                  label: duration(t, minutes * 60_000),
                 }))}
                 onChange={(next) => set({ defaultTimeoutMinutes: Number(next) })}
               />
             </Field>
           </Fields>
-          <Field label="On ban, delete their messages from">
+          <Field label={t('On ban, delete their messages from')}>
             <Select
-              label="On ban, delete their messages from"
+              label={t('On ban, delete their messages from')}
               value={String(value.banDeleteMessageDays)}
               options={deleteList.map((count) => ({
                 value: String(count),
-                label: count === 0 ? 'Keep messages' : `The last ${days(count)}`,
+                label:
+                  count === 0
+                    ? t('Keep messages')
+                    : t.plural(count, 'The last {n} day', 'The last {n} days'),
               }))}
               onChange={(next) => set({ banDeleteMessageDays: Number(next) })}
             />
           </Field>
           <div className="mx-field">
-            <span className="mx-label">Moderator roles</span>
+            <span className="mx-label">{t('Moderator roles')}</span>
             <RoleMulti
               value={value.modRoleIds}
               onChange={(modRoleIds) => set({ modRoleIds: modRoleIds.slice(0, 25) })}
@@ -360,13 +375,13 @@ export function SettingsTab({
           </div>
           <ToggleRow
             order
-            title="Reason required"
+            title={t('Reason required')}
             checked={value.requireReason}
             onChange={(requireReason) => set({ requireReason })}
           />
           <ToggleRow
             order
-            title="DM the member"
+            title={t('DM the member')}
             checked={value.dmMembers}
             onChange={(dmMembers) => set({ dmMembers })}
           />
@@ -374,7 +389,7 @@ export function SettingsTab({
             <div
               className="mx-inline"
               role="group"
-              aria-label="DM on these actions"
+              aria-label={t('DM on these actions')}
               style={{ gap: 18 }}
             >
               {dmActions.map((action) => {
@@ -382,7 +397,7 @@ export function SettingsTab({
                 return (
                   <Checkbox
                     key={action}
-                    label={dmNames[action]}
+                    label={t(dmNames[action])}
                     checked={on}
                     onChange={() =>
                       set({
@@ -401,14 +416,14 @@ export function SettingsTab({
         </PanelBody>
       </Panel>
 
-      <Panel title="Message to the member" span={6} id="dm">
+      <Panel title={t('Message to the member')} span={6} id="dm">
         <PanelBody>
           <div className="mx-field">
             <textarea
               className="mx-textarea"
               rows={4}
               maxLength={1_500}
-              aria-label="DM template"
+              aria-label={t('DM template')}
               aria-invalid={leftEmpty && templateEmpty ? true : undefined}
               value={value.dmTemplate}
               readOnly={readOnly}
@@ -416,7 +431,7 @@ export function SettingsTab({
               onChange={(event) => set({ dmTemplate: event.target.value })}
             />
             {leftEmpty && templateEmpty ? (
-              <span className="mx-field-error">Write a message.</span>
+              <span className="mx-field-error">{t('Write a message.')}</span>
             ) : (
               <span className="mx-hint mx-mono">
                 {'{user} {server} {action} {reason} {duration}'}

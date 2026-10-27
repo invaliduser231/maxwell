@@ -1,3 +1,5 @@
+import type { Key, Translator } from '@/lib/i18n';
+
 const MOD_ACTION = /^(case\.|automod\.gate\.|automod\.lockdown)/;
 
 export type EntryKind = 'settings' | 'mod' | 'auto';
@@ -7,7 +9,7 @@ export function kindOf(actorId: string | null, action: string): EntryKind {
   return MOD_ACTION.test(action) ? 'mod' : 'settings';
 }
 
-export const kindInfo: Record<EntryKind, { name: string }> = {
+export const kindInfo: Record<EntryKind, { name: Key }> = {
   settings: { name: 'Setting' },
   mod: { name: 'Mod action' },
   auto: { name: 'Automatic' },
@@ -34,8 +36,13 @@ function isVerb(word: string): boolean {
   return /^[A-Z][a-z]{2,}ed$/.test(word) && !word.endsWith('eed');
 }
 
-export function sentence(name: string | null, summary: string): { text: string; byline: boolean } {
+export function sentence(
+  t: Translator,
+  name: string | null,
+  summary: string,
+): { text: string; byline: boolean } {
   if (!name) return { text: summary, byline: false };
+  if (t.lang !== 'en') return { text: summary, byline: true };
   const first = summary.split(' ', 1)[0] ?? '';
   if (isVerb(first)) {
     return { text: `${name} ${summary.charAt(0).toLowerCase()}${summary.slice(1)}`, byline: false };
@@ -53,7 +60,7 @@ export interface AuditQuery {
 
 export const PAGE_SIZE = 30;
 
-export const ranges: { value: AuditQuery['range']; label: string }[] = [
+export const ranges: { value: AuditQuery['range']; label: Key }[] = [
   { value: 'any', label: 'Any time' },
   { value: '1', label: 'Last 24 hours' },
   { value: '7', label: 'Last 7 days' },

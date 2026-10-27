@@ -1,14 +1,14 @@
 import { ticketsConfig } from '@maxwell/core/modules/tickets';
 import { TicketStore } from '@maxwell/core/stores/tickets';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
 import { db } from '@/lib/db';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { namesOf } from '@/lib/people';
 import { CLOSED_PAGE, loadDetail, ticketView } from './load';
 import { TicketsView } from './tickets-view';
 
-export const metadata: Metadata = { title: 'Tickets' };
+export const generateMetadata = titled('Tickets');
 
 export default async function TicketsPage({ params }: { params: Promise<{ guild: string }> }) {
   const { guild } = await params;

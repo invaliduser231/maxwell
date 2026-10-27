@@ -1,13 +1,14 @@
-import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { TopBar } from '@/components/top-bar';
 import { Logo } from '@/components/ui';
 import { oauth } from '@/lib/env';
+import type { Key } from '@/lib/i18n';
+import { getT, titled } from '@/lib/i18n/server';
 import { devLoginEnabled, getSession } from '@/lib/session';
 
-export const metadata: Metadata = { title: 'Sign in' };
+export const generateMetadata = titled('Sign in');
 
-const errors: Record<string, string> = {
+const errors: Record<string, Key> = {
   denied: 'Sign-in was cancelled.',
   expired: 'That sign-in link expired. Try again.',
   failed: 'Fluxer did not let me in. Try again in a moment.',
@@ -21,6 +22,8 @@ export default async function Login({
   const { next, error } = await searchParams;
   if (await getSession()) redirect(next?.startsWith('/') ? next : '/');
   const start = `/auth/start${next ? `?next=${encodeURIComponent(next)}` : ''}`;
+  const t = await getT();
+  const message = error ? errors[error] : undefined;
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
@@ -75,9 +78,9 @@ export default async function Login({
           >
             <Logo size={64} />
             <h1 className="mx-h1">Maxwell</h1>
-            {error && errors[error] ? (
+            {message ? (
               <p className="mx-status mx-status-error" role="alert" style={{ margin: 0 }}>
-                {errors[error]}
+                {t(message)}
               </p>
             ) : null}
             {oauth() ? (
@@ -86,11 +89,11 @@ export default async function Login({
                 href={start}
                 style={{ width: '100%', justifyContent: 'center', minHeight: 42, fontSize: 14 }}
               >
-                Sign in with Fluxer
+                {t('Sign in with Fluxer')}
               </a>
             ) : (
               <p className="mx-sub" style={{ margin: 0 }}>
-                Sign-in is not set up yet.
+                {t('Sign-in is not set up yet.')}
               </p>
             )}
             {devLoginEnabled() ? (
@@ -99,11 +102,11 @@ export default async function Login({
                 href="/auth/dev"
                 style={{ width: '100%', justifyContent: 'center' }}
               >
-                Development login
+                {t('Development login')}
               </a>
             ) : null}
             <a href="/privacy" className="mx-sub">
-              Privacy
+              {t('Privacy')}
             </a>
           </div>
         </div>

@@ -1,13 +1,13 @@
-import type { Metadata } from 'next';
 import { PageHeader } from '@/components/module-shell';
 import { requirePage } from '@/lib/access';
 import { db } from '@/lib/db';
+import { getT, titled } from '@/lib/i18n/server';
 import { FORMER_MEMBER, people, personOf } from '@/lib/people';
 import { AuditView } from './audit-view';
 import { loadEntries, moduleName } from './data';
 import { type AuditQuery, MAXWELL } from './format';
 
-export const metadata: Metadata = { title: 'Audit trail' };
+export const generateMetadata = titled('Audit trail');
 
 function one(value: string | string[] | undefined): string | null {
   const first = Array.isArray(value) ? value[0] : value;
@@ -38,9 +38,10 @@ export default async function AuditPage({
     search: '',
   };
 
-  const [first, known] = await Promise.all([
+  const [first, known, t] = await Promise.all([
     loadEntries(guild, query),
     people(actorRows.map((row) => row.actorId)),
+    getT(),
   ]);
 
   const actors = actorRows.map((row) => ({
@@ -48,15 +49,15 @@ export default async function AuditPage({
     label: row.actorId ? personOf(known, row.actorId).name : 'Maxwell',
   }));
   if (query.actor && !actors.some((actor) => actor.value === query.actor)) {
-    actors.push({ value: query.actor, label: FORMER_MEMBER });
+    actors.push({ value: query.actor, label: t.raw(FORMER_MEMBER) });
   }
   const modules = moduleKeys
-    .map((key) => ({ value: key, label: moduleName(key) }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+    .map((key) => ({ value: key, label: t.raw(moduleName(key)) }))
+    .sort((a, b) => a.label.localeCompare(b.label, t.locale));
 
   return (
     <>
-      <PageHeader title="Audit trail" page="audit" />
+      <PageHeader title={t('Audit trail')} page="audit" />
       <AuditView
         initial={first.rows}
         more={first.more}

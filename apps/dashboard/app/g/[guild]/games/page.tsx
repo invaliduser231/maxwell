@@ -2,14 +2,14 @@ import { economyConfig } from '@maxwell/core/modules/economy';
 import { type GameKey, games, gamesConfig } from '@maxwell/core/modules/games';
 import { EconomyStore, type KindTotal } from '@maxwell/core/stores/economy';
 import { GamesStore } from '@maxwell/core/stores/games';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
 import { db } from '@/lib/db';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { people, personOf } from '@/lib/people';
 import { type BoardRow, GamesForm } from './games-form';
 
-export const metadata: Metadata = { title: 'Games' };
+export const generateMetadata = titled('Games');
 
 const boards: Record<GameKey, 'wins' | 'best'> = {
   trivia: 'wins',

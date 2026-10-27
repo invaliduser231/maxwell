@@ -14,11 +14,13 @@ import {
   ToggleRow,
 } from '@/components/controls';
 import { ChannelType, useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { fingerprint } from '@/components/live';
 import { useDraft } from '@/components/module-shell';
 import { Empty, Field, Fields, Grid, Panel, PanelBody } from '@/components/ui';
+import type { Key, Translator } from '@/lib/i18n';
 import type { Names } from '@/lib/people';
-import { plural, span } from '@/lib/time';
+import { span } from '@/lib/time';
 import { fetchSubmissions } from './actions';
 import { freshId, slug, useForm } from './bits';
 import {
@@ -39,25 +41,20 @@ interface Bucket {
   more: boolean;
 }
 
-const tabs = [
+const tabs: { value: Tab; label: Key }[] = [
   { value: 'questions', label: 'Questions' },
   { value: 'settings', label: 'Settings' },
   { value: 'responses', label: 'Responses' },
-] as const;
+];
 
-const cooldowns = [
+const cooldowns: { value: string; label: Key }[] = [
   { value: '0', label: 'None' },
   { value: '24', label: '1 day' },
   { value: '168', label: '7 days' },
   { value: '720', label: '30 days' },
 ];
 
-const voteCounts = [
-  { value: '0', label: 'Off' },
-  ...[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) })),
-];
-
-const sessionOptions = [
+const sessionOptions: { value: string; label: Key }[] = [
   { value: '10', label: '10 minutes' },
   { value: '30', label: '30 minutes' },
   { value: '60', label: '1 hour' },
@@ -67,6 +64,17 @@ const sessionOptions = [
 const CATEGORY = [ChannelType.Category];
 
 const FORM_LIMIT = 25;
+
+function translate(t: Translator, list: { value: string; label: Key }[]) {
+  return list.map((entry) => ({ ...entry, label: t(entry.label) }));
+}
+
+function voteCounts(t: Translator) {
+  return [
+    { value: '0', label: t('Off') },
+    ...[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) })),
+  ];
+}
 
 function withCurrent(options: { value: string; label: string }[], current: number, label: string) {
   return options.some((option) => option.value === String(current))
@@ -83,6 +91,7 @@ function countFor(counts: Counts, formId: string, status?: SubmissionStatus): nu
 }
 
 function useAddForm(onSelect: (index: number) => void): () => void {
+  const t = useT();
   const { value, update } = useDraft<FormsConfig>();
   return () => {
     const form: FormDefinition = {
@@ -90,7 +99,7 @@ function useAddForm(onSelect: (index: number) => void): () => void {
         value.forms.length === 0 ? 'apply' : 'new-form',
         value.forms.map((entry) => entry.id),
       ),
-      name: value.forms.length === 0 ? 'Staff application' : 'New form',
+      name: value.forms.length === 0 ? t('Staff application') : t('New form'),
       description: '',
       enabled: true,
       questions: [],
@@ -132,10 +141,11 @@ function FormList({
   onAdd: () => void;
   counts: Counts;
 }) {
+  const t = useT();
   const { value, readOnly } = useDraft<FormsConfig>();
   return (
     <Panel
-      title="Forms"
+      title={t('Forms')}
       id="f-forms"
       actions={
         readOnly ? null : (
@@ -145,7 +155,7 @@ function FormList({
             disabled={value.forms.length >= FORM_LIMIT}
             onClick={onAdd}
           >
-            New
+            {t('New')}
           </button>
         )
       }
@@ -162,15 +172,16 @@ function FormList({
               aria-pressed={picked}
               onClick={() => onSelect(index)}
             >
-              <span className="mx-row-title mx-ellipsis">{form.name || 'Untitled form'}</span>
+              <span className="mx-row-title mx-ellipsis">{form.name || t('Untitled form')}</span>
               <span className="mx-sub">
-                {plural(form.questions.length, 'question')}, {plural(total, 'response')}
-                {form.enabled ? '' : ', paused'}
+                {t.plural(form.questions.length, '{n} question', '{n} questions')},{' '}
+                {t.plural(total, '{n} response', '{n} responses')}
+                {form.enabled ? '' : `, ${t('paused')}`}
               </span>
             </button>
             {waiting > 0 ? (
               <span className="mx-chip" style={{ color: 'var(--mx-north)' }}>
-                {waiting} new
+                {t('{count} new', { count: waiting })}
               </span>
             ) : null}
           </div>
@@ -189,12 +200,14 @@ function FormSettings({
   prefix: string;
   onRemoved: () => void;
 }) {
+  const t = useT();
   const { value, form, patch, update, readOnly } = useForm(index);
   if (!form) return null;
   const taken = value.forms.some((entry, at) => at !== index && entry.id === form.id);
+  const votes = voteCounts(t);
   return (
     <Panel
-      title={form.name || 'Untitled form'}
+      title={form.name || t('Untitled form')}
       id="f-settings"
       actions={
         readOnly ? null : (
@@ -209,18 +222,18 @@ function FormSettings({
               onRemoved();
             }}
           >
-            Delete form
+            {t('Delete form')}
           </button>
         )
       }
     >
       <PanelBody>
         <Fields>
-          <Field label="Name">
+          <Field label={t('Name')}>
             <TextInput value={form.name} maxLength={80} onChange={(name) => patch({ name })} />
           </Field>
           <label className="mx-field">
-            <span className="mx-label">Open with</span>
+            <span className="mx-label">{t('Open with')}</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span className="mx-mono mx-muted" style={{ whiteSpace: 'nowrap' }}>
                 {prefix}form start
@@ -234,58 +247,64 @@ function FormSettings({
                 onChange={(event) => patch({ id: slug(event.target.value) })}
               />
             </span>
-            {taken ? <span className="mx-hint">Another form already uses this.</span> : null}
+            {taken ? <span className="mx-hint">{t('Another form already uses this.')}</span> : null}
           </label>
-          <Field label="Reviews go to">
+          <Field label={t('Reviews go to')}>
             <ChannelSelect
               value={form.reviewChannelId}
-              none="Nowhere"
+              none={t('Nowhere')}
               onChange={(reviewChannelId) => patch({ reviewChannelId })}
             />
           </Field>
-          <Field label="Cooldown">
+          <Field label={t('Cooldown')}>
             <Select
               value={String(form.cooldownHours)}
-              options={withCurrent(cooldowns, form.cooldownHours, `${form.cooldownHours} hours`)}
+              options={withCurrent(
+                translate(t, cooldowns),
+                form.cooldownHours,
+                t.plural(form.cooldownHours, '{n} hour', '{n} hours'),
+              )}
               onChange={(next) => patch({ cooldownHours: Number(next) })}
             />
           </Field>
-          <Field label="Approvals needed">
+          <Field label={t('Approvals needed')}>
             <Select
               value={String(form.votesToAccept)}
-              options={withCurrent(voteCounts, form.votesToAccept, String(form.votesToAccept))}
+              options={withCurrent(votes, form.votesToAccept, String(form.votesToAccept))}
               onChange={(next) => patch({ votesToAccept: Number(next) })}
             />
           </Field>
-          <Field label="Declines needed">
+          <Field label={t('Declines needed')}>
             <Select
               value={String(form.votesToDecline)}
-              options={withCurrent(voteCounts, form.votesToDecline, String(form.votesToDecline))}
+              options={withCurrent(votes, form.votesToDecline, String(form.votesToDecline))}
               onChange={(next) => patch({ votesToDecline: Number(next) })}
             />
           </Field>
           <div className="mx-field">
-            <span className="mx-label">Who can apply</span>
+            <span className="mx-label">{t('Who can apply')}</span>
             <RoleMulti
               value={form.requiredRoleIds}
               onChange={(requiredRoleIds) =>
                 patch({ requiredRoleIds: requiredRoleIds.slice(0, 10) })
               }
             />
-            {form.requiredRoleIds.length === 0 ? <span className="mx-hint">Everyone</span> : null}
+            {form.requiredRoleIds.length === 0 ? (
+              <span className="mx-hint">{t('Everyone')}</span>
+            ) : null}
           </div>
           <div className="mx-field">
-            <span className="mx-label">Who can vote</span>
+            <span className="mx-label">{t('Who can vote')}</span>
             <RoleMulti
               value={form.reviewerRoleIds}
               onChange={(reviewerRoleIds) =>
                 patch({ reviewerRoleIds: reviewerRoleIds.slice(0, 10) })
               }
             />
-            <span className="mx-hint">Manage Server always can</span>
+            <span className="mx-hint">{t('Manage Server always can')}</span>
           </div>
         </Fields>
-        <Field label="Intro">
+        <Field label={t('Intro')}>
           <TextArea
             value={form.description}
             rows={2}
@@ -295,12 +314,12 @@ function FormSettings({
         </Field>
         <Fields>
           <ToggleRow
-            title="Taking answers"
+            title={t('Taking answers')}
             checked={form.enabled}
             onChange={(enabled) => patch({ enabled })}
           />
           <ToggleRow
-            title="One approval per member"
+            title={t('One approval per member')}
             checked={form.oncePerMember}
             onChange={(oncePerMember) => patch({ oncePerMember })}
           />
@@ -311,29 +330,30 @@ function FormSettings({
 }
 
 function AllForms() {
+  const t = useT();
   const { value, update } = useDraft<FormsConfig>();
   return (
-    <Panel title="All forms" id="f-all">
+    <Panel title={t('All forms')} id="f-all">
       <PanelBody>
         <Fields>
-          <Field label="Time to answer">
+          <Field label={t('Time to answer')}>
             <Select
               value={String(value.sessionMinutes)}
               options={withCurrent(
-                sessionOptions,
+                translate(t, sessionOptions),
                 value.sessionMinutes,
-                `${value.sessionMinutes} minutes`,
+                t('{count} minutes', { count: value.sessionMinutes }),
               )}
               onChange={(next) =>
                 update((previous) => ({ ...previous, sessionMinutes: Number(next) }))
               }
             />
           </Field>
-          <Field label="Category when DMs are closed">
+          <Field label={t('Category when DMs are closed')}>
             <ChannelSelect
               value={value.fallbackCategoryId}
               kinds={CATEGORY}
-              none="No category"
+              none={t('No category')}
               onChange={(fallbackCategoryId) =>
                 update((previous) => ({ ...previous, fallbackCategoryId }))
               }
@@ -354,15 +374,16 @@ function FormStats({
   counts: Counts;
   times: { formId: string; medianSeconds: number }[];
 }) {
+  const t = useT();
   const median = times.find((entry) => entry.formId === form.id)?.medianSeconds;
   const stats = [
-    { label: 'Responses', value: countFor(counts, form.id).toLocaleString('en-US') },
-    { label: 'Waiting', value: countFor(counts, form.id, 'pending').toLocaleString('en-US') },
-    { label: 'Approved', value: countFor(counts, form.id, 'accepted').toLocaleString('en-US') },
-    ...(median === undefined ? [] : [{ label: 'Median review', value: span(median * 1000) }]),
+    { label: t('Responses'), value: t.count(countFor(counts, form.id)) },
+    { label: t('Waiting'), value: t.count(countFor(counts, form.id, 'pending')) },
+    { label: t('Approved'), value: t.count(countFor(counts, form.id, 'accepted')) },
+    ...(median === undefined ? [] : [{ label: t('Median review'), value: span(t, median * 1000) }]),
   ];
   return (
-    <section className="mx-panel" aria-label="Numbers">
+    <section className="mx-panel" aria-label={t('Numbers')}>
       <div
         style={{
           display: 'grid',
@@ -397,6 +418,7 @@ export function FormsView({
   decided: Bucket;
   ticketPanels: TicketPanelOption[];
 }) {
+  const t = useT();
   const { value, readOnly } = useDraft<FormsConfig>();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('questions');
@@ -472,12 +494,12 @@ export function FormsView({
             action={
               readOnly ? null : (
                 <button type="button" className="mx-btn mx-btn-primary" onClick={add}>
-                  New form
+                  {t('New form')}
                 </button>
               )
             }
           >
-            No forms yet.
+            {t('No forms yet.')}
           </Empty>
         </Panel>
       </Grid>
@@ -490,7 +512,12 @@ export function FormsView({
 
   return (
     <>
-      <Tabs label="Forms" value={tab} options={tabs} onChange={setTab} />
+      <Tabs
+        label={t('Forms')}
+        value={tab}
+        options={tabs.map((entry) => ({ ...entry, label: t(entry.label) }))}
+        onChange={setTab}
+      />
       <Grid>
         {tab === 'questions' ? (
           <>
@@ -511,7 +538,7 @@ export function FormsView({
                       readOnly ? null : <AddQuestion formIndex={index} onSelect={setQuestion} />
                     }
                   >
-                    No questions yet.
+                    {t('No questions yet.')}
                   </Empty>
                 </Panel>
               )}

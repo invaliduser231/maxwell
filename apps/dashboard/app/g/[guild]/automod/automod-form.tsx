@@ -22,13 +22,15 @@ import {
   WordList,
 } from '@/components/controls';
 import { useChannelName, useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { useDraft } from '@/components/module-shell';
 import { type Status, StatusText } from '@/components/status-text';
 import { TwoStep } from '@/components/two-step';
 import { Avatar, Empty, Field, Fields, Grid, Panel, PanelBody } from '@/components/ui';
 import { usePoll } from '@/components/use-poll';
 import { runAction, undoEntry } from '@/lib/actions';
-import { clock, dayTime, hoursLabel, inSentence, plural, span } from '@/lib/time';
+import type { Key, Translator } from '@/lib/i18n';
+import { clock, dayTime, hoursLabel, inSentence, span } from '@/lib/time';
 import { dryRunResult, gateRole, gateStatus, startDryRun } from './actions';
 import type { DryRunView, GateView } from './data';
 
@@ -36,7 +38,11 @@ type Rules = AutomodConfig['rules'];
 type Raid = AutomodConfig['raid'];
 type AnyRule = Rules[AutomodRuleKey];
 
-const RULES: { key: AutomodRuleKey; name: string }[] = [
+function translated<T extends string>(t: Translator, list: { value: T; label: Key }[]) {
+  return list.map((entry) => ({ value: entry.value, label: t(entry.label) }));
+}
+
+const RULES: { key: AutomodRuleKey; name: Key }[] = [
   { key: 'spam', name: 'Spam' },
   { key: 'invites', name: 'Invite links' },
   { key: 'links', name: 'Links' },
@@ -48,13 +54,13 @@ const RULES: { key: AutomodRuleKey; name: string }[] = [
   { key: 'newAccountLinks', name: 'New accounts posting links' },
 ];
 
-const MODES: { value: AutomodMode; label: string }[] = [
+const MODES: { value: AutomodMode; label: Key }[] = [
   { value: 'off', label: 'Off' },
   { value: 'log', label: 'Log' },
   { value: 'enforce', label: 'Enforce' },
 ];
 
-const ACTIONS: { value: AutomodAction; label: string }[] = [
+const ACTIONS: { value: AutomodAction; label: Key }[] = [
   { value: 'delete', label: 'Delete' },
   { value: 'warn', label: 'Warn' },
   { value: 'timeout', label: 'Timeout' },
@@ -64,7 +70,7 @@ const ACTIONS: { value: AutomodAction; label: string }[] = [
 
 type Tab = 'rules' | 'raid' | 'settings';
 
-const TABS: { value: Tab; label: string }[] = [
+const TABS: { value: Tab; label: Key }[] = [
   { value: 'rules', label: 'Rules' },
   { value: 'raid', label: 'Raid shield' },
   { value: 'settings', label: 'Settings' },
@@ -88,33 +94,54 @@ const TRIGGERS = [
   [30, 60],
 ];
 
-function summary(key: AutomodRuleKey, rules: Rules): string {
+function summary(t: Translator, key: AutomodRuleKey, rules: Rules): string {
   switch (key) {
     case 'spam':
-      return `More than ${rules.spam.maxMessages} messages in ${rules.spam.perSeconds} seconds`;
+      return t('More than {max} messages in {seconds} seconds', {
+        max: rules.spam.maxMessages,
+        seconds: rules.spam.perSeconds,
+      });
     case 'invites':
       return rules.invites.allowedCodes.length > 0
-        ? `Invites to other communities, ${rules.invites.allowedCodes.length} allowed`
-        : 'Invites to other communities';
+        ? t('Invites to other communities, {count} allowed', {
+            count: rules.invites.allowedCodes.length,
+          })
+        : t('Invites to other communities');
     case 'links': {
       const count = rules.links.domains.length;
-      if (rules.links.listMode === 'allow') return `Only ${plural(count, 'allowed domain')}`;
-      return count > 0 ? plural(count, 'blocked domain') : 'No domains listed yet';
+      if (rules.links.listMode === 'allow') {
+        return t.plural(count, 'Only {n} allowed domain', 'Only {n} allowed domains');
+      }
+      return count > 0
+        ? t.plural(count, '{n} blocked domain', '{n} blocked domains')
+        : t('No domains listed yet');
     }
     case 'mentions':
-      return `More than ${rules.mentions.maxMentions} mentions in one message`;
+      return t('More than {max} mentions in one message', { max: rules.mentions.maxMentions });
     case 'caps':
-      return `Over ${rules.caps.maxPercent}% capitals, ${rules.caps.minLength} characters or more`;
+      return t('Over {percent}% capitals, {length} characters or more', {
+        percent: rules.caps.maxPercent,
+        length: rules.caps.minLength,
+      });
     case 'words':
       return rules.words.patterns.length > 0
-        ? `${plural(rules.words.patterns.length, 'pattern')}, wildcards allowed`
-        : 'No patterns yet';
+        ? t.plural(
+            rules.words.patterns.length,
+            '{n} pattern, wildcards allowed',
+            '{n} patterns, wildcards allowed',
+          )
+        : t('No patterns yet');
     case 'repeats':
-      return `Same text more than ${rules.repeats.maxRepeats} times in ${rules.repeats.perSeconds} seconds`;
+      return t('Same text more than {max} times in {seconds} seconds', {
+        max: rules.repeats.maxRepeats,
+        seconds: rules.repeats.perSeconds,
+      });
     case 'emoji':
-      return `More than ${rules.emoji.maxEmojis} emojis`;
+      return t('More than {max} emojis', { max: rules.emoji.maxEmojis });
     case 'newAccountLinks':
-      return `Accounts under ${hoursLabel(rules.newAccountLinks.minAccountAgeHours)}`;
+      return t('Accounts under {age}', {
+        age: hoursLabel(t, rules.newAccountLinks.minAccountAgeHours),
+      });
   }
 }
 
@@ -148,6 +175,7 @@ function ShieldIcon({ color }: { color: string }) {
 
 function Gate({ initial, raid }: { initial: GateView; raid: Raid }) {
   const { guildId, timezone } = useGuild();
+  const t = useT();
   const { readOnly } = useDraft<AutomodConfig>();
   const [gate, setGate] = useState(initial);
   const [open, setOpen] = useState(false);
@@ -168,7 +196,7 @@ function Gate({ initial, raid }: { initial: GateView; raid: Raid }) {
       },
       () => {
         setBusy(false);
-        setStatus({ message: 'Maxwell has not answered yet. Reload in a moment.', error: true });
+        setStatus({ message: t('Maxwell has not answered yet. Reload in a moment.'), error: true });
       },
       40,
     );
@@ -218,23 +246,32 @@ function Gate({ initial, raid }: { initial: GateView; raid: Raid }) {
   let detail: string;
   if (active && held > 0) {
     title = gate.incident
-      ? `Raid shield held ${plural(held, 'account')} at the gate`
-      : `${plural(held, 'account')} waiting at the gate`;
+      ? t.plural(
+          held,
+          'Raid shield held {n} account at the gate',
+          'Raid shield held {n} accounts at the gate',
+        )
+      : t.plural(held, '{n} account waiting at the gate', '{n} accounts waiting at the gate');
     const started = inSentence(
-      dayTime(gate.incident?.startedAt ?? gate.held[0]?.heldAt ?? gate.now, gate.now, timezone),
+      t,
+      dayTime(t, gate.incident?.startedAt ?? gate.held[0]?.heldAt ?? gate.now, gate.now, timezone),
     );
-    const until = gate.incident?.endsAt
-      ? ` New joins wait until ${clock(gate.incident.endsAt, timezone)}.`
-      : '';
-    detail = `Held since ${started}.${until}${raid.gateRoleId ? ' They have the gate role and see no channels.' : ''}`;
+    const parts = [t('Held since {when}.', { when: started })];
+    if (gate.incident?.endsAt) {
+      parts.push(
+        t('New joins wait until {time}.', { time: clock(gate.incident.endsAt, timezone) }),
+      );
+    }
+    if (raid.gateRoleId) parts.push(t('They have the gate role and see no channels.'));
+    detail = parts.join(' ');
   } else if (active && gate.incident) {
     title = gate.incident.endsAt
-      ? `Lockdown until ${clock(gate.incident.endsAt, timezone)}`
-      : 'Lockdown is on';
-    detail = 'Nobody joined since it started.';
+      ? t('Lockdown until {time}', { time: clock(gate.incident.endsAt, timezone) })
+      : t('Lockdown is on');
+    detail = t('Nobody joined since it started.');
   } else {
     title = gate.last?.summary ?? '';
-    detail = gate.last ? dayTime(gate.last.createdAt, gate.now, timezone) : '';
+    detail = gate.last ? dayTime(t, gate.last.createdAt, gate.now, timezone) : '';
   }
 
   return (
@@ -255,7 +292,7 @@ function Gate({ initial, raid }: { initial: GateView; raid: Raid }) {
             aria-expanded={open}
             onClick={() => setOpen(!open)}
           >
-            {open ? 'Hide list' : `Show ${held}`}
+            {open ? t('Hide list') : t('Show {count}', { count: held })}
           </button>
         ) : null}
         {!readOnly && held > 0 ? (
@@ -266,9 +303,9 @@ function Gate({ initial, raid }: { initial: GateView; raid: Raid }) {
               disabled={busy}
               onClick={() => act('gate.letin')}
             >
-              Let all in
+              {t('Let all in')}
             </button>
-            <TwoStep label="Ban all" danger disabled={busy} run={() => act('gate.banall')} />
+            <TwoStep label={t('Ban all')} danger disabled={busy} run={() => act('gate.banall')} />
           </>
         ) : null}
         {!readOnly && held === 0 && gate.incident ? (
@@ -278,7 +315,7 @@ function Gate({ initial, raid }: { initial: GateView; raid: Raid }) {
             disabled={busy}
             onClick={() => act('lockdown.end')}
           >
-            End lockdown
+            {t('End lockdown')}
           </button>
         ) : null}
         {!readOnly && !active && gate.last ? (
@@ -288,13 +325,13 @@ function Gate({ initial, raid }: { initial: GateView; raid: Raid }) {
             disabled={busy}
             onClick={() => gate.last && undo(gate.last.entryId)}
           >
-            Undo
+            {t('Undo')}
           </button>
         ) : null}
       </div>
 
       {open && held > 0 ? (
-        <section className="mx-panel" aria-label="Held at the gate">
+        <section className="mx-panel" aria-label={t('Held at the gate')}>
           <div
             style={{
               display: 'grid',
@@ -318,14 +355,18 @@ function Gate({ initial, raid }: { initial: GateView; raid: Raid }) {
                   {member.name}
                 </span>
                 {member.accountAge !== null ? (
-                  <span className="mx-sub">{`${span(member.accountAge)} old`}</span>
+                  <span className="mx-sub">
+                    {t('{age} old', { age: span(t, member.accountAge) })}
+                  </span>
                 ) : null}
               </div>
             ))}
           </div>
           {held > gate.held.length ? (
             <div className="mx-panel-body" style={{ borderTop: '1px solid var(--mx-line)' }}>
-              <span className="mx-sub">{`${plural(held - gate.held.length, 'more account')}`}</span>
+              <span className="mx-sub">
+                {t.plural(held - gate.held.length, '{n} more account', '{n} more accounts')}
+              </span>
             </div>
           ) : null}
         </section>
@@ -343,11 +384,12 @@ function RuleParams({
   rules: Rules;
   set: (patch: Partial<AnyRule>) => void;
 }) {
+  const t = useT();
   switch (ruleKey) {
     case 'spam':
       return (
         <Pair>
-          <Field label="Messages">
+          <Field label={t('Messages')}>
             <NumberInput
               value={rules.spam.maxMessages}
               min={1}
@@ -355,7 +397,7 @@ function RuleParams({
               onChange={(maxMessages) => set({ maxMessages })}
             />
           </Field>
-          <Field label="Seconds">
+          <Field label={t('Seconds')}>
             <NumberInput
               value={rules.spam.perSeconds}
               min={2}
@@ -368,11 +410,11 @@ function RuleParams({
     case 'invites':
       return (
         <div className="mx-field">
-          <span className="mx-label">Allowed invites</span>
+          <span className="mx-label">{t('Allowed invites')}</span>
           <WordList
             value={rules.invites.allowedCodes}
             mono
-            placeholder="Invite code or link"
+            placeholder={t('Invite code or link')}
             onChange={(allowedCodes) => set({ allowedCodes })}
           />
         </div>
@@ -381,13 +423,13 @@ function RuleParams({
       return (
         <>
           <div className="mx-field">
-            <span className="mx-label">Domains</span>
+            <span className="mx-label">{t('Domains')}</span>
             <Seg
-              label="Domain list"
+              label={t('Domain list')}
               value={rules.links.listMode}
               options={[
-                { value: 'deny', label: 'Block these' },
-                { value: 'allow', label: 'Allow only these' },
+                { value: 'deny', label: t('Block these') },
+                { value: 'allow', label: t('Allow only these') },
               ]}
               onChange={(listMode) => set({ listMode })}
             />
@@ -404,7 +446,7 @@ function RuleParams({
       return (
         <>
           <Pair>
-            <Field label="Mentions">
+            <Field label={t('Mentions')}>
               <NumberInput
                 value={rules.mentions.maxMentions}
                 min={1}
@@ -414,7 +456,7 @@ function RuleParams({
             </Field>
           </Pair>
           <ToggleRow
-            title="Count role mentions"
+            title={t('Count role mentions')}
             order
             checked={rules.mentions.countRoles}
             onChange={(countRoles) => set({ countRoles })}
@@ -424,7 +466,7 @@ function RuleParams({
     case 'caps':
       return (
         <Pair>
-          <Field label="Percent">
+          <Field label={t('Percent')}>
             <NumberInput
               value={rules.caps.maxPercent}
               min={50}
@@ -432,7 +474,7 @@ function RuleParams({
               onChange={(maxPercent) => set({ maxPercent })}
             />
           </Field>
-          <Field label="Min length">
+          <Field label={t('Min length')}>
             <NumberInput
               value={rules.caps.minLength}
               min={4}
@@ -445,11 +487,11 @@ function RuleParams({
     case 'words':
       return (
         <div className="mx-field">
-          <span className="mx-label">Patterns</span>
+          <span className="mx-label">{t('Patterns')}</span>
           <WordList
             value={rules.words.patterns}
             mono
-            placeholder="spam* or *scam*"
+            placeholder={t('spam* or *scam*')}
             onChange={(patterns) => set({ patterns })}
           />
         </div>
@@ -457,7 +499,7 @@ function RuleParams({
     case 'repeats':
       return (
         <Pair>
-          <Field label="Repeats">
+          <Field label={t('Repeats')}>
             <NumberInput
               value={rules.repeats.maxRepeats}
               min={1}
@@ -465,7 +507,7 @@ function RuleParams({
               onChange={(maxRepeats) => set({ maxRepeats })}
             />
           </Field>
-          <Field label="Seconds">
+          <Field label={t('Seconds')}>
             <NumberInput
               value={rules.repeats.perSeconds}
               min={5}
@@ -478,7 +520,7 @@ function RuleParams({
     case 'emoji':
       return (
         <Pair>
-          <Field label="Emojis">
+          <Field label={t('Emojis')}>
             <NumberInput
               value={rules.emoji.maxEmojis}
               min={1}
@@ -492,13 +534,13 @@ function RuleParams({
       const hours = rules.newAccountLinks.minAccountAgeHours;
       return (
         <Pair>
-          <Field label="Account age under">
+          <Field label={t('Account age under')}>
             <Select
               value={String(hours)}
               options={withCurrent(
-                AGE_OPTIONS.map((value) => ({ value: String(value), label: hoursLabel(value) })),
+                AGE_OPTIONS.map((value) => ({ value: String(value), label: hoursLabel(t, value) })),
                 String(hours),
-                hoursLabel(hours),
+                hoursLabel(t, hours),
               )}
               onChange={(next) => set({ minAccountAgeHours: Number(next) })}
             />
@@ -519,29 +561,30 @@ function DryRunPanel({
   setMode: (mode: AutomodMode) => void;
 }) {
   const { timezone } = useGuild();
+  const t = useT();
   const { readOnly } = useDraft<AutomodConfig>();
   const channelName = useChannelName();
   const now = run.finishedAt ?? run.createdAt;
   const stats: [string, string][] = [
-    ['Would have caught', run.caught.toLocaleString('en-US')],
-    ['Messages checked', run.scanned.toLocaleString('en-US')],
-    ['From moderators', run.byMods.toLocaleString('en-US')],
+    [t('Would have caught'), t.count(run.caught)],
+    [t('Messages checked'), t.count(run.scanned)],
+    [t('From moderators'), t.count(run.byMods)],
   ];
   return (
     <section className="mx-panel mx-s12" aria-labelledby="dry-title">
       <div className="mx-panel-head">
-        <h2 id="dry-title">{`Dry run: ${name}, last 7 days`}</h2>
+        <h2 id="dry-title">{t('Dry run: {name}, last 7 days', { name })}</h2>
         {readOnly ? null : (
           <div className="mx-inline">
             <button type="button" className="mx-btn" onClick={() => setMode('log')}>
-              Log only
+              {t('Log only')}
             </button>
             <button
               type="button"
               className="mx-btn mx-btn-primary"
               onClick={() => setMode('enforce')}
             >
-              Enforce
+              {t('Enforce')}
             </button>
           </div>
         )}
@@ -562,23 +605,24 @@ function DryRunPanel({
         ))}
       </div>
       {run.samples.length === 0 ? (
-        <Empty mood="happy">Nothing would have been caught.</Empty>
+        <Empty mood="happy">{t('Nothing would have been caught.')}</Empty>
       ) : (
         <div className="mx-scroll">
           <table className="mx-table">
             <thead>
               <tr>
-                <th scope="col">Member</th>
-                <th scope="col">Channel</th>
-                <th scope="col">Message</th>
-                <th scope="col">When</th>
+                <th scope="col">{t('Member')}</th>
+                <th scope="col">{t('Channel')}</th>
+                <th scope="col">{t('Message')}</th>
+                <th scope="col">{t('When')}</th>
               </tr>
             </thead>
             <tbody>
               {run.samples.map((sample) => (
                 <tr key={sample.messageId}>
                   <td>
-                    {sample.name} {sample.byMod ? <span className="mx-sub">Moderator</span> : null}
+                    {sample.name}{' '}
+                    {sample.byMod ? <span className="mx-sub">{t('Moderator')}</span> : null}
                   </td>
                   <td className="mx-muted">{channelName(sample.channelId)}</td>
                   <td
@@ -594,7 +638,7 @@ function DryRunPanel({
                     {sample.content}
                   </td>
                   <td className="mx-muted" style={{ whiteSpace: 'nowrap' }}>
-                    {dayTime(sample.createdAt, now, timezone)}
+                    {dayTime(t, sample.createdAt, now, timezone)}
                   </td>
                 </tr>
               ))}
@@ -627,6 +671,7 @@ export function AutomodForm({
   saved: AutomodConfig;
 }) {
   const { guildId } = useGuild();
+  const t = useT();
   const router = useRouter();
   const { value, update, readOnly } = useDraft<AutomodConfig>();
   const [tab, setTab] = useState<Tab>('rules');
@@ -644,7 +689,8 @@ export function AutomodForm({
   const rules = value.rules;
   const raid = value.raid;
   const rule = rules[selected];
-  const ruleName = RULES.find((entry) => entry.key === selected)?.name ?? selected;
+  const ruleKey = RULES.find((entry) => entry.key === selected)?.name;
+  const ruleName = ruleKey ? t(ruleKey) : selected;
   const result = results[selected];
   const enforced = RULES.filter((entry) => rules[entry.key].mode === 'enforce').length;
   const logged = RULES.filter((entry) => rules[entry.key].mode === 'log').length;
@@ -664,7 +710,10 @@ export function AutomodForm({
     startDryRun(guildId, key, rules[key]).then((started) => {
       if (!started.ok || !started.data) {
         setRunning(null);
-        setDryStatus({ message: started.ok ? 'That did not work.' : started.error, error: true });
+        setDryStatus({
+          message: started.ok ? t('That did not work.') : started.error,
+          error: true,
+        });
         return;
       }
       const id = started.data.id;
@@ -675,7 +724,7 @@ export function AutomodForm({
           const run = next.data;
           if (run.status === 'failed') {
             setRunning(null);
-            setDryStatus({ message: 'The dry run failed. Try again.', error: true });
+            setDryStatus({ message: t('The dry run failed. Try again.'), error: true });
             return true;
           }
           if (run.status !== 'done') return false;
@@ -685,7 +734,7 @@ export function AutomodForm({
         },
         () => {
           setRunning(null);
-          setDryStatus({ message: 'Still running. Check back in a minute.', error: true });
+          setDryStatus({ message: t('Still running. Check back in a minute.'), error: true });
         },
         40,
       );
@@ -694,7 +743,7 @@ export function AutomodForm({
 
   const setupGate = () => {
     if (JSON.stringify(value) !== JSON.stringify(saved)) {
-      setGateStatusText({ message: 'Save or discard your changes first.', error: true });
+      setGateStatusText({ message: t('Save or discard your changes first.'), error: true });
       return;
     }
     setGateStatusText(null);
@@ -713,7 +762,7 @@ export function AutomodForm({
         },
         () =>
           setGateStatusText({
-            message: 'Maxwell has not answered yet. Reload in a moment.',
+            message: t('Maxwell has not answered yet. Reload in a moment.'),
             error: true,
           }),
         40,
@@ -722,22 +771,26 @@ export function AutomodForm({
   };
 
   const trigger = `${raid.joins}:${raid.perSeconds}`;
-  const triggerLabel = (joins: number, seconds: number) => `${joins} joins in ${seconds} seconds`;
+  const triggerLabel = (joins: number, seconds: number) =>
+    t('{joins} joins in {seconds} seconds', { joins, seconds });
+  const minutesText = (minutes: number) => t('{count} minutes', { count: minutes });
 
   return (
     <div className="mx-stack" style={{ gap: 16 }}>
       <Gate initial={gate} raid={raid} />
 
-      <Tabs label="AutoMod" value={tab} options={TABS} onChange={setTab} />
+      <Tabs label="AutoMod" value={tab} options={translated(t, TABS)} onChange={setTab} />
 
       {tab === 'rules' ? (
         <Grid>
           <Panel
-            title="Rules"
+            title={t('Rules')}
             span={7}
             id="rules"
             actions={
-              <span className="mx-sub">{`${enforced} enforced, ${logged} logging only`}</span>
+              <span className="mx-sub">
+                {t('{enforced} enforced, {logged} logging only', { enforced, logged })}
+              </span>
             }
           >
             {RULES.map((entry) => {
@@ -756,22 +809,20 @@ export function AutomodForm({
                         setDryStatus(null);
                       }}
                     >
-                      {entry.name}
+                      {t(entry.name)}
                     </button>
-                    <span className="mx-sub mx-ellipsis">{summary(entry.key, rules)}</span>
+                    <span className="mx-sub mx-ellipsis">{summary(t, entry.key, rules)}</span>
                   </div>
                   <span
                     className="mx-sub"
                     style={{ width: 92, textAlign: 'right', color: 'var(--mx-faint)' }}
                   >
-                    {mode === 'off' || count === 0
-                      ? null
-                      : `${count.toLocaleString('en-US')} this week`}
+                    {mode === 'off' || count === 0 ? null : t('{count} this week', { count })}
                   </span>
                   <Seg
-                    label={`Mode for ${entry.name}`}
+                    label={t('Mode for {name}', { name: t(entry.name) })}
                     value={mode}
-                    options={MODES}
+                    options={translated(t, MODES)}
                     onChange={(next) => setRule(entry.key, { mode: next })}
                   />
                 </div>
@@ -787,20 +838,20 @@ export function AutomodForm({
                 set={(patch) => setRule(selected, patch)}
               />
               <Pair>
-                <Field label="Action">
+                <Field label={t('Action')}>
                   <Select
                     value={rule.action}
-                    options={ACTIONS}
+                    options={translated(t, ACTIONS)}
                     onChange={(action) => setRule(selected, { action })}
                   />
                 </Field>
                 {rule.action === 'timeout' ? (
-                  <Field label="Timeout">
+                  <Field label={t('Timeout')}>
                     <NumberInput
                       value={rule.timeoutMinutes}
                       min={1}
                       max={525_600}
-                      suffix="minutes"
+                      suffix={t('minutes')}
                       onChange={(timeoutMinutes) => setRule(selected, { timeoutMinutes })}
                     />
                   </Field>
@@ -808,26 +859,26 @@ export function AutomodForm({
               </Pair>
               {rule.action === 'delete' ? null : (
                 <ToggleRow
-                  title="Delete the message too"
+                  title={t('Delete the message too')}
                   order
                   checked={rule.deleteMessage}
                   onChange={(deleteMessage) => setRule(selected, { deleteMessage })}
                 />
               )}
-              <Labelled label="Ignored channels">
+              <Labelled label={t('Ignored channels')}>
                 <ChannelMulti
                   value={rule.exemptChannelIds}
                   onChange={(exemptChannelIds) => setRule(selected, { exemptChannelIds })}
                 />
               </Labelled>
-              <Labelled label="Ignored roles">
+              <Labelled label={t('Ignored roles')}>
                 <RoleMulti
                   value={rule.exemptRoleIds}
                   onChange={(exemptRoleIds) => setRule(selected, { exemptRoleIds })}
                 />
               </Labelled>
               <ToggleRow
-                title="Ignore moderators"
+                title={t('Ignore moderators')}
                 order
                 checked={rule.exemptMods}
                 onChange={(exemptMods) => setRule(selected, { exemptMods })}
@@ -841,10 +892,10 @@ export function AutomodForm({
                     onClick={dryRun}
                   >
                     {running === selected
-                      ? 'Running'
+                      ? t('Running')
                       : result
-                        ? 'Run dry run again'
-                        : 'Dry run on the last 7 days'}
+                        ? t('Run dry run again')
+                        : t('Dry run on the last 7 days')}
                   </button>
                   <StatusText status={dryStatus} />
                 </div>
@@ -864,12 +915,12 @@ export function AutomodForm({
 
       {tab === 'raid' ? (
         <Panel
-          title="Raid shield"
+          title={t('Raid shield')}
           id="shield"
           actions={
             <Switch
               order
-              label="Raid shield"
+              label={t('Raid shield')}
               checked={raid.enabled}
               onChange={(enabled) => setRaid({ enabled })}
             />
@@ -877,7 +928,7 @@ export function AutomodForm({
         >
           <PanelBody>
             <Fields>
-              <Field label="Trigger">
+              <Field label={t('Trigger')}>
                 <Select
                   value={trigger}
                   options={withCurrent(
@@ -894,38 +945,38 @@ export function AutomodForm({
                   }}
                 />
               </Field>
-              <Field label="Lockdown length">
+              <Field label={t('Lockdown length')}>
                 <Select
                   value={String(raid.lockdownMinutes)}
                   options={withCurrent(
                     LOCKDOWN_OPTIONS.map((minutes) => ({
                       value: String(minutes),
-                      label: minutes < 60 ? `${minutes} minutes` : hoursLabel(minutes / 60),
+                      label: minutes < 60 ? minutesText(minutes) : hoursLabel(t, minutes / 60),
                     })),
                     String(raid.lockdownMinutes),
-                    `${raid.lockdownMinutes} minutes`,
+                    minutesText(raid.lockdownMinutes),
                   )}
                   onChange={(next) => setRaid({ lockdownMinutes: Number(next) })}
                 />
               </Field>
-              <Field label="Hold accounts younger than">
+              <Field label={t('Hold accounts younger than')}>
                 <Select
                   value={String(raid.minAccountAgeHours)}
                   options={withCurrent(
                     HOLD_OPTIONS.map((hours) => ({
                       value: String(hours),
-                      label: hours === 0 ? 'Off' : hoursLabel(hours),
+                      label: hours === 0 ? t('Off') : hoursLabel(t, hours),
                     })),
                     String(raid.minAccountAgeHours),
-                    hoursLabel(raid.minAccountAgeHours),
+                    hoursLabel(t, raid.minAccountAgeHours),
                   )}
                   onChange={(next) => setRaid({ minAccountAgeHours: Number(next) })}
                 />
               </Field>
-              <Labelled label="Gate role">
+              <Labelled label={t('Gate role')}>
                 <div className="mx-inline" style={{ flexWrap: 'nowrap' }}>
                   <RoleSelect
-                    label="Gate role"
+                    label={t('Gate role')}
                     value={raid.gateRoleId}
                     onChange={(gateRoleId) => setRaid({ gateRoleId })}
                   />
@@ -936,22 +987,22 @@ export function AutomodForm({
                       disabled={setupPending}
                       onClick={setupGate}
                     >
-                      Create
+                      {t('Create')}
                     </button>
                   )}
                 </div>
                 <StatusText status={gateStatusText} />
               </Labelled>
-              <Field label="Waiting room">
+              <Field label={t('Waiting room')}>
                 <ChannelSelect
                   value={raid.gateChannelId}
                   onChange={(gateChannelId) => setRaid({ gateChannelId })}
                 />
               </Field>
-              <Field label="Ping">
+              <Field label={t('Ping')}>
                 <RoleSelect
                   value={raid.alertRoleId}
-                  none="Nobody"
+                  none={t('Nobody')}
                   onChange={(alertRoleId) => setRaid({ alertRoleId })}
                 />
               </Field>
@@ -962,21 +1013,21 @@ export function AutomodForm({
 
       {tab === 'settings' ? (
         <Grid>
-          <Panel title="General" span={7} id="settings">
+          <Panel title={t('General')} span={7} id="settings">
             <PanelBody>
-              <Field label="Log channel">
+              <Field label={t('Log channel')}>
                 <ChannelSelect
                   value={value.logChannelId}
                   onChange={(logChannelId) => update((previous) => ({ ...previous, logChannelId }))}
                 />
               </Field>
-              <Labelled label="Moderator roles">
+              <Labelled label={t('Moderator roles')}>
                 <RoleMulti
                   value={value.modRoleIds}
                   onChange={(modRoleIds) => update((previous) => ({ ...previous, modRoleIds }))}
                 />
               </Labelled>
-              <Labelled label="Channels ignored everywhere">
+              <Labelled label={t('Channels ignored everywhere')}>
                 <ChannelMulti
                   value={value.exemptChannelIds}
                   onChange={(exemptChannelIds) =>
@@ -984,7 +1035,7 @@ export function AutomodForm({
                   }
                 />
               </Labelled>
-              <Labelled label="Roles ignored everywhere">
+              <Labelled label={t('Roles ignored everywhere')}>
                 <RoleMulti
                   value={value.exemptRoleIds}
                   onChange={(exemptRoleIds) =>
@@ -994,22 +1045,22 @@ export function AutomodForm({
               </Labelled>
             </PanelBody>
           </Panel>
-          <Panel title="Options" span={5} id="options">
+          <Panel title={t('Options')} span={5} id="options">
             <PanelBody>
               <ToggleRow
-                title="Ignore bots and webhooks"
+                title={t('Ignore bots and webhooks')}
                 order
                 checked={value.ignoreBots}
                 onChange={(ignoreBots) => update((previous) => ({ ...previous, ignoreBots }))}
               />
               <ToggleRow
-                title="Tell members why"
+                title={t('Tell members why')}
                 order
                 checked={value.notifyMembers}
                 onChange={(notifyMembers) => update((previous) => ({ ...previous, notifyMembers }))}
               />
               <ToggleRow
-                title="Keep 7 days of messages for dry runs"
+                title={t('Keep 7 days of messages for dry runs')}
                 order
                 checked={value.keepHistory}
                 onChange={(keepHistory) => update((previous) => ({ ...previous, keepHistory }))}

@@ -5,19 +5,21 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { ChannelSelect, Seg, Switch, TextInput } from '@/components/controls';
 import { useChannelName, useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { EmbedPreview, MessagePreview } from '@/components/message-preview';
 import { useDraft } from '@/components/module-shell';
 import { failed, StatusText } from '@/components/status-text';
 import { Empty, Field, Grid, Panel, PanelBody } from '@/components/ui';
+import type { Key } from '@/lib/i18n';
 import { ago, inSentence } from '@/lib/time';
 import { loadMore, setStatus } from './actions';
 import type { Item, Sort } from './load';
 
-const statuses: { value: SuggestionStatus; label: string; color: string }[] = [
-  { value: 'open', label: 'Open', color: '#C9CCD2' },
-  { value: 'planned', label: 'Planned', color: '#3A9EEA' },
-  { value: 'done', label: 'Done', color: '#2EB67D' },
-  { value: 'declined', label: 'Declined', color: '#EC5B78' },
+const statuses: { value: SuggestionStatus; label: Key; mark: Key; color: string }[] = [
+  { value: 'open', label: 'Open', mark: 'Mark open', color: '#C9CCD2' },
+  { value: 'planned', label: 'Planned', mark: 'Mark planned', color: '#3A9EEA' },
+  { value: 'done', label: 'Done', mark: 'Mark done', color: '#2EB67D' },
+  { value: 'declined', label: 'Declined', mark: 'Mark declined', color: '#EC5B78' },
 ];
 
 const embedColors: Record<SuggestionStatus, string> = {
@@ -27,11 +29,17 @@ const embedColors: Record<SuggestionStatus, string> = {
   declined: '#9A9EA6',
 };
 
+const orders: { value: Sort; label: Key }[] = [
+  { value: 'top', label: 'Top' },
+  { value: 'new', label: 'Newest' },
+];
+
 function scoreText(score: number): string {
   return score > 0 ? `+${score}` : String(score);
 }
 
 function SuggestionRow({ item, now }: { item: Item; now: number }) {
+  const t = useT();
   const { guildId } = useGuild();
   const { readOnly } = useDraft<SuggestionsConfig>();
   const [current, setCurrent] = useState(item);
@@ -40,6 +48,7 @@ function SuggestionRow({ item, now }: { item: Item; now: number }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const score = current.up - current.down;
+  const chosen = statuses.find((entry) => entry.value === picked);
 
   const save = () =>
     start(async () => {
@@ -91,22 +100,25 @@ function SuggestionRow({ item, now }: { item: Item; now: number }) {
           {current.content}
         </span>
         <span className="mx-sub">
-          #{current.number} by {current.author ?? 'a former member'},{' '}
-          {inSentence(ago(current.createdAt, now))}
+          {t('#{number} by {name}, {when}', {
+            number: String(current.number),
+            name: current.author ?? t('a former member'),
+            when: inSentence(t, ago(t, current.createdAt, now)),
+          })}
         </span>
         {current.reason && current.status !== 'open' ? (
           <span style={{ fontSize: 13, color: 'var(--mx-text-2)' }}>
             {current.statusBy ? `${current.reason}, ${current.statusBy}` : current.reason}
           </span>
         ) : null}
-        {picked ? (
+        {chosen ? (
           <div className="mx-inline" style={{ paddingTop: 4 }}>
             <div style={{ flex: '1 1 220px' }}>
               <TextInput
                 value={reason}
                 maxLength={1000}
-                label={`Reason for ${statuses.find((entry) => entry.value === picked)?.label}`}
-                placeholder="Reason, optional"
+                label={t('Reason for {status}', { status: t(chosen.label) })}
+                placeholder={t('Reason, optional')}
                 onChange={setReason}
               />
             </div>
@@ -116,7 +128,7 @@ function SuggestionRow({ item, now }: { item: Item; now: number }) {
               disabled={pending}
               onClick={save}
             >
-              Mark {statuses.find((entry) => entry.value === picked)?.label.toLowerCase()}
+              {t(chosen.mark)}
             </button>
             <button
               type="button"
@@ -127,13 +139,17 @@ function SuggestionRow({ item, now }: { item: Item; now: number }) {
                 setError(null);
               }}
             >
-              Cancel
+              {t('Cancel')}
             </button>
             <StatusText status={error ? failed(error) : null} />
           </div>
         ) : null}
       </div>
-      <div className="mx-seg" role="group" aria-label={`Status of suggestion ${current.number}`}>
+      <div
+        className="mx-seg"
+        role="group"
+        aria-label={t('Status of suggestion {number}', { number: String(current.number) })}
+      >
         {statuses.map((entry) => {
           const active = (picked ?? current.status) === entry.value;
           return (
@@ -154,7 +170,7 @@ function SuggestionRow({ item, now }: { item: Item; now: number }) {
                 setError(null);
               }}
             >
-              {entry.label}
+              {t(entry.label)}
             </button>
           );
         })}
@@ -178,6 +194,7 @@ function Board({
   counts: Record<SuggestionStatus, number>;
   now: number;
 }) {
+  const t = useT();
   const { guildId } = useGuild();
   const { value } = useDraft<SuggestionsConfig>();
   const router = useRouter();
@@ -235,26 +252,26 @@ function Board({
 
   return (
     <Panel
-      title="Board"
+      title={t('Board')}
       span={8}
       actions={
         total === 0 && !status ? null : (
           <>
             <Seg
-              label="Order"
+              label={t('Order')}
               value={sort}
-              options={orders}
+              options={orders.map((option) => ({ ...option, label: t(option.label) }))}
               onChange={(next) => go({ sort: next })}
               view
             />
             <Seg
-              label="Status filter"
+              label={t('Status filter')}
               value={status ?? 'all'}
               options={[
-                { value: 'all', label: `All ${total}` },
+                { value: 'all', label: `${t('All')} ${t.count(total)}` },
                 ...statuses.map((entry) => ({
                   value: entry.value,
-                  label: `${entry.label} ${counts[entry.value]}`,
+                  label: `${t(entry.label)} ${t.count(counts[entry.value])}`,
                 })),
               ]}
               onChange={(next) => go({ status: next === 'all' ? null : next })}
@@ -266,12 +283,12 @@ function Board({
     >
       {items.length === 0 ? (
         status ? (
-          <Empty>Nothing with this status.</Empty>
+          <Empty>{t('Nothing with this status.')}</Empty>
         ) : (
           <Empty mood="sleeping">
             {value.channelId
-              ? 'No suggestions yet.'
-              : 'No suggestions yet. Pick a channel to collect them.'}
+              ? t('No suggestions yet.')
+              : t('No suggestions yet. Pick a channel to collect them.')}
           </Empty>
         )
       ) : null}
@@ -283,7 +300,7 @@ function Board({
           <StatusText status={error ? failed(error) : null} />
           {hasMore ? (
             <button type="button" className="mx-btn" disabled={pending} onClick={fetchMore}>
-              Show more
+              {t('Show more')}
             </button>
           ) : null}
         </div>
@@ -293,16 +310,17 @@ function Board({
 }
 
 function SettingsPanel() {
+  const t = useT();
   const { value, set } = useDraft<SuggestionsConfig>();
   const toggles: { key: 'thread' | 'notifyAuthor' | 'cleanup'; title: string }[] = [
-    { key: 'thread', title: 'Thread for each suggestion' },
-    { key: 'notifyAuthor', title: 'Message the author on status changes' },
-    { key: 'cleanup', title: 'Delete the command message' },
+    { key: 'thread', title: t('Thread for each suggestion') },
+    { key: 'notifyAuthor', title: t('Message the author on status changes') },
+    { key: 'cleanup', title: t('Delete the command message') },
   ];
   return (
-    <Panel title="Settings">
+    <Panel title={t('Settings')}>
       <PanelBody>
-        <Field label="Channel">
+        <Field label={t('Channel')}>
           <ChannelSelect
             value={value.channelId}
             none={null}
@@ -310,19 +328,19 @@ function SettingsPanel() {
           />
         </Field>
         <div className="mx-fields" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-          <Field label="Vote up with">
+          <Field label={t('Vote up with')}>
             <TextInput
               value={value.upEmoji ?? ''}
               maxLength={100}
-              placeholder="Default"
+              placeholder={t('Default')}
               onChange={(upEmoji) => set({ upEmoji: upEmoji.trim() ? upEmoji : null })}
             />
           </Field>
-          <Field label="Vote down with">
+          <Field label={t('Vote down with')}>
             <TextInput
               value={value.downEmoji ?? ''}
               maxLength={100}
-              placeholder="Default"
+              placeholder={t('Default')}
               onChange={(downEmoji) => set({ downEmoji: downEmoji.trim() ? downEmoji : null })}
             />
           </Field>
@@ -344,24 +362,28 @@ function SettingsPanel() {
   );
 }
 
-const orders = [
-  { value: 'top', label: 'Top' },
-  { value: 'new', label: 'Newest' },
-] as const;
-
 function PreviewPanel({ preview }: { preview: Item }) {
+  const t = useT();
   const { value } = useDraft<SuggestionsConfig>();
   const channelName = useChannelName();
   return (
-    <Panel title={value.channelId ? `In ${channelName(value.channelId)}` : 'Preview'}>
+    <Panel
+      title={
+        value.channelId
+          ? t('In {channel}', { channel: channelName(value.channelId) })
+          : t('Preview')
+      }
+    >
       <PreviewBody preview={preview} />
     </Panel>
   );
 }
 
 function PreviewBody({ preview }: { preview: Item }) {
+  const t = useT();
   const status = preview.status;
-  const label = statuses.find((entry) => entry.value === status)?.label ?? 'Open';
+  const entry = statuses.find((candidate) => candidate.value === status);
+  const label = entry ? t(entry.label) : t('Open');
   const color = embedColors[status];
   return (
     <PanelBody>
@@ -370,24 +392,24 @@ function PreviewBody({ preview }: { preview: Item }) {
           <EmbedPreview
             color={color}
             author={preview.author}
-            title={`Suggestion ${preview.number}`}
+            title={t('Suggestion {number}', { number: String(preview.number) })}
             description={preview.content}
           >
             <span>
-              Status: <strong style={{ color }}>{label}</strong>
+              {t('Status:')} <strong style={{ color }}>{label}</strong>
             </span>
             {preview.reason && status !== 'open' ? (
-              <span className="mx-sub">Reason: {preview.reason}</span>
+              <span className="mx-sub">{t('Reason: {reason}', { reason: preview.reason })}</span>
             ) : null}
             {status !== 'open' ? (
               <span className="mx-sub">
-                Votes: {preview.up} for, {preview.down} against
+                {t('Votes: {up} for, {down} against', { up: preview.up, down: preview.down })}
               </span>
             ) : null}
           </EmbedPreview>
           <div style={{ display: 'flex', gap: 6 }}>
-            <span className="mx-chip">Up {preview.up}</span>
-            <span className="mx-chip">Down {preview.down}</span>
+            <span className="mx-chip">{t('Up {count}', { count: preview.up })}</span>
+            <span className="mx-chip">{t('Down {count}', { count: preview.down })}</span>
           </div>
         </MessagePreview>
       </div>

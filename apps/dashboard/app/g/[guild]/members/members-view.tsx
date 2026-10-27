@@ -5,22 +5,24 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 import { Seg, Select } from '@/components/controls';
 import { useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { failed, type Status, StatusText } from '@/components/status-text';
 import { Avatar, Callout, Empty, Grid, type Mood } from '@/components/ui';
-import { age, date, dayTime, duration } from '@/lib/time';
+import type { Key } from '@/lib/i18n';
+import { age, date, dayTime, duration, since } from '@/lib/time';
 import { addNote, memberAction, removeNote } from './actions';
 import type { ListedMember, MemberFile, TimelineItem, TimelineKind } from './data';
 
 type Kind = 'all' | 'cases' | 'automod' | 'notes' | 'joins';
 type QuickAction = 'warn' | 'timeout' | 'kick' | 'ban' | 'unban' | 'untimeout';
 
-const viewOptions: { value: MemberView; label: string }[] = [
+const viewOptions: { value: MemberView; label: Key }[] = [
   { value: 'flagged', label: 'Flagged' },
   { value: 'new', label: 'New' },
   { value: 'all', label: 'All' },
 ];
 
-const kindOptions: { value: Kind; label: string; kinds: TimelineKind[] }[] = [
+const kindOptions: { value: Kind; label: Key; kinds: TimelineKind[] }[] = [
   { value: 'all', label: 'All', kinds: [] },
   { value: 'cases', label: 'Cases', kinds: ['case'] },
   { value: 'automod', label: 'AutoMod', kinds: ['automod'] },
@@ -28,7 +30,7 @@ const kindOptions: { value: Kind; label: string; kinds: TimelineKind[] }[] = [
   { value: 'joins', label: 'Joins', kinds: ['join', 'leave'] },
 ];
 
-const actionWords: Record<QuickAction, string> = {
+const actionWords: Record<QuickAction, Key> = {
   warn: 'Warn',
   timeout: 'Time out',
   kick: 'Kick',
@@ -51,12 +53,13 @@ function ListRow({
   now: string;
   onPick: () => void;
 }) {
+  const t = useT();
   const current = new Date(now).getTime();
   const sub = member.leftAt
-    ? `Left ${age(current - new Date(member.leftAt).getTime())} ago`
+    ? t('Left {when}', { when: since(t, current - new Date(member.leftAt).getTime()) })
     : member.joinedAt
-      ? `Joined ${age(current - new Date(member.joinedAt).getTime())} ago`
-      : `Seen ${age(current - new Date(member.lastAt).getTime())} ago`;
+      ? t('Joined {when}', { when: since(t, current - new Date(member.joinedAt).getTime()) })
+      : t('Seen {when}', { when: since(t, current - new Date(member.lastAt).getTime()) });
   return (
     <button
       type="button"
@@ -104,6 +107,7 @@ function ActionForm({
   onDone: (status: Status) => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const { guildId } = useGuild();
   const [reason, setReason] = useState('');
   const timeouts = timeoutChoices.includes(defaultTimeoutMinutes)
@@ -144,26 +148,28 @@ function ActionForm({
     >
       <div className="mx-fields">
         <label className="mx-field" style={timed ? undefined : { gridColumn: '1 / -1' }}>
-          <span className="mx-label">Reason</span>
+          <span className="mx-label">{t('Reason')}</span>
           <input
             className="mx-input"
             value={reason}
             maxLength={1_500}
-            placeholder={requireReason ? undefined : 'Optional'}
+            placeholder={requireReason ? undefined : t('Optional')}
             aria-invalid={tried && needsReason ? true : undefined}
             onChange={(event) => setReason(event.target.value)}
           />
-          {tried && needsReason ? <span className="mx-field-error">Add a reason.</span> : null}
+          {tried && needsReason ? (
+            <span className="mx-field-error">{t('Add a reason.')}</span>
+          ) : null}
         </label>
         {timed ? (
           <div className="mx-field">
-            <span className="mx-label">How long</span>
+            <span className="mx-label">{t('How long')}</span>
             <Select
-              label="How long"
+              label={t('How long')}
               value={String(minutes)}
               options={choices.map((value) => ({
                 value: String(value),
-                label: value === 0 ? 'Permanent' : duration(value * 60_000),
+                label: value === 0 ? t('Permanent') : duration(t, value * 60_000),
               }))}
               onChange={(next) => setMinutes(Number(next))}
             />
@@ -173,14 +179,14 @@ function ActionForm({
       <div className="mx-inline" style={{ justifyContent: 'flex-end' }}>
         <StatusText status={error ? failed(error) : null} />
         <button type="button" className="mx-btn mx-btn-ghost" onClick={onCancel}>
-          Cancel
+          {t('Cancel')}
         </button>
         <button
           type="submit"
           className={danger ? 'mx-btn mx-btn-danger' : 'mx-btn mx-btn-primary'}
           disabled={pending}
         >
-          {`${actionWords[action]} ${file.name}`}
+          {`${t(actionWords[action])} ${file.name}`}
         </button>
       </div>
     </form>
@@ -200,8 +206,9 @@ function Timeline({
   onRemoveNote: (id: string) => void;
   removing: boolean;
 }) {
+  const t = useT();
   const { timezone } = useGuild();
-  if (items.length === 0) return <Empty>Nothing here yet.</Empty>;
+  if (items.length === 0) return <Empty>{t('Nothing here yet.')}</Empty>;
   return (
     <div style={{ padding: '8px 16px 4px' }}>
       {items.map((item) => (
@@ -243,20 +250,22 @@ function Timeline({
             >
               <span className="mx-row-title">{item.title}</span>
               <span className="mx-sub" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                {dayTime(item.at, now, timezone)}
+                {dayTime(t, item.at, now, timezone)}
                 {item.noteId && !readOnly ? (
                   <button
                     type="button"
                     className="mx-btn mx-btn-ghost"
                     style={{ minHeight: 24, padding: '2px 6px' }}
-                    aria-label={`Remove note from ${dayTime(item.at, now, timezone)}`}
+                    aria-label={t('Remove note from {when}', {
+                      when: dayTime(t, item.at, now, timezone),
+                    })}
                     disabled={removing}
                     onClick={() => {
                       const id = item.noteId;
                       if (id) onRemoveNote(id);
                     }}
                   >
-                    Remove
+                    {t('Remove')}
                   </button>
                 ) : null}
               </span>
@@ -306,6 +315,7 @@ function FilePanel({
   requireReason: boolean;
   defaultTimeoutMinutes: number;
 }) {
+  const t = useT();
   const { guildId, timezone } = useGuild();
   const router = useRouter();
   const [kind, setKind] = useState<Kind>('all');
@@ -324,23 +334,26 @@ function FilePanel({
   const current = new Date(now).getTime();
   const chips: string[] = [];
   if (file.accountCreated) {
-    chips.push(`Account ${age(current - new Date(file.accountCreated).getTime())} old`);
+    chips.push(
+      t('Account {age} old', { age: age(t, current - new Date(file.accountCreated).getTime()) }),
+    );
   }
-  if (file.leftAt) chips.push(`Left ${date(file.leftAt, timezone)}`);
-  else if (file.joinedAt) chips.push(`Joined ${date(file.joinedAt, timezone)}`);
-  else if (!file.inServer) chips.push('Not in the server');
+  if (file.leftAt) chips.push(t('Left on {date}', { date: date(t, file.leftAt, timezone) }));
+  else if (file.joinedAt) {
+    chips.push(t('Joined on {date}', { date: date(t, file.joinedAt, timezone) }));
+  } else if (!file.inServer) chips.push(t('Not in the server'));
   if (file.invite) chips.push(file.invite);
-  if (file.level !== null) chips.push(`Level ${file.level}`);
+  if (file.level !== null) chips.push(t('Level {level}', { level: file.level }));
   if (file.balance) chips.push(file.balance);
-  if (file.banned) chips.push('Banned');
-  else if (file.timedOut) chips.push('Timed out');
+  if (file.banned) chips.push(t('Banned'));
+  else if (file.timedOut) chips.push(t('Timed out'));
 
   const stats = [
-    { label: 'Cases', value: file.stats.cases.toLocaleString('en-US') },
-    { label: 'Active warns', value: file.stats.activeWarns.toLocaleString('en-US') },
-    { label: 'AutoMod hits', value: file.stats.automod.toLocaleString('en-US') },
-    { label: 'Notes', value: file.stats.notes.toLocaleString('en-US') },
-    { label: 'Invited', value: file.stats.invited },
+    { label: t('Cases'), value: t.count(file.stats.cases) },
+    { label: t('Active warns'), value: t.count(file.stats.activeWarns) },
+    { label: t('AutoMod hits'), value: t.count(file.stats.automod) },
+    { label: t('Notes'), value: t.count(file.stats.notes) },
+    { label: t('Invited'), value: file.stats.invited },
   ];
   const quiet =
     file.stats.cases + file.stats.activeWarns + file.stats.automod + file.stats.notes === 0 &&
@@ -399,7 +412,7 @@ function FilePanel({
                   setAction(action === entry ? null : entry);
                 }}
               >
-                {actionWords[entry]}
+                {t(actionWords[entry])}
               </button>
             ))}
           </div>
@@ -448,8 +461,14 @@ function FilePanel({
       </div>
 
       <div className="mx-panel-head" style={{ paddingTop: 18 }}>
-        <h3>Timeline</h3>
-        <Seg label="Filter timeline" value={kind} options={kindOptions} onChange={setKind} view />
+        <h3>{t('Timeline')}</h3>
+        <Seg
+          label={t('Filter timeline')}
+          value={kind}
+          options={kindOptions.map((option) => ({ ...option, label: t(option.label) }))}
+          onChange={setKind}
+          view
+        />
       </div>
       <Timeline
         items={items}
@@ -483,11 +502,11 @@ function FilePanel({
           }}
         >
           <label className="mx-field">
-            <span className="mx-label">Note</span>
+            <span className="mx-label">{t('Note')}</span>
             <textarea
               className="mx-textarea"
               rows={2}
-              placeholder="Only moderators see this"
+              placeholder={t('Only moderators see this')}
               maxLength={1_000}
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
@@ -499,7 +518,7 @@ function FilePanel({
               className="mx-btn mx-btn-primary"
               disabled={pending || !draft.trim()}
             >
-              Save note
+              {t('Save note')}
             </button>
           </div>
         </form>
@@ -533,6 +552,7 @@ export function MembersView({
   defaultTimeoutMinutes: number;
   now: string;
 }) {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const [search, setSearch] = useState(q);
@@ -552,12 +572,12 @@ export function MembersView({
   const alone = !file && !selectedId;
   const emptyMood: Mood = q ? 'thinking' : view === 'flagged' ? 'happy' : 'sleeping';
   const emptyText = q
-    ? 'Nobody matches.'
+    ? t('Nobody matches.')
     : view === 'flagged'
-      ? 'Nobody flagged.'
+      ? t('Nobody flagged.')
       : view === 'new'
-        ? 'No new members.'
-        : 'Nobody here yet.';
+        ? t('No new members.')
+        : t('Nobody here yet.');
   const emptyAction = q ? (
     <button
       type="button"
@@ -567,11 +587,11 @@ export function MembersView({
         go({ q: '', member: null });
       }}
     >
-      Clear search
+      {t('Clear search')}
     </button>
   ) : view !== 'all' ? (
     <button type="button" className="mx-btn" onClick={() => go({ view: 'all', member: null })}>
-      Show everyone
+      {t('Show everyone')}
     </button>
   ) : null;
 
@@ -579,10 +599,8 @@ export function MembersView({
     <Grid>
       <section className={`mx-panel mx-s${alone ? 12 : 4}`} aria-labelledby="list-title">
         <div className="mx-panel-head">
-          <h2 id="list-title">Members</h2>
-          {memberCount !== null ? (
-            <span className="mx-sub">{memberCount.toLocaleString('en-US')}</span>
-          ) : null}
+          <h2 id="list-title">{t('Members')}</h2>
+          {memberCount !== null ? <span className="mx-sub">{t.count(memberCount)}</span> : null}
         </div>
         <div className="mx-inline" style={{ padding: '6px 16px 12px' }}>
           <form
@@ -596,8 +614,8 @@ export function MembersView({
             <input
               className="mx-input"
               type="search"
-              aria-label="Search members"
-              placeholder="Name, ID or invite code"
+              aria-label={t('Search members')}
+              placeholder={t('Name, ID or invite code')}
               value={search}
               maxLength={64}
               onChange={(event) => {
@@ -608,9 +626,9 @@ export function MembersView({
           </form>
           {q ? null : (
             <Seg
-              label="Show"
+              label={t('Show')}
               value={view}
-              options={viewOptions}
+              options={viewOptions.map((option) => ({ ...option, label: t(option.label) }))}
               onChange={(next) => go({ view: next, member: null })}
               view
             />
@@ -649,8 +667,8 @@ export function MembersView({
           defaultTimeoutMinutes={defaultTimeoutMinutes}
         />
       ) : alone ? null : (
-        <section className="mx-panel mx-s8" aria-label="Member file">
-          <Empty mood="skeptical">Maxwell knows nothing about this ID.</Empty>
+        <section className="mx-panel mx-s8" aria-label={t('Member file')}>
+          <Empty mood="skeptical">{t('Maxwell knows nothing about this ID.')}</Empty>
         </section>
       )}
     </Grid>

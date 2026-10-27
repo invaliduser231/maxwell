@@ -1,10 +1,10 @@
-import type { Metadata } from 'next';
 import { TopBar } from '@/components/top-bar';
 import { requireUser } from '@/lib/access';
 import { communities } from '@/lib/communities';
+import { titled } from '@/lib/i18n/server';
 import { CommunityList } from './community-list';
 
-export const metadata: Metadata = { title: 'Choose a community' };
+export const generateMetadata = titled('Choose a community');
 
 export default async function Home() {
   const user = await requireUser('/');

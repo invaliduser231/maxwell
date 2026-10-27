@@ -1,3 +1,5 @@
+import type { Key } from '@/lib/i18n';
+
 export const ACTION_COLORS: Record<string, string> = {
   ban: '#EC5B78',
   kick: '#EC5B78',
@@ -8,7 +10,7 @@ export const ACTION_COLORS: Record<string, string> = {
   untimeout: '#2EB67D',
 };
 
-export const ACTION_NAMES: Record<string, string> = {
+export const ACTION_NAMES: Record<string, Key> = {
   ban: 'Ban',
   unban: 'Unban',
   kick: 'Kick',

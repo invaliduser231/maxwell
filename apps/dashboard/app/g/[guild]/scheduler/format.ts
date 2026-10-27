@@ -1,6 +1,7 @@
 import type { ScheduleRule, Weekday } from '@maxwell/core/modules/scheduler';
+import type { Key, Translator } from '@/lib/i18n';
 
-export const weekdayLabels: Record<Weekday, string> = {
+export const weekdayLabels: Record<Weekday, Key> = {
   mon: 'Mon',
   tue: 'Tue',
   wed: 'Wed',
@@ -21,30 +22,32 @@ export function timeOf(rule: ScheduleRule): string {
   }
 }
 
-export function ruleLabel(rule: ScheduleRule, order: readonly Weekday[]): string {
+export function ruleLabel(t: Translator, rule: ScheduleRule, order: readonly Weekday[]): string {
   switch (rule.type) {
     case 'once':
-      return `once at ${timeOf(rule)}`;
+      return t('once at {time}', { time: timeOf(rule) });
     case 'daily':
-      return `daily at ${rule.time}`;
+      return t('daily at {time}', { time: rule.time });
     case 'weekly': {
-      const days = order.filter((day) => rule.days.includes(day)).map((day) => weekdayLabels[day]);
-      return `every ${days.join(', ')} at ${rule.time}`;
+      const days = order
+        .filter((day) => rule.days.includes(day))
+        .map((day) => t(weekdayLabels[day]));
+      return t('every {days} at {time}', { days: days.join(', '), time: rule.time });
     }
     case 'interval':
-      return rule.hours === 1 ? 'every hour' : `every ${rule.hours} hours`;
+      return t.plural(rule.hours, 'every hour', 'every {n} hours');
   }
 }
 
-export function ruleShort(rule: ScheduleRule): string {
+export function ruleShort(t: Translator, rule: ScheduleRule): string {
   switch (rule.type) {
     case 'once':
-      return 'Once';
+      return t('Once');
     case 'daily':
-      return 'Daily';
+      return t('Daily');
     case 'weekly':
-      return 'Weekly';
+      return t('Weekly');
     case 'interval':
-      return `Every ${rule.hours} h`;
+      return t('Every {n} h', { n: rule.hours });
   }
 }

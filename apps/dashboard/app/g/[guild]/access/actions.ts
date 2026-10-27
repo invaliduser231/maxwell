@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { Result } from '@/lib/actions';
 import { guildMember, memberSearch, userProfile } from '@/lib/fluxer';
 import { admin } from '@/lib/guard';
+import { getT } from '@/lib/i18n/server';
 import { people } from '@/lib/people';
 
 export interface FoundPerson {
@@ -30,7 +31,7 @@ export async function findMember(guildId: string, userId: string): Promise<Resul
     ok: true,
     data: {
       id: parsed.data,
-      name: member.nick ?? profile?.displayName ?? 'Unknown member',
+      name: member.nick ?? profile?.displayName ?? (await getT())('Unknown member'),
       avatar: profile?.avatarUrl ?? null,
     },
   };

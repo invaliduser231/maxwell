@@ -1,11 +1,11 @@
 import { automodConfig } from '@maxwell/core/modules/automod';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { AutomodForm } from './automod-form';
 import { gateView, latestRuns, weeklyHits } from './data';
 
-export const metadata: Metadata = { title: 'AutoMod' };
+export const generateMetadata = titled('AutoMod');
 
 export default async function AutomodPage({ params }: { params: Promise<{ guild: string }> }) {
   const { guild } = await params;

@@ -13,16 +13,17 @@ import {
   ToggleRow,
 } from '@/components/controls';
 import { useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { EmbedPreview, MessagePreview } from '@/components/message-preview';
 import { useDraft, useReadOnly } from '@/components/module-shell';
 import { type Status, StatusText } from '@/components/status-text';
 import { DangerRow } from '@/components/two-step';
 import { Avatar, Empty, Field, Fields, Grid, Panel, PanelBody, Row } from '@/components/ui';
 import { runAction } from '@/lib/actions';
+import type { Key } from '@/lib/i18n';
 import { shortDate } from '@/lib/time';
 import { moreTransactions, uploadBackground } from './actions';
 import { Invite, Section, Small, StatStrip, Tile, Tiles } from './bits';
-import { amount } from './format';
 import type { LedgerRow } from './ledger';
 
 interface Holder {
@@ -32,19 +33,15 @@ interface Holder {
   avatar: string | null;
 }
 
-const kindNames: Record<ShopKind, string> = {
+const kindNames: Record<ShopKind, Key> = {
   role: 'Role',
   pack: 'Card pack',
   background: 'Profile background',
   giveaway: 'Giveaway entry',
 };
 
-const kindOptions = (Object.keys(kindNames) as ShopKind[]).map((value) => ({
-  value,
-  label: kindNames[value],
-}));
-
 function CurrencyPanel({ span }: { span: 7 | 12 }) {
+  const t = useT();
   const { value, set } = useDraft<EconomyConfig>();
   const { currency, message, daily, rewards } = value;
   const symbol = currency.symbol;
@@ -54,54 +51,56 @@ function CurrencyPanel({ span }: { span: 7 | 12 }) {
     rewards.event > 0,
     rewards.gameWin > 0,
   ].filter(Boolean).length;
+  const onOff = (name: Key, on: boolean) =>
+    on ? t('{name} on', { name: t(name) }) : t('{name} off', { name: t(name) });
 
   return (
-    <Panel title="Currency" span={span} id="currency">
+    <Panel title={t('Currency')} span={span} id="currency">
       <PanelBody>
         <Fields>
-          <Field label="Name">
+          <Field label={t('Name')}>
             <TextInput
               value={currency.name}
               maxLength={32}
               onChange={(name) => set({ currency: { ...currency, name } })}
             />
           </Field>
-          <Field label="Name for one">
+          <Field label={t('Name for one')}>
             <TextInput
               value={currency.singular}
               maxLength={32}
               onChange={(singular) => set({ currency: { ...currency, singular } })}
             />
           </Field>
-          <Field label="Symbol">
+          <Field label={t('Symbol')}>
             <TextInput
               value={currency.symbol}
               maxLength={64}
               onChange={(next) => set({ currency: { ...currency, symbol: next } })}
             />
           </Field>
-          <Field label="Starting balance">
+          <Field label={t('Starting balance')}>
             <OptionalNumber
               integer
-              label="Starting balance"
+              label={t('Starting balance')}
               value={value.startingBalance}
               placeholder="0"
               onChange={(next) => set({ startingBalance: next ?? 0 })}
             />
           </Field>
-          <Field label="Daily cap per member">
+          <Field label={t('Daily cap per member')}>
             <OptionalNumber
               integer
-              label="Daily cap per member"
+              label={t('Daily cap per member')}
               value={value.dailyCap}
-              placeholder="No cap"
+              placeholder={t('No cap')}
               onChange={(dailyCap) => set({ dailyCap })}
             />
           </Field>
-          <Field label="Transfer tax (%)">
+          <Field label={t('Transfer tax (%)')}>
             <OptionalNumber
               integer
-              label="Transfer tax (%)"
+              label={t('Transfer tax (%)')}
               value={value.transferTax}
               placeholder="0"
               onChange={(next) => set({ transferTax: Math.min(50, next ?? 0) })}
@@ -109,67 +108,74 @@ function CurrencyPanel({ span }: { span: 7 | 12 }) {
           </Field>
         </Fields>
       </PanelBody>
-      <Section title="Earning" aside={sources === 1 ? '1 source on' : `${sources} sources on`} />
-      <Row title="Messages" sub={`Once every ${message.cooldownSeconds} seconds`}>
+      <Section title={t('Earning')} aside={t.plural(sources, '{n} source on', '{n} sources on')} />
+      <Row
+        title={t('Messages')}
+        sub={t('Once every {count} seconds', { count: message.cooldownSeconds })}
+      >
         <span className="mx-inline">
           <Small
-            label="Least per message"
+            label={t('Least per message')}
             value={message.min}
             max={10_000}
             onChange={(min) => set({ message: { ...message, min } })}
           />
-          <span className="mx-sub">to</span>
+          <span className="mx-sub">{t('to')}</span>
           <Small
-            label="Most per message"
+            label={t('Most per message')}
             value={message.max}
             max={10_000}
             onChange={(max) => set({ message: { ...message, max } })}
           />
         </span>
         <Switch
-          label={`Messages ${message.enabled ? 'on' : 'off'}`}
+          label={onOff('Messages', message.enabled)}
           checked={message.enabled}
           onChange={(enabled) => set({ message: { ...message, enabled } })}
         />
       </Row>
       <Row
-        title="Daily claim"
-        sub={`Plus ${amount(daily.streakBonus)} ${symbol} per streak day, up to ${daily.streakCap} days`}
+        title={t('Daily claim')}
+        sub={t('Plus {bonus} {symbol} per streak day, up to {days} days', {
+          bonus: daily.streakBonus,
+          symbol,
+          days: daily.streakCap,
+        })}
       >
         <Small
-          label="Daily amount"
+          label={t('Daily amount')}
           value={daily.amount}
           max={1_000_000}
           onChange={(next) => set({ daily: { ...daily, amount: next } })}
         />
         <Switch
-          label={`Daily claim ${daily.enabled ? 'on' : 'off'}`}
+          label={onOff('Daily claim', daily.enabled)}
           checked={daily.enabled}
           onChange={(enabled) => set({ daily: { ...daily, enabled } })}
         />
       </Row>
-      <Row title="Events" sub="For showing up after saying yes">
+      <Row title={t('Events')} sub={t('For showing up after saying yes')}>
         <Small
-          label="Event reward"
+          label={t('Event reward')}
           value={rewards.event}
           max={1_000_000}
           onChange={(event) => set({ rewards: { ...rewards, event } })}
         />
         <Switch
-          label={`Events ${rewards.event > 0 ? 'on' : 'off'}`}
+          label={onOff('Events', rewards.event > 0)}
           checked={rewards.event > 0}
           onChange={(on) => set({ rewards: { ...rewards, event: on ? 50 : 0 } })}
         />
       </Row>
-      <Row title="Games" sub="Per win in trivia, counting and higher or lower">
+      <Row title={t('Games')} sub={t('Per win in trivia, counting and higher or lower')}>
         <Small
-          label="Reward per game win"
+          label={t('Reward per game win')}
           value={rewards.gameWin}
           max={1_000_000}
           onChange={(gameWin) => set({ rewards: { ...rewards, gameWin } })}
         />
         <Switch
-          label={`Games ${rewards.gameWin > 0 ? 'on' : 'off'}`}
+          label={onOff('Games', rewards.gameWin > 0)}
           checked={rewards.gameWin > 0}
           onChange={(on) => set({ rewards: { ...rewards, gameWin: on ? 20 : 0 } })}
         />
@@ -177,10 +183,10 @@ function CurrencyPanel({ span }: { span: 7 | 12 }) {
       <div style={{ borderTop: '1px solid var(--mx-line)' }}>
         <PanelBody>
           <Fields>
-            <Field label="Message cooldown (seconds)">
+            <Field label={t('Message cooldown (seconds)')}>
               <OptionalNumber
                 integer
-                label="Message cooldown (seconds)"
+                label={t('Message cooldown (seconds)')}
                 value={message.cooldownSeconds}
                 placeholder="0"
                 onChange={(next) =>
@@ -188,19 +194,19 @@ function CurrencyPanel({ span }: { span: 7 | 12 }) {
                 }
               />
             </Field>
-            <Field label="Streak bonus per day">
+            <Field label={t('Streak bonus per day')}>
               <OptionalNumber
                 integer
-                label="Streak bonus per day"
+                label={t('Streak bonus per day')}
                 value={daily.streakBonus}
                 placeholder="0"
                 onChange={(next) => set({ daily: { ...daily, streakBonus: next ?? 0 } })}
               />
             </Field>
-            <Field label="Longest streak (days)">
+            <Field label={t('Longest streak (days)')}>
               <OptionalNumber
                 integer
-                label="Longest streak (days)"
+                label={t('Longest streak (days)')}
                 value={daily.streakCap}
                 placeholder="7"
                 min={1}
@@ -211,7 +217,7 @@ function CurrencyPanel({ span }: { span: 7 | 12 }) {
             </Field>
           </Fields>
           <div className="mx-field">
-            <span className="mx-label">No earning in</span>
+            <span className="mx-label">{t('No earning in')}</span>
             <ChannelMulti
               value={message.ignoredChannels}
               onChange={(ignoredChannels) => set({ message: { ...message, ignoredChannels } })}
@@ -234,6 +240,7 @@ function SupplyPanel({
   symbol: string;
   name: string;
 }) {
+  const t = useT();
   const values = history.map((day) => day.supply);
   const first = values[0] ?? 0;
   const last = values.at(-1) ?? 0;
@@ -259,38 +266,46 @@ function SupplyPanel({
 
   if (idle || values.length === 0) {
     return (
-      <Panel title="Supply, 30 days" span={5} id="supply">
-        <Invite mood="sleeping">{`No ${name} in circulation yet.`}</Invite>
+      <Panel title={t('Supply, 30 days')} span={5} id="supply">
+        <Invite mood="sleeping">
+          {t('No {currency} in circulation yet.', { currency: name })}
+        </Invite>
       </Panel>
     );
   }
 
+  const signedText = (value: number) => `${value > 0 ? '-' : ''}${t.count(value)} ${symbol}`;
+
   return (
     <Panel
-      title="Supply, 30 days"
+      title={t('Supply, 30 days')}
       span={5}
       id="supply"
       actions={
         change === null ? null : (
           <span className="mx-sub">
             <span className={change > 0 ? 'mx-down' : 'mx-up'}>
-              {`${change > 0 ? '+' : ''}${change.toFixed(1)}%`}
+              {`${change > 0 ? '+' : ''}${change.toLocaleString(t.locale, { maximumFractionDigits: 1, minimumFractionDigits: 1 })}%`}
             </span>{' '}
-            this month
+            {t('this month')}
           </span>
         )
       }
     >
       <PanelBody>
         {values.length < 2 ? (
-          <Empty mood="thinking">Not enough days yet.</Empty>
+          <Empty mood="thinking">{t('Not enough days yet.')}</Empty>
         ) : (
           <>
             <svg
               viewBox="0 0 300 110"
               preserveAspectRatio="none"
               role="img"
-              aria-label={`${name} in circulation over 30 days, from ${amount(first)} to ${amount(last)}`}
+              aria-label={t('{currency} in circulation over 30 days, from {first} to {last}', {
+                currency: name,
+                first,
+                last,
+              })}
               style={{ width: '100%', height: 150, display: 'block' }}
             >
               <g stroke="#27272E" strokeWidth="1">
@@ -312,22 +327,16 @@ function SupplyPanel({
               />
             </svg>
             <div style={{ display: 'flex', justifyContent: 'space-between' }} className="mx-sub">
-              <span>{start ? shortDate(new Date(`${start.day}T00:00:00Z`)) : ''}</span>
-              <span>{middle ? shortDate(new Date(`${middle.day}T00:00:00Z`)) : ''}</span>
-              <span>Today</span>
+              <span>{start ? shortDate(t, new Date(`${start.day}T00:00:00Z`)) : ''}</span>
+              <span>{middle ? shortDate(t, new Date(`${middle.day}T00:00:00Z`)) : ''}</span>
+              <span>{t('Today')}</span>
             </div>
           </>
         )}
         <Tiles>
-          <Tile label="Created" value={`+${amount(overview.createdMonth)} ${symbol}`} />
-          <Tile
-            label="Spent in shop"
-            value={`${overview.spentMonth > 0 ? '-' : ''}${amount(overview.spentMonth)} ${symbol}`}
-          />
-          <Tile
-            label="Taxed away"
-            value={`${overview.taxedMonth > 0 ? '-' : ''}${amount(overview.taxedMonth)} ${symbol}`}
-          />
+          <Tile label={t('Created')} value={`+${t.count(overview.createdMonth)} ${symbol}`} />
+          <Tile label={t('Spent in shop')} value={signedText(overview.spentMonth)} />
+          <Tile label={t('Taxed away')} value={signedText(overview.taxedMonth)} />
         </Tiles>
       </PanelBody>
     </Panel>
@@ -372,6 +381,7 @@ function ItemDetails({
   packs: { id: string; name: string }[];
 }) {
   const { guildId } = useGuild();
+  const t = useT();
   const readOnly = useReadOnly();
   const [status, setStatus] = useState<Status>(null);
   const [pending, start] = useTransition();
@@ -379,19 +389,19 @@ function ItemDetails({
   if (item.kind === 'role') {
     return (
       <Fields>
-        <Field label="Role">
+        <Field label={t('Role')}>
           <RoleSelect
             value={item.roleId || null}
-            none="Pick a role"
+            none={t('Pick a role')}
             onChange={(roleId) => patch({ ...item, roleId: roleId ?? '' })}
           />
         </Field>
-        <Field label="Keep for (hours)">
+        <Field label={t('Keep for (hours)')}>
           <OptionalNumber
             integer
-            label="Keep for (hours)"
+            label={t('Keep for (hours)')}
             value={item.durationHours}
-            placeholder="Forever"
+            placeholder={t('Forever')}
             min={1}
             onChange={(durationHours) =>
               patch({
@@ -407,9 +417,9 @@ function ItemDetails({
   if (item.kind === 'pack') {
     const options = packs.some((pack) => pack.id === item.packId)
       ? packs
-      : [...packs, { id: item.packId, name: 'Deleted pack' }];
+      : [...packs, { id: item.packId, name: t('Deleted pack') }];
     return (
-      <Field label="Pack">
+      <Field label={t('Pack')}>
         <Select
           value={item.packId}
           options={options.map((pack) => ({ value: pack.id, label: pack.name }))}
@@ -421,7 +431,7 @@ function ItemDetails({
   if (item.kind === 'background') {
     const upload = (file: File) => {
       if (file.size > 1_000_000) {
-        setStatus({ message: 'Use an image under 1 MB.', error: true });
+        setStatus({ message: t('Use an image under 1 MB.'), error: true });
         return;
       }
       const reader = new FileReader();
@@ -439,22 +449,22 @@ function ItemDetails({
     };
     return (
       <div className="mx-field">
-        <span className="mx-label">Image</span>
+        <span className="mx-label">{t('Image')}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           {item.assetKey.startsWith('shop-bg-') ? (
             <img
               src={`/g/${guildId}/economy/asset/${item.assetKey}`}
-              alt={`${item.name} background`}
+              alt={t('{name} background', { name: item.name })}
               width={160}
               height={90}
               style={{ borderRadius: 8, objectFit: 'cover', display: 'block' }}
             />
           ) : (
-            <span className="mx-sub">No image yet</span>
+            <span className="mx-sub">{t('No image yet')}</span>
           )}
           {readOnly ? null : (
             <label className="mx-btn">
-              Upload image
+              {t('Upload image')}
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
@@ -473,7 +483,7 @@ function ItemDetails({
       </div>
     );
   }
-  return <span className="mx-sub">Counts as an entry in the next giveaway.</span>;
+  return <span className="mx-sub">{t('Counts as an entry in the next giveaway.')}</span>;
 }
 
 function ShopPanels({
@@ -488,6 +498,7 @@ function ShopPanels({
   emptySpan: 5 | 12;
 }) {
   const { guildId } = useGuild();
+  const t = useT();
   const { value, set, readOnly } = useDraft<EconomyConfig>();
   const [selected, setSelected] = useState(0);
   const [restock, setRestock] = useState<Status>(null);
@@ -496,6 +507,10 @@ function ShopPanels({
   const symbol = value.currency.symbol;
   const index = Math.min(selected, Math.max(items.length - 1, 0));
   const item = items[index];
+  const kindOptions = (Object.keys(kindNames) as ShopKind[]).map((kind) => ({
+    value: kind,
+    label: t(kindNames[kind]),
+  }));
 
   const patch = (next: ShopItem) =>
     set({ shop: items.map((entry, i) => (i === index ? next : entry)) });
@@ -505,7 +520,7 @@ function ShopPanels({
     const next: ShopItem = {
       id: nextId(items),
       kind: 'role',
-      name: 'New item',
+      name: t('New item'),
       description: '',
       price: 500,
       stock: null,
@@ -519,22 +534,24 @@ function ShopPanels({
   };
 
   const left = (entry: ShopItem) =>
-    entry.stock === null ? 'Unlimited' : `${Math.max(entry.stock - (sold[entry.id] ?? 0), 0)} left`;
+    entry.stock === null
+      ? t('Unlimited')
+      : t('{count} left', { count: Math.max(entry.stock - (sold[entry.id] ?? 0), 0) });
 
   if (!item) {
     return (
-      <Panel title="Shop" span={emptySpan} id="shop">
+      <Panel title={t('Shop')} span={emptySpan} id="shop">
         <Invite
           mood="sleeping"
           action={
             readOnly ? null : (
               <button type="button" className="mx-btn mx-btn-primary" onClick={add}>
-                Add item
+                {t('Add item')}
               </button>
             )
           }
         >
-          The shop is empty.
+          {t('The shop is empty.')}
         </Invite>
       </Panel>
     );
@@ -543,13 +560,13 @@ function ShopPanels({
   return (
     <>
       <Panel
-        title="Shop"
+        title={t('Shop')}
         span={7}
         id="shop"
         actions={
           readOnly ? null : (
             <button type="button" className="mx-btn" onClick={add} disabled={items.length >= 50}>
-              Add item
+              {t('Add item')}
             </button>
           )
         }
@@ -558,13 +575,13 @@ function ShopPanels({
           <table className="mx-table">
             <thead>
               <tr>
-                <th scope="col">Item</th>
-                <th scope="col">Type</th>
-                <th scope="col">Price</th>
-                <th scope="col">Stock</th>
-                <th scope="col">Sold</th>
+                <th scope="col">{t('Item')}</th>
+                <th scope="col">{t('Type')}</th>
+                <th scope="col">{t('Price')}</th>
+                <th scope="col">{t('Stock')}</th>
+                <th scope="col">{t('Sold')}</th>
                 <th scope="col">
-                  <span className="mx-sr">Edit</span>
+                  <span className="mx-sr">{t('Edit')}</span>
                 </th>
               </tr>
             </thead>
@@ -576,23 +593,23 @@ function ShopPanels({
                 >
                   <td style={{ fontWeight: 600 }}>
                     {entry.name}
-                    {entry.enabled ? null : <span className="mx-sub"> (hidden)</span>}
+                    {entry.enabled ? null : <span className="mx-sub"> ({t('hidden')})</span>}
                   </td>
                   <td>
-                    <span className="mx-chip">{kindNames[entry.kind]}</span>
+                    <span className="mx-chip">{t(kindNames[entry.kind])}</span>
                   </td>
-                  <td className="mx-mono">{`${amount(entry.price)} ${symbol}`}</td>
+                  <td className="mx-mono">{`${t.count(entry.price)} ${symbol}`}</td>
                   <td>{left(entry)}</td>
-                  <td>{amount(sold[entry.id] ?? 0)}</td>
+                  <td>{t.count(sold[entry.id] ?? 0)}</td>
                   <td style={{ textAlign: 'right' }}>
                     <button
                       type="button"
                       className="mx-btn mx-btn-ghost"
-                      aria-label={`Edit ${entry.name}`}
+                      aria-label={t('Edit {name}', { name: entry.name })}
                       aria-pressed={i === index}
                       onClick={() => setSelected(i)}
                     >
-                      Edit
+                      {t('Edit')}
                     </button>
                   </td>
                 </tr>
@@ -603,7 +620,7 @@ function ShopPanels({
       </Panel>
 
       <Panel
-        title={item.name || 'Item'}
+        title={item.name || t('Item')}
         span={5}
         id="item"
         actions={
@@ -616,56 +633,56 @@ function ShopPanels({
                 setSelected(Math.max(index - 1, 0));
               }}
             >
-              Remove
+              {t('Remove')}
             </button>
           )
         }
       >
         <PanelBody>
           <Fields>
-            <Field label="Name">
+            <Field label={t('Name')}>
               <TextInput
                 value={item.name}
                 maxLength={64}
                 onChange={(name) => patch({ ...item, name })}
               />
             </Field>
-            <Field label="Type">
+            <Field label={t('Type')}>
               <Select
                 value={item.kind}
                 options={kindOptions}
                 onChange={(kind) => patch(retype(item, kind, packs))}
               />
             </Field>
-            <Field label={`Price (${symbol})`}>
+            <Field label={t('Price ({symbol})', { symbol })}>
               <OptionalNumber
                 integer
-                label="Price"
+                label={t('Price')}
                 value={item.price}
                 placeholder="0"
                 onChange={(price) => patch({ ...item, price: price ?? 0 })}
               />
             </Field>
-            <Field label="Stock">
+            <Field label={t('Stock')}>
               <OptionalNumber
                 integer
-                label="Stock"
+                label={t('Stock')}
                 value={item.stock}
-                placeholder="Unlimited"
+                placeholder={t('Unlimited')}
                 onChange={(stock) => patch({ ...item, stock })}
               />
             </Field>
-            <Field label="Per member">
+            <Field label={t('Per member')}>
               <OptionalNumber
                 integer
-                label="Per member"
+                label={t('Per member')}
                 value={item.perUser}
-                placeholder="No limit"
+                placeholder={t('No limit')}
                 min={1}
                 onChange={(perUser) => patch({ ...item, perUser })}
               />
             </Field>
-            <Field label="Description">
+            <Field label={t('Description')}>
               <TextInput
                 value={item.description}
                 maxLength={200}
@@ -675,7 +692,7 @@ function ShopPanels({
           </Fields>
           <ItemDetails key={item.id} item={item} patch={patch} packs={packs} />
           <ToggleRow
-            title="For sale"
+            title={t('For sale')}
             checked={item.enabled}
             onChange={(enabled) => patch({ ...item, enabled })}
           />
@@ -693,20 +710,20 @@ function ShopPanels({
                     });
                     setRestock(
                       result.ok
-                        ? { message: 'Restocking.', error: false }
+                        ? { message: t('Restocking.'), error: false }
                         : { message: result.error, error: true },
                     );
                   })
                 }
               >
-                Restock
+                {t('Restock')}
               </button>
               <StatusText status={restock} />
             </div>
           ) : null}
           <div className="mx-preview">
             <MessagePreview avatarSize={34} time={`${prefix}shop`}>
-              <EmbedPreview color="#F26B3A" title="Shop" footer={`${prefix}buy <item>`}>
+              <EmbedPreview color="#F26B3A" title={t('Shop')} footer={`${prefix}buy <item>`}>
                 {items
                   .filter((entry) => entry.enabled)
                   .slice(0, 5)
@@ -721,7 +738,7 @@ function ShopPanels({
                       }}
                     >
                       <span>{entry.name}</span>
-                      <span className="mx-mono">{`${amount(entry.price)} ${symbol}`}</span>
+                      <span className="mx-mono">{`${t.count(entry.price)} ${symbol}`}</span>
                     </div>
                   ))}
               </EmbedPreview>
@@ -741,6 +758,7 @@ function LedgerPanel({
   span: 6 | 12;
 }) {
   const { guildId } = useGuild();
+  const t = useT();
   const [rows, setRows] = useState(initial.rows);
   const [next, setNext] = useState(initial.next);
   const [error, setError] = useState<string | null>(null);
@@ -748,18 +766,18 @@ function LedgerPanel({
 
   return (
     <Panel
-      title="Transactions"
+      title={t('Transactions')}
       span={span}
       id="ledger"
       actions={
         rows.length === 0 ? null : (
           <a className="mx-btn mx-btn-ghost" href={`/g/${guildId}/economy/export`} download>
-            Export CSV
+            {t('Export CSV')}
           </a>
         )
       }
     >
-      {rows.length === 0 ? <Empty mood="sleeping">No transactions yet.</Empty> : null}
+      {rows.length === 0 ? <Empty mood="sleeping">{t('No transactions yet.')}</Empty> : null}
       {rows.map((row) => (
         <Row
           key={row.id}
@@ -772,7 +790,7 @@ function LedgerPanel({
       {next ? (
         <div className="mx-row">
           <span className="mx-sub" style={{ flex: 1 }}>
-            {error}
+            {error ? t.raw(error) : null}
           </span>
           <button
             type="button"
@@ -792,7 +810,7 @@ function LedgerPanel({
               })
             }
           >
-            Load more
+            {t('Load more')}
           </button>
         </div>
       ) : null}
@@ -818,6 +836,7 @@ export function EconomyForm({
   ledger: { rows: LedgerRow[]; next: string | null };
 }) {
   const { guildId } = useGuild();
+  const t = useT();
   const { value } = useDraft<EconomyConfig>();
   const symbol = value.currency.symbol;
   const top = overview.topItem
@@ -845,28 +864,34 @@ export function EconomyForm({
         quiet={quiet}
         stats={[
           {
-            label: 'In circulation',
-            value: `${amount(overview.supply)} ${symbol}`,
-            note:
-              overview.wallets === 1 ? 'In 1 wallet' : `Across ${amount(overview.wallets)} wallets`,
+            label: t('In circulation'),
+            value: `${t.count(overview.supply)} ${symbol}`,
+            note: t.plural(overview.wallets, 'In {n} wallet', 'Across {n} wallets'),
           },
           {
-            label: 'Earned today',
-            value: `${amount(overview.earnedToday)} ${symbol}`,
+            label: t('Earned today'),
+            value: `${t.count(overview.earnedToday)} ${symbol}`,
             note:
               value.dailyCap === null
-                ? 'No daily cap'
-                : `${amount(overview.atCap)} hit the ${amount(value.dailyCap)} ${symbol} cap`,
+                ? t('No daily cap')
+                : t('{count} hit the {cap} {symbol} cap', {
+                    count: overview.atCap,
+                    cap: value.dailyCap,
+                    symbol,
+                  }),
           },
           {
-            label: 'Spent this week',
-            value: `${amount(overview.spentWeek)} ${symbol}`,
-            note: top ? `Mostly ${top}` : 'Shop and card packs',
+            label: t('Spent this week'),
+            value: `${t.count(overview.spentWeek)} ${symbol}`,
+            note: top ? t('Mostly {item}', { item: top }) : t('Shop and card packs'),
           },
           {
-            label: 'Transfer tax',
+            label: t('Transfer tax'),
             value: `${value.transferTax}%`,
-            note: `${amount(overview.taxedMonth)} ${symbol} taxed this month`,
+            note: t('{amount} {symbol} taxed this month', {
+              amount: overview.taxedMonth,
+              symbol,
+            }),
           },
         ]}
       />
@@ -883,10 +908,14 @@ export function EconomyForm({
         <ShopPanels sold={sold} packs={packs} prefix={prefix} emptySpan={idle ? 5 : 12} />
         {richest.length === 0 ? null : (
           <Panel
-            title="Richest members"
+            title={t('Richest members')}
             span={6}
             id="richest"
-            actions={<span className="mx-sub">{`Top ${richest.length} hold ${share}%`}</span>}
+            actions={
+              <span className="mx-sub">
+                {t('Top {count} hold {share}%', { count: richest.length, share })}
+              </span>
+            }
           >
             {richest.map((holder, i) => (
               <div key={holder.userId} className="mx-row">
@@ -897,18 +926,18 @@ export function EconomyForm({
                 <span className="mx-row-main">
                   <span className="mx-row-title">{holder.name}</span>
                 </span>
-                <span className="mx-mono">{`${amount(holder.balance)} ${symbol}`}</span>
+                <span className="mx-mono">{`${t.count(holder.balance)} ${symbol}`}</span>
               </div>
             ))}
           </Panel>
         )}
         {idle ? null : <LedgerPanel initial={ledger} span={richest.length === 0 ? 12 : 6} />}
         {idle ? null : (
-          <Panel title="Reset" span={12} id="reset">
+          <Panel title={t('Reset')} span={12} id="reset">
             <DangerRow
-              label="Reset all balances"
-              sub="Every wallet goes to 0. You can undo it from the audit log for 7 days."
-              done="Done. Maxwell is on it."
+              label={t('Reset all balances')}
+              sub={t('Every wallet goes to 0. You can undo it from the audit log for 7 days.')}
+              done={t('Done. Maxwell is on it.')}
               run={() => runAction(guildId, 'economy', 'reset')}
             />
           </Panel>

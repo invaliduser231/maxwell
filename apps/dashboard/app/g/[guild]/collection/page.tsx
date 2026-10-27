@@ -1,15 +1,15 @@
 import { collectionConfig } from '@maxwell/core/modules/collection';
 import { economyConfig } from '@maxwell/core/modules/economy';
 import { CollectionStore } from '@maxwell/core/stores/collection';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
 import { db } from '@/lib/db';
 import { botGuild } from '@/lib/fluxer';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { cardView } from './cards';
 import { CollectionForm } from './collection-form';
 
-export const metadata: Metadata = { title: 'Collection' };
+export const generateMetadata = titled('Collection');
 
 export default async function CollectionPage({ params }: { params: Promise<{ guild: string }> }) {
   const { guild } = await params;

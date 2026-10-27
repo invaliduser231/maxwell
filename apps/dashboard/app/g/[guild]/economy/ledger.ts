@@ -3,9 +3,10 @@ import type { CollectionConfig } from '@maxwell/core/modules/collection';
 import type { EconomyConfig } from '@maxwell/core/modules/economy';
 import { EconomyStore, type Transaction } from '@maxwell/core/stores/economy';
 import { db } from '@/lib/db';
+import type { Key, Translator } from '@/lib/i18n';
+import { getT } from '@/lib/i18n/server';
 import { people, personOf } from '@/lib/people';
 import { ago } from '@/lib/time';
-import { amount, signed } from './format';
 
 export const LEDGER_PAGE = 8;
 
@@ -17,7 +18,7 @@ export interface LedgerRow {
   up: boolean;
 }
 
-const gameNames: Record<string, string> = {
+const gameNames: Record<string, Key> = {
   trivia: 'trivia',
   counting: 'counting',
   wordchain: 'word chain',
@@ -31,6 +32,7 @@ function tax(note: string | null): number {
 }
 
 function describe(
+  t: Translator,
   row: Transaction,
   name: string,
   other: string,
@@ -39,43 +41,80 @@ function describe(
 ): string {
   const symbol = economy.currency.symbol;
   const ref = row.ref ?? '';
+  const game = gameNames[ref];
   switch (row.kind) {
     case 'message':
-      return `${name} earned from chatting`;
+      return t('{name} earned from chatting', { name });
     case 'daily':
-      return `${name} claimed daily`;
+      return t('{name} claimed daily', { name });
     case 'event':
-      return row.note ? `${name} got a reward for ${row.note}` : `${name} got an event reward`;
+      return row.note
+        ? t('{name} got a reward for {event}', { name, event: row.note })
+        : t('{name} got an event reward', { name });
     case 'game':
-      return `${name} won ${gameNames[ref] ?? 'a game'}`;
+      return t('{name} won {game}', { name, game: game ? t(game) : t('a game') });
     case 'stake':
-      return `${name} staked on ${gameNames[ref] ?? 'a game'}`;
+      return t('{name} staked on {game}', { name, game: game ? t(game) : t('a game') });
     case 'refund':
-      return `${name} got a refund`;
+      return t('{name} got a refund', { name });
     case 'shop':
-      return `${name} bought ${economy.shop.find((item) => item.id === ref)?.name ?? ref}`;
+      return t('{name} bought {item}', {
+        name,
+        item: economy.shop.find((item) => item.id === ref)?.name ?? ref,
+      });
     case 'pack':
-      return `${name} bought ${collection.packs.find((pack) => pack.id === ref)?.name ?? 'a pack'}`;
+      return t('{name} bought {item}', {
+        name,
+        item: collection.packs.find((pack) => pack.id === ref)?.name ?? t('a pack'),
+      });
     case 'set':
-      return `${name} completed ${collection.sets.find((set) => set.id === ref)?.name ?? 'a set'}`;
+      return t('{name} completed {set}', {
+        name,
+        set: collection.sets.find((set) => set.id === ref)?.name ?? t('a set'),
+      });
     case 'transfer': {
-      if (row.amount > 0) return `${name} got ${amount(row.amount)} ${symbol} from ${other}`;
+      if (row.amount > 0) {
+        return t('{name} got {amount} {symbol} from {other}', {
+          name,
+          amount: row.amount,
+          symbol,
+          other,
+        });
+      }
       const cut = tax(row.note);
       return cut > 0
-        ? `${name} sent ${other} ${amount(-row.amount)} ${symbol} (${amount(cut)} ${symbol} tax)`
-        : `${name} sent ${other} ${amount(-row.amount)} ${symbol}`;
+        ? t('{name} sent {other} {amount} {symbol} ({tax} {symbol} tax)', {
+            name,
+            other,
+            amount: -row.amount,
+            symbol,
+            tax: cut,
+          })
+        : t('{name} sent {other} {amount} {symbol}', {
+            name,
+            other,
+            amount: -row.amount,
+            symbol,
+          });
     }
     case 'admin':
-      return row.amount > 0 ? `${other} gave ${name}` : `${other} took from ${name}`;
+      return row.amount > 0
+        ? t('{other} gave {name}', { other, name })
+        : t('{other} took from {name}', { other, name });
     case 'reset':
-      return `${name} lost it in a reset`;
+      return t('{name} lost it in a reset', { name });
     case 'undo':
-      return `Undone for ${name}`;
+      return t('Undone for {name}', { name });
     case 'start':
-      return `${name} got the starting balance`;
+      return t('{name} got the starting balance', { name });
     default:
       return `${name}, ${row.kind}`;
   }
+}
+
+function signed(t: Translator, value: number, symbol: string): string {
+  const sign = value > 0 ? '+' : value < 0 ? '-' : '';
+  return `${sign}${t.count(Math.abs(value))} ${symbol}`;
 }
 
 export async function ledgerRows(
@@ -83,19 +122,23 @@ export async function ledgerRows(
   economy: EconomyConfig,
   collection: CollectionConfig,
 ): Promise<LedgerRow[]> {
-  const names = await people(rows.flatMap((row) => [row.userId, row.counterpartId]));
+  const [names, t] = await Promise.all([
+    people(rows.flatMap((row) => [row.userId, row.counterpartId])),
+    getT(),
+  ]);
   const now = Date.now();
   return rows.map((row) => ({
     id: row.id,
     text: describe(
+      t,
       row,
       personOf(names, row.userId).name,
-      row.counterpartId ? personOf(names, row.counterpartId).name : 'An admin',
+      row.counterpartId ? personOf(names, row.counterpartId).name : t('An admin'),
       economy,
       collection,
     ),
-    when: ago(row.createdAt, now),
-    amount: signed(row.amount, economy.currency.symbol),
+    when: ago(t, row.createdAt, now),
+    amount: signed(t, row.amount, economy.currency.symbol),
     up: row.amount > 0,
   }));
 }

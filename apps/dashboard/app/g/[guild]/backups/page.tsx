@@ -1,11 +1,11 @@
 import { backupsConfig } from '@maxwell/core/modules/backups';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { BackupsForm } from './backups-form';
 import { compare, latestImport, snapshotRows, usage } from './data';
 
-export const metadata: Metadata = { title: 'Backups' };
+export const generateMetadata = titled('Backups');
 
 export default async function BackupsPage({ params }: { params: Promise<{ guild: string }> }) {
   const { guild } = await params;

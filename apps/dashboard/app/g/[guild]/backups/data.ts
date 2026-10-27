@@ -11,6 +11,8 @@ import {
 } from '@maxwell/core/modules/backups';
 import { BackupStore, type ImportRow, type SnapshotMeta } from '@maxwell/core/stores/backups';
 import { db } from '@/lib/db';
+import type { Translator } from '@/lib/i18n';
+import { getT } from '@/lib/i18n/server';
 import { people } from '@/lib/people';
 
 const CATEGORY = 4;
@@ -109,15 +111,14 @@ function words(name: string): string {
   return name.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/Tts/g, 'TTS');
 }
 
-function sentence(list: readonly string[]): string {
-  if (list.length <= 1) return list.join('');
-  return `${list.slice(0, -1).join(', ')} and ${list.at(-1)}`;
-}
-
-function permissionText(delta: PermissionDelta): string[] {
+function permissionText(t: Translator, delta: PermissionDelta): string[] {
   const out: string[] = [];
-  if (delta.added.length > 0) out.push(`${sentence(delta.added.map(words))} added`);
-  if (delta.removed.length > 0) out.push(`${sentence(delta.removed.map(words))} removed`);
+  if (delta.added.length > 0) {
+    out.push(t('{names} added', { names: t.list(delta.added.map(words)) }));
+  }
+  if (delta.removed.length > 0) {
+    out.push(t('{names} removed', { names: t.list(delta.removed.map(words)) }));
+  }
   return out;
 }
 
@@ -125,49 +126,59 @@ function channelLabel(channel: { name: string; type: number }): string {
   return TEXT_TYPES.has(channel.type) ? `#${channel.name}` : channel.name;
 }
 
-function slowmode(value: unknown): string {
-  return typeof value === 'number' && value > 0 ? `${value} seconds` : 'off';
+function slowmode(t: Translator, value: unknown): string {
+  return typeof value === 'number' && value > 0 ? t('{count} seconds', { count: value }) : t('off');
 }
 
-function fieldText(change: FieldChange, channel: boolean): string | null {
+function fieldText(t: Translator, change: FieldChange, channel: boolean): string | null {
   switch (change.field) {
     case 'id':
-      return 'deleted and created again';
+      return t('deleted and created again');
     case 'name':
-      return `renamed from ${channel ? '#' : ''}${String(change.before)}`;
+      return t('renamed from {name}', { name: `${channel ? '#' : ''}${String(change.before)}` });
     case 'color':
-      return 'color changed';
+      return t('color changed');
     case 'hoist':
-      return change.after ? 'now shown separately' : 'no longer shown separately';
+      return change.after ? t('now shown separately') : t('no longer shown separately');
     case 'mentionable':
-      return change.after ? 'now mentionable' : 'no longer mentionable';
+      return change.after ? t('now mentionable') : t('no longer mentionable');
     case 'parentId':
-      return 'moved to another category';
+      return t('moved to another category');
     case 'type':
-      return 'type changed';
+      return t('type changed');
     case 'topic':
-      return 'topic changed';
+      return t('topic changed');
     case 'userLimit':
-      return `user limit ${change.before ?? 'none'} to ${change.after ?? 'none'}`;
+      return t('user limit {before} to {after}', {
+        before:
+          change.before === null || change.before === undefined ? t('none') : String(change.before),
+        after:
+          change.after === null || change.after === undefined ? t('none') : String(change.after),
+      });
     case 'nsfw':
-      return change.after ? 'marked NSFW' : 'no longer NSFW';
+      return change.after ? t('marked NSFW') : t('no longer NSFW');
     case 'rateLimitPerUser':
-      return `slowmode ${slowmode(change.before)} to ${slowmode(change.after)}`;
+      return t('slowmode {before} to {after}', {
+        before: slowmode(t, change.before),
+        after: slowmode(t, change.after),
+      });
     default:
       return null;
   }
 }
 
-function overwriteText(change: OverwriteChange, target: string): string {
-  if (change.status === 'added') return `${target} overwrite added`;
-  if (change.status === 'removed') return `${target} overwrite removed`;
+function overwriteText(t: Translator, change: OverwriteChange, target: string): string {
+  if (change.status === 'added') return t('{target} overwrite added', { target });
+  if (change.status === 'removed') return t('{target} overwrite removed', { target });
   const parts: string[] = [];
-  const lower = (list: string[]) => sentence(list.map((name) => words(name).toLowerCase()));
-  if (change.allow.added.length > 0) parts.push(`${target} can now ${lower(change.allow.added)}`);
-  if (change.deny.added.length > 0) {
-    parts.push(`${target} can no longer ${lower(change.deny.added)}`);
+  const lower = (list: string[]) => t.list(list.map((name) => words(name).toLowerCase()));
+  if (change.allow.added.length > 0) {
+    parts.push(t('{target} can now {what}', { target, what: lower(change.allow.added) }));
   }
-  if (parts.length === 0) parts.push(`${target} permissions changed`);
+  if (change.deny.added.length > 0) {
+    parts.push(t('{target} can no longer {what}', { target, what: lower(change.deny.added) }));
+  }
+  if (parts.length === 0) parts.push(t('{target} permissions changed', { target }));
   return parts.join(', ');
 }
 
@@ -194,6 +205,7 @@ function twinChannel(
 }
 
 export function buildDiff(
+  t: Translator,
   guildId: string,
   oldId: string,
   newId: string,
@@ -205,9 +217,9 @@ export function buildDiff(
   const roleNames = new Map<string, string>();
   for (const role of [...older.roles, ...newer.roles]) roleNames.set(role.id, role.name);
   const target = (change: OverwriteChange) => {
-    if (change.type === 'member') return 'A member';
+    if (change.type === 'member') return t('A member');
     if (change.id === guildId) return '@everyone';
-    return `@${roleNames.get(change.id) ?? 'deleted role'}`;
+    return `@${roleNames.get(change.id) ?? t('deleted role')}`;
   };
 
   for (const role of diff.roles.added) {
@@ -216,7 +228,7 @@ export function buildDiff(
       group: 'Roles',
       sign: '+',
       label: role.name,
-      detail: 'added',
+      detail: t('added'),
       restore: null,
     });
   }
@@ -226,7 +238,7 @@ export function buildDiff(
       group: 'Roles',
       sign: '-',
       label: role.name,
-      detail: 'deleted',
+      detail: t('deleted'),
       restore: { kind: 'role', id: role.id },
     });
   }
@@ -234,8 +246,8 @@ export function buildDiff(
     const renamed = change.changes.find((item) => item.field === 'name');
     const old = twinRole(older.roles, change.id, String(renamed?.before ?? change.name));
     const parts = [
-      ...change.changes.map((item) => fieldText(item, false)).filter((text) => text !== null),
-      ...(change.permissions ? permissionText(change.permissions) : []),
+      ...change.changes.map((item) => fieldText(t, item, false)).filter((text) => text !== null),
+      ...(change.permissions ? permissionText(t, change.permissions) : []),
     ];
     items.push({
       key: `role~${change.id}`,
@@ -253,7 +265,7 @@ export function buildDiff(
       group: 'Channels',
       sign: '+',
       label: channelLabel(channel),
-      detail: channel.type === CATEGORY ? 'category added' : 'added',
+      detail: channel.type === CATEGORY ? t('category added') : t('added'),
       restore: null,
     });
   }
@@ -263,7 +275,7 @@ export function buildDiff(
       group: 'Channels',
       sign: '-',
       label: channelLabel(channel),
-      detail: channel.type === CATEGORY ? 'category deleted' : 'deleted',
+      detail: channel.type === CATEGORY ? t('category deleted') : t('deleted'),
       restore: { kind: 'channel', id: channel.id },
     });
   }
@@ -272,8 +284,8 @@ export function buildDiff(
     const renamed = change.changes.find((item) => item.field === 'name');
     const old = twinChannel(older.channels, change.id, String(renamed?.before ?? change.name));
     const parts = [
-      ...change.changes.map((item) => fieldText(item, true)).filter((text) => text !== null),
-      ...change.overwrites.map((item) => overwriteText(item, target(item))),
+      ...change.changes.map((item) => fieldText(t, item, true)).filter((text) => text !== null),
+      ...change.overwrites.map((item) => overwriteText(t, item, target(item))),
     ];
     items.push({
       key: `channel~${change.id}`,
@@ -288,19 +300,20 @@ export function buildDiff(
   for (const change of diff.modules) {
     const parts: string[] = [];
     if (change.enabled) {
-      parts.push(change.enabled.after ? 'turned on' : 'turned off');
+      parts.push(change.enabled.after ? t('turned on') : t('turned off'));
     }
     if (change.keys.length > 0 && change.keys.length <= 3) {
-      parts.push(`${sentence(change.keys.map(settingName))} changed`);
+      parts.push(t('{names} changed', { names: t.list(change.keys.map(settingName)) }));
     } else if (change.keys.length > 3) {
-      parts.push(`${change.keys.length} settings changed`);
+      parts.push(t('{count} settings changed', { count: change.keys.length }));
     }
     const inOld = Object.hasOwn(older.modules, change.module);
+    const name = moduleByKey(change.module)?.name;
     items.push({
       key: `module~${change.module}`,
       group: 'Maxwell settings',
       sign: inOld ? (Object.hasOwn(newer.modules, change.module) ? '~' : '-') : '+',
-      label: moduleByKey(change.module)?.name ?? change.module,
+      label: name ? t.raw(name) : change.module,
       detail: parts.join(', '),
       restore: inOld && moduleByKey(change.module) ? { kind: 'module', id: change.module } : null,
     });
@@ -310,12 +323,13 @@ export function buildDiff(
 }
 
 export async function compare(guildId: string, oldId: string, newId: string): Promise<DiffView> {
-  const [older, newer] = await Promise.all([
+  const [older, newer, t] = await Promise.all([
     store().get(guildId, oldId),
     store().get(guildId, newId),
+    getT(),
   ]);
   if (!older || !newer) return { oldId, newId, items: [] };
-  return buildDiff(guildId, oldId, newId, older.data, newer.data);
+  return buildDiff(t, guildId, oldId, newId, older.data, newer.data);
 }
 
 function count(value: unknown): number {

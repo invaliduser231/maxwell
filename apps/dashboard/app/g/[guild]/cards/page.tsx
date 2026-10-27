@@ -1,11 +1,11 @@
 import { cardsConfig } from '@maxwell/core/modules/cards';
-import type { Metadata } from 'next';
 import { ModuleShell } from '@/components/module-shell';
 import { db } from '@/lib/db';
+import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
 import { CardsForm } from './cards-form';
 
-export const metadata: Metadata = { title: 'Cards' };
+export const generateMetadata = titled('Cards');
 
 export default async function CardsPage({ params }: { params: Promise<{ guild: string }> }) {
   const { guild } = await params;

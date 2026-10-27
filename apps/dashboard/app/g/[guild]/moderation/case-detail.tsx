@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { fingerprint } from '@/components/live';
 import { MessagePreview } from '@/components/message-preview';
 import { useDraft } from '@/components/module-shell';
@@ -12,7 +13,8 @@ import { type Status, StatusText } from '@/components/status-text';
 import { TwoStep } from '@/components/two-step';
 import { CloseIcon } from '@/components/ui';
 import { undoEntry } from '@/lib/actions';
-import { dayTime, duration, plural, until } from '@/lib/time';
+import type { Key, Translator } from '@/lib/i18n';
+import { dayTime, duration, until } from '@/lib/time';
 import { addEvidence, removeEvidence, reviewCase, saveReason, voidCase } from './actions';
 import type { CaseView } from './data';
 import { ACTION_COLORS, ACTION_NAMES } from './labels';
@@ -27,7 +29,7 @@ function PlusIcon() {
   );
 }
 
-const undoLabels: Record<string, string> = {
+const undoLabels: Record<string, Key> = {
   ban: 'Unban',
   timeout: 'Lift timeout',
   warn: 'Remove warn',
@@ -37,6 +39,7 @@ const undoLabels: Record<string, string> = {
 };
 
 function stateOf(
+  t: Translator,
   view: CaseView,
   now: string,
   timezone: string,
@@ -44,44 +47,50 @@ function stateOf(
 ): { label: string; color: string } {
   const color = ACTION_COLORS[view.action] ?? '#9A9EA6';
   const current = new Date(now).getTime();
-  if (view.voidedAt) return { label: 'Void', color: '#9A9EA6' };
+  if (view.voidedAt) return { label: t('Void'), color: '#9A9EA6' };
   if (view.action === 'flag') {
     return view.endedAt
-      ? { label: 'Reviewed', color: '#9A9EA6' }
-      : { label: 'Waiting for review', color };
+      ? { label: t('Reviewed'), color: '#9A9EA6' }
+      : { label: t('Waiting for review'), color };
   }
   if (view.action === 'ban' || view.action === 'timeout') {
-    if (view.endedAt) return { label: 'Ended', color: '#9A9EA6' };
+    if (view.endedAt) return { label: t('Ended'), color: '#9A9EA6' };
     if (view.expiresAt) {
       return new Date(view.expiresAt).getTime() > current
-        ? { label: `Active until ${until(view.expiresAt, now, timezone)}`, color }
-        : { label: 'Ended', color: '#9A9EA6' };
+        ? {
+            label: t('Active until {when}', { when: until(t, view.expiresAt, now, timezone) }),
+            color,
+          }
+        : { label: t('Ended'), color: '#9A9EA6' };
     }
-    return { label: 'Active', color };
+    return { label: t('Active'), color };
   }
   if (view.action === 'warn') {
     const created = new Date(view.createdAt).getTime();
     return expiryDays === null || created + expiryDays * DAY > current
-      ? { label: 'Active', color }
-      : { label: 'Expired', color: '#9A9EA6' };
+      ? { label: t('Active'), color }
+      : { label: t('Expired'), color: '#9A9EA6' };
   }
-  return { label: 'Done', color: '#9A9EA6' };
+  return { label: t('Completed'), color: '#9A9EA6' };
 }
 
-function durationOf(view: CaseView, now: string, expiryDays: number | null): string {
+function durationOf(t: Translator, view: CaseView, now: string, expiryDays: number | null): string {
   if (view.action === 'ban' || view.action === 'timeout') {
-    if (view.durationSeconds) return duration(view.durationSeconds * 1_000);
-    return view.action === 'ban' ? 'Permanent' : 'None';
+    if (view.durationSeconds) return duration(t, view.durationSeconds * 1_000);
+    return view.action === 'ban' ? t('Permanent') : t('None');
   }
   if (view.action === 'warn') {
-    if (expiryDays === null) return 'Never expires';
+    if (expiryDays === null) return t('Never expires');
     const left = new Date(view.createdAt).getTime() + expiryDays * DAY - new Date(now).getTime();
-    return left > 0 ? `Expires in ${plural(Math.ceil(left / DAY), 'day')}` : 'Expired';
+    return left > 0
+      ? t.plural(Math.ceil(left / DAY), 'Expires in {n} day', 'Expires in {n} days')
+      : t('Expired');
   }
-  return 'None';
+  return t('None');
 }
 
 export function CaseDetail({ initial, now }: { initial: CaseView; now: string }) {
+  const t = useT();
   const { guildId, timezone } = useGuild();
   const { value: config, readOnly } = useDraft<ModerationConfig>();
   const router = useRouter();
@@ -111,9 +120,12 @@ export function CaseDetail({ initial, now }: { initial: CaseView; now: string })
     return () => clearTimeout(timer);
   }, [refreshAt, router]);
 
-  const state = stateOf(view, now, timezone, config.warnExpiryDays);
+  const state = stateOf(t, view, now, timezone, config.warnExpiryDays);
   const reasonChanged = reason.trim() !== (view.reason ?? '');
-  const title = ACTION_NAMES[view.action] ?? view.action;
+  const action = ACTION_NAMES[view.action];
+  const title = action ? t(action) : view.action;
+  const member = t.raw(view.member);
+  const undoLabel = undoLabels[view.action];
 
   const apply = (
     run: () => Promise<{ ok: true; data?: CaseView } | { ok: false; error: string }>,
@@ -146,7 +158,7 @@ export function CaseDetail({ initial, now }: { initial: CaseView; now: string })
     <section className="mx-panel mx-s4" aria-labelledby="case-detail">
       <div className="mx-panel-head">
         <h2 id="case-detail">
-          Case {view.number}: {title}
+          {t('Case {number}: {action}', { number: String(view.number), action: title })}
         </h2>
         <span className="mx-chip" style={{ color: state.color }}>
           {state.label}
@@ -155,36 +167,36 @@ export function CaseDetail({ initial, now }: { initial: CaseView; now: string })
       <div className="mx-panel-body">
         <div className="mx-fields" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
           <div className="mx-field">
-            <span className="mx-label">Member</span>
+            <span className="mx-label">{t('Member')}</span>
             {view.userId ? (
-              <Link href={`/g/${guildId}/members?member=${view.userId}`}>{view.member}</Link>
+              <Link href={`/g/${guildId}/members?member=${view.userId}`}>{member}</Link>
             ) : (
-              <span>{view.member}</span>
+              <span>{member}</span>
             )}
           </div>
           <div className="mx-field">
-            <span className="mx-label">Moderator</span>
-            <span>{view.moderator}</span>
+            <span className="mx-label">{t('Moderator')}</span>
+            <span>{t.raw(view.moderator)}</span>
           </div>
           <div className="mx-field">
-            <span className="mx-label">Duration</span>
-            <span>{durationOf(view, now, config.warnExpiryDays)}</span>
+            <span className="mx-label">{t('Duration')}</span>
+            <span>{durationOf(t, view, now, config.warnExpiryDays)}</span>
           </div>
           <div className="mx-field">
-            <span className="mx-label">When</span>
-            <span>{dayTime(view.createdAt, now, timezone)}</span>
+            <span className="mx-label">{t('When')}</span>
+            <span>{dayTime(t, view.createdAt, now, timezone)}</span>
           </div>
         </div>
 
         <label className="mx-field">
-          <span className="mx-label">Reason</span>
+          <span className="mx-label">{t('Reason')}</span>
           <textarea
             className="mx-textarea"
             rows={2}
             maxLength={1_500}
             value={reason}
             readOnly={readOnly}
-            placeholder={readOnly ? undefined : 'No reason yet'}
+            placeholder={readOnly ? undefined : t('No reason yet')}
             onChange={(event) => setReason(event.target.value)}
           />
         </label>
@@ -196,7 +208,7 @@ export function CaseDetail({ initial, now }: { initial: CaseView; now: string })
               disabled={pending}
               onClick={() => apply(() => saveReason(guildId, view.number, reason))}
             >
-              Save reason
+              {t('Save reason')}
             </button>
             <button
               type="button"
@@ -204,15 +216,15 @@ export function CaseDetail({ initial, now }: { initial: CaseView; now: string })
               disabled={pending}
               onClick={() => setReason(view.reason ?? '')}
             >
-              Cancel
+              {t('Cancel')}
             </button>
           </div>
         ) : null}
 
         <div className="mx-field">
-          <span className="mx-label">Evidence</span>
+          <span className="mx-label">{t('Evidence')}</span>
           {view.evidence.length === 0 && (readOnly || !adding) ? (
-            <span className="mx-sub">No links</span>
+            <span className="mx-sub">{t('No links')}</span>
           ) : null}
           {view.evidence.map((url) => (
             <div key={url} style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
@@ -237,7 +249,7 @@ export function CaseDetail({ initial, now }: { initial: CaseView; now: string })
                 <button
                   type="button"
                   className="mx-chip-x"
-                  aria-label={`Remove ${url}`}
+                  aria-label={t('Remove {name}', { name: url })}
                   disabled={pending}
                   onClick={() => apply(() => removeEvidence(guildId, view.number, url))}
                 >
@@ -268,14 +280,14 @@ export function CaseDetail({ initial, now }: { initial: CaseView; now: string })
               <input
                 className="mx-input mx-mono"
                 type="url"
-                aria-label="Evidence link"
+                aria-label={t('Evidence link')}
                 placeholder="https://"
                 value={link}
                 maxLength={500}
                 onChange={(event) => setLink(event.target.value)}
               />
               <button type="submit" className="mx-btn" disabled={pending || !link.trim()}>
-                Add
+                {t('Add')}
               </button>
             </form>
           ) : (
@@ -287,7 +299,7 @@ export function CaseDetail({ initial, now }: { initial: CaseView; now: string })
             >
               <span className="mx-add-trigger">
                 <PlusIcon />
-                Add link
+                {t('Add link')}
               </span>
             </button>
           )}
@@ -295,14 +307,14 @@ export function CaseDetail({ initial, now }: { initial: CaseView; now: string })
 
         {view.excerpt ? (
           <div className="mx-field">
-            <span className="mx-label">Message that led to it</span>
+            <span className="mx-label">{t('Message that led to it')}</span>
             <div className="mx-preview">
               <MessagePreview
-                name={view.member}
+                name={member}
                 avatar={view.memberAvatar}
                 bot={false}
                 avatarSize={28}
-                time={dayTime(view.createdAt, now, timezone)}
+                time={dayTime(t, view.createdAt, now, timezone)}
                 content={view.excerpt}
               />
             </div>
@@ -322,7 +334,7 @@ export function CaseDetail({ initial, now }: { initial: CaseView; now: string })
                 disabled={pending}
                 onClick={() => queued(() => reviewCase(guildId, view.number, true))}
               >
-                Approve
+                {t('Approve')}
               </button>
               <button
                 type="button"
@@ -330,7 +342,7 @@ export function CaseDetail({ initial, now }: { initial: CaseView; now: string })
                 disabled={pending}
                 onClick={() => queued(() => reviewCase(guildId, view.number, false))}
               >
-                Decline
+                {t('Decline')}
               </button>
             </>
           ) : null}
@@ -344,12 +356,12 @@ export function CaseDetail({ initial, now }: { initial: CaseView; now: string })
                 if (entry) queued(() => undoEntry(guildId, entry));
               }}
             >
-              {undoLabels[view.action] ?? 'Undo'}
+              {undoLabel ? t(undoLabel) : t('Undo')}
             </button>
           ) : null}
           {!readOnly && !view.voidedAt ? (
             <TwoStep
-              label="Void case"
+              label={t('Void case')}
               disabled={pending}
               run={() => apply(() => voidCase(guildId, view.number))}
             />
@@ -359,7 +371,7 @@ export function CaseDetail({ initial, now }: { initial: CaseView; now: string })
               className="mx-btn mx-btn-ghost"
               href={`/g/${guildId}/members?member=${view.userId}`}
             >
-              Member file
+              {t('Member file')}
             </Link>
           ) : null}
           <StatusText status={status} />
