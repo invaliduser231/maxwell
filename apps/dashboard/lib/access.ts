@@ -16,7 +16,7 @@ export interface GuildAccess {
   levels: Record<string, AccessLevel>;
 }
 
-export const requireUser = cache(async (next = '/'): Promise<FluxerUser> => {
+export const requireUser = cache(async (next = '/communities'): Promise<FluxerUser> => {
   const session = await getSession();
   if (!session) redirect(`/login?next=${encodeURIComponent(next)}`);
   return session.user;

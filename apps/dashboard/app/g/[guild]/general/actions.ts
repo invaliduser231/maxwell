@@ -145,5 +145,5 @@ export async function removeMaxwell(guildId: string): Promise<Result> {
     summary: 'Removed Maxwell',
     undo: null,
   });
-  redirect('/');
+  redirect('/communities');
 }

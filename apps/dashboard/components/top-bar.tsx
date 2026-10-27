@@ -18,7 +18,7 @@ export function TopBar({
       }}
     >
       <Link
-        href="/"
+        href={user ? '/communities' : '/'}
         style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none' }}
       >
         <Logo />

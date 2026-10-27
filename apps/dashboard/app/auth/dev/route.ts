@@ -16,5 +16,5 @@ export async function GET() {
   });
   const store = await cookies();
   store.set(SESSION_COOKIE, session, { httpOnly: true, sameSite: 'lax', path: '/' });
-  return NextResponse.redirect(new URL('/', env().DASHBOARD_URL));
+  return NextResponse.redirect(new URL('/communities', env().DASHBOARD_URL));
 }

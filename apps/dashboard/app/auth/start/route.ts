@@ -8,7 +8,7 @@ import { secureCookies } from '@/lib/session';
 const OAUTH_COOKIE = 'mx_oauth';
 
 function safeNext(value: string | null): string {
-  return value?.startsWith('/') && !value.startsWith('//') ? value : '/';
+  return value?.startsWith('/') && !value.startsWith('//') ? value : '/communities';
 }
 
 export async function GET(request: NextRequest) {

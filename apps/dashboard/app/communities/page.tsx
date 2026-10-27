@@ -7,7 +7,7 @@ import { CommunityList } from './community-list';
 export const generateMetadata = titled('Choose a community');
 
 export default async function Home() {
-  const user = await requireUser('/');
+  const user = await requireUser('/communities');
   const list = await communities(user);
 
   return (

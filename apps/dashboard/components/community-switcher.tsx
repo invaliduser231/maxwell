@@ -228,7 +228,7 @@ export function CommunitySwitcher({
               </span>
             ) : null}
           </div>
-          <Link role="menuitem" className="mx-popover-item mx-popover-footer" href="/">
+          <Link role="menuitem" className="mx-popover-item mx-popover-footer" href="/communities">
             {t('All communities')}
           </Link>
         </div>

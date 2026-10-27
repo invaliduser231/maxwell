@@ -20,7 +20,7 @@ export default async function Login({
   searchParams: Promise<{ next?: string; error?: string }>;
 }) {
   const { next, error } = await searchParams;
-  if (await getSession()) redirect(next?.startsWith('/') ? next : '/');
+  if (await getSession()) redirect(next?.startsWith('/') ? next : '/communities');
   const start = `/auth/start${next ? `?next=${encodeURIComponent(next)}` : ''}`;
   const t = await getT();
   const message = error ? errors[error] : undefined;

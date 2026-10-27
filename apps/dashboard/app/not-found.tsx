@@ -21,7 +21,7 @@ export default async function NotFound() {
       <p className="mx-sub" style={{ margin: 0 }}>
         {t('The page is gone, or you have no access to it.')}
       </p>
-      <Link className="mx-btn" href="/">
+      <Link className="mx-btn" href="/communities">
         {t('Choose a community')}
       </Link>
     </main>
