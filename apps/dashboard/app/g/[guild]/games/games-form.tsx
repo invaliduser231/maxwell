@@ -789,7 +789,7 @@ function BoardPanel({ board }: { board: Record<string, BoardRow[]> }) {
 
   if (!played) {
     return (
-      <Panel title={t('Top players')} span={6} id="board">
+      <Panel title={t('Top players')} span={4} id="board">
         <Empty mood="sleeping">{t('Nobody has played yet.')}</Empty>
       </Panel>
     );
@@ -798,7 +798,7 @@ function BoardPanel({ board }: { board: Record<string, BoardRow[]> }) {
   return (
     <Panel
       title={t('Top players')}
-      span={6}
+      span={4}
       id="board"
       actions={
         <div style={{ width: 170 }}>
@@ -840,7 +840,7 @@ function MoneyPanel({
   return (
     <Panel
       title={t('{currency} in games', { currency: economy.name })}
-      span={6}
+      span={4}
       id="money"
       actions={
         <>

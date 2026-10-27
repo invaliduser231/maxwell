@@ -243,7 +243,7 @@ export function GeneralForm({
 
       <ProfilePanel profile={profile} guildName={guildName} />
 
-      <Panel title={t('Commands')} span={7}>
+      <Panel title={t('Commands')} span={6}>
         <PanelBody>
           <div className="mx-field">
             <span className="mx-label">{t('Turned off')}</span>
@@ -305,7 +305,7 @@ export function GeneralForm({
         </PanelBody>
       </Panel>
 
-      <Panel title={t('Privacy')} span={5}>
+      <Panel title={t('Privacy')} span={6}>
         <PanelBody>
           <Field label={t('Keep cases')}>
             <Select

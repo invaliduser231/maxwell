@@ -137,7 +137,7 @@ export function VoiceForm({
     : '';
 
   const owners = (
-    <Panel title={t('Owners')} span={4} id="vc-cmd">
+    <Panel title={t('Owners')} span={5} id="vc-cmd">
       <Row title={t('Owner manages the room')}>
         <Switch
           order
@@ -194,7 +194,7 @@ export function VoiceForm({
   if (value.lobbies.length === 0 && rooms.length === 0) {
     return (
       <Grid>
-        <Panel span={8} id="vc-hubs">
+        <Panel span={7} id="vc-hubs">
           <Empty mood="sleeping">
             <div className="mx-stack" style={{ alignItems: 'center' }}>
               <span>{t('No create channels yet.')}</span>
@@ -330,7 +330,7 @@ export function VoiceForm({
 
       <Panel
         title={t('Open rooms')}
-        span={8}
+        span={7}
         id="vc-open"
         actions={
           rooms.length > 0 ? (

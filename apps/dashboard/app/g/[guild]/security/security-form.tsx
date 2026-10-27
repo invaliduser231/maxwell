@@ -194,9 +194,7 @@ export function SecurityForm({ view }: { view: SecurityView }) {
               )
             }
           >
-            {t.raw(
-              'Security needs a gate role to hold people back. Maxwell creates one that sees no channels.',
-            )}
+            {t.raw('No gate role yet.')}
           </Callout>
         </div>
       ) : null}
@@ -204,10 +202,9 @@ export function SecurityForm({ view }: { view: SecurityView }) {
       {view.above.length > 0 ? (
         <div className="mx-s12">
           <Callout tone="warn">
-            {t.raw(
-              'Maxwell sits below {roles}. It cannot stop members with these roles. Move the Maxwell role higher.',
-              { roles: t.list(view.above.slice(0, 5)) },
-            )}
+            {t.raw('Maxwell is below {roles}. Move its role higher.', {
+              roles: t.list(view.above.slice(0, 5)),
+            })}
           </Callout>
         </div>
       ) : null}
@@ -220,7 +217,6 @@ export function SecurityForm({ view }: { view: SecurityView }) {
       <Panel title={t.raw('Captcha')} span={6} id="sec-verify">
         <ToggleRow
           title={t.raw('Check new members')}
-          sub={t.raw('Risky accounts wait at the gate until they solve a picture captcha by DM.')}
           checked={verification.enabled}
           onChange={(enabled) => patchVerification({ enabled })}
         />
@@ -299,41 +295,45 @@ export function SecurityForm({ view }: { view: SecurityView }) {
         <PanelBody>
           <div className="mx-stack">
             <span className="mx-label">{t.raw('Account age')}</span>
-            {verification.weights.ageTiers.map((tier, index) => (
-              <div key={tier.hours} className="mx-between">
-                <span>{ageLabel(t, tier.hours)}</span>
-                <div style={{ width: 96 }}>
-                  <NumberInput
-                    label={ageLabel(t, tier.hours)}
-                    value={tier.points}
-                    min={0}
-                    max={30}
-                    onChange={(points) =>
-                      patchWeights({
-                        ageTiers: verification.weights.ageTiers.map((entry, position) =>
-                          position === index ? { ...entry, points } : entry,
-                        ),
-                      })
-                    }
-                  />
+            <div className="mx-weights">
+              {verification.weights.ageTiers.map((tier, index) => (
+                <div key={tier.hours} className="mx-weight">
+                  <span>{ageLabel(t, tier.hours)}</span>
+                  <div style={{ width: 88 }}>
+                    <NumberInput
+                      label={ageLabel(t, tier.hours)}
+                      value={tier.points}
+                      min={0}
+                      max={30}
+                      onChange={(points) =>
+                        patchWeights({
+                          ageTiers: verification.weights.ageTiers.map((entry, position) =>
+                            position === index ? { ...entry, points } : entry,
+                          ),
+                        })
+                      }
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
             <span className="mx-label">{t.raw('Other signs')}</span>
-            {weightKeys.map((entry) => (
-              <div key={entry.key} className="mx-between">
-                <span>{t.raw(entry.label)}</span>
-                <div style={{ width: 96 }}>
-                  <NumberInput
-                    label={t.raw(entry.label)}
-                    value={verification.weights[entry.key]}
-                    min={-20}
-                    max={30}
-                    onChange={(points) => patchWeights({ [entry.key]: points })}
-                  />
+            <div className="mx-weights">
+              {weightKeys.map((entry) => (
+                <div key={entry.key} className="mx-weight">
+                  <span>{t.raw(entry.label)}</span>
+                  <div style={{ width: 88 }}>
+                    <NumberInput
+                      label={t.raw(entry.label)}
+                      value={verification.weights[entry.key]}
+                      min={-20}
+                      max={30}
+                      onChange={(points) => patchWeights({ [entry.key]: points })}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
             <span className="mx-label">{t.raw('Spam words in names')}</span>
             <WordList
               value={verification.spamWords}
@@ -346,9 +346,6 @@ export function SecurityForm({ view }: { view: SecurityView }) {
       <Panel title={t.raw('Raids')} span={6} id="sec-raid">
         <ToggleRow
           title={t.raw('Watch for raids')}
-          sub={t.raw(
-            'Join bursts, waves of similar accounts and new members posting the same thing.',
-          )}
           checked={raid.enabled}
           onChange={(enabled) => patchRaid({ enabled })}
         />
@@ -437,9 +434,6 @@ export function SecurityForm({ view }: { view: SecurityView }) {
       <Panel title={t.raw('Nukes')} span={6} id="sec-nuke">
         <ToggleRow
           title={t.raw('Stop mass changes')}
-          sub={t.raw(
-            'When someone deletes, bans or hands out power too fast, Maxwell takes their dangerous roles away.',
-          )}
           checked={nuke.enabled}
           onChange={(enabled) => patchNuke({ enabled })}
         />
@@ -507,7 +501,7 @@ export function SecurityForm({ view }: { view: SecurityView }) {
         </PanelBody>
         <ToggleRow
           title={t.raw('Restore from the last backup')}
-          sub={t.raw('Deleted channels and roles come back. Needs Backups.')}
+          sub={t.raw('Needs Backups.')}
           checked={nuke.restore}
           onChange={(restore) => patchNuke({ restore })}
         />
@@ -516,7 +510,6 @@ export function SecurityForm({ view }: { view: SecurityView }) {
       <Panel title={t.raw('Honeypot')} span={6} id="sec-honeypot">
         <ToggleRow
           title={t.raw('Trap spam bots')}
-          sub={t.raw('Anyone who posts in a trap channel or takes the trap role is removed.')}
           checked={honeypot.enabled}
           onChange={(enabled) => patchHoneypot({ enabled })}
         />

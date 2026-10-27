@@ -505,12 +505,12 @@ function Rate({ part, whole }: { part: number; whole: number }) {
   );
 }
 
-function RetentionTable({ rows, span }: { rows: Retention[]; span: 6 | 12 }) {
+function RetentionTable({ rows }: { rows: Retention[] }) {
   const t = useT();
   return (
     <Panel
       title={t('Retention by invite')}
-      span={span}
+      span={12}
       id="insights-retention"
       actions={<span className="mx-sub">{t('Joins, last 90 days')}</span>}
     >
@@ -646,10 +646,7 @@ export function InsightsView({
       <Grid>
         {talk || moderated || invited ? null : (
           <Panel span={12} id="insights-empty">
-            <Empty mood="sleeping">
-              <div>{t('Nothing counted yet.')}</div>
-              <div className="mx-sub">{t('Charts fill in once people start talking.')}</div>
-            </Empty>
+            <Empty mood="sleeping">{t('Nothing counted yet.')}</Empty>
           </Panel>
         )}
         {talk ? (
@@ -660,7 +657,7 @@ export function InsightsView({
           </>
         ) : null}
         {moderated ? <Moderation weeks={weeks} span={talk ? 4 : 6} /> : null}
-        {invited ? <RetentionTable rows={retention} span={talk || !moderated ? 12 : 6} /> : null}
+        {invited ? <RetentionTable rows={retention} /> : null}
         <Settings />
       </Grid>
     </div>

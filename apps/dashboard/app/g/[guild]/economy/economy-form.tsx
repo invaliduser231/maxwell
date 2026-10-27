@@ -495,7 +495,7 @@ function ShopPanels({
   sold: Record<string, number>;
   packs: { id: string; name: string }[];
   prefix: string;
-  emptySpan: 5 | 12;
+  emptySpan: 5 | 7;
 }) {
   const { guildId } = useGuild();
   const t = useT();
@@ -587,10 +587,7 @@ function ShopPanels({
             </thead>
             <tbody>
               {items.map((entry, i) => (
-                <tr
-                  key={entry.id}
-                  style={{ background: i === index ? 'var(--mx-inset)' : 'transparent' }}
-                >
+                <tr key={entry.id}>
                   <td style={{ fontWeight: 600 }}>
                     {entry.name}
                     {entry.enabled ? null : <span className="mx-sub"> ({t('hidden')})</span>}
@@ -604,7 +601,7 @@ function ShopPanels({
                   <td style={{ textAlign: 'right' }}>
                     <button
                       type="button"
-                      className="mx-btn mx-btn-ghost"
+                      className="mx-pick mx-sub"
                       aria-label={t('Edit {name}', { name: entry.name })}
                       aria-pressed={i === index}
                       onClick={() => setSelected(i)}
@@ -755,7 +752,7 @@ function LedgerPanel({
   span,
 }: {
   initial: { rows: LedgerRow[]; next: string | null };
-  span: 6 | 12;
+  span: 5 | 12;
 }) {
   const { guildId } = useGuild();
   const t = useT();
@@ -905,11 +902,11 @@ export function EconomyForm({
             name={value.currency.name}
           />
         )}
-        <ShopPanels sold={sold} packs={packs} prefix={prefix} emptySpan={idle ? 5 : 12} />
+        <ShopPanels sold={sold} packs={packs} prefix={prefix} emptySpan={idle ? 5 : 7} />
         {richest.length === 0 ? null : (
           <Panel
             title={t('Richest members')}
-            span={6}
+            span={5}
             id="richest"
             actions={
               <span className="mx-sub">
@@ -931,7 +928,7 @@ export function EconomyForm({
             ))}
           </Panel>
         )}
-        {idle ? null : <LedgerPanel initial={ledger} span={richest.length === 0 ? 12 : 6} />}
+        {idle ? null : <LedgerPanel initial={ledger} span={5} />}
         {idle ? null : (
           <Panel title={t('Reset')} span={12} id="reset">
             <DangerRow

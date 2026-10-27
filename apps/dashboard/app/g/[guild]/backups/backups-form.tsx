@@ -430,10 +430,12 @@ function Import({
   initial,
   guildName,
   enabled,
+  span,
 }: {
   initial: ImportView | null;
   guildName: string;
   enabled: boolean;
+  span: 7 | 12;
 }) {
   const { guildId } = useGuild();
   const t = useT();
@@ -543,7 +545,7 @@ function Import({
     : [];
 
   return (
-    <Panel title={t('Import from Discord')} id="import">
+    <Panel title={t('Import from Discord')} id="import" span={span}>
       <PanelBody>
         <div className="mx-inline">
           <input
@@ -739,7 +741,7 @@ export function BackupsForm({
             enabled={enabled}
           />
         ) : null}
-        <Import initial={pending} guildName={guildName} enabled={enabled} />
+        <Import initial={pending} guildName={guildName} enabled={enabled} span={diff ? 7 : 12} />
       </Grid>
     </div>
   );
