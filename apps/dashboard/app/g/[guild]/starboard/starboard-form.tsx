@@ -333,7 +333,7 @@ export function StarboardForm({
                     })}
                   >
                     <a
-                      className="mx-btn mx-btn-ghost"
+                      className="mx-pick mx-sub"
                       href={post.url}
                       target="_blank"
                       rel="noreferrer"

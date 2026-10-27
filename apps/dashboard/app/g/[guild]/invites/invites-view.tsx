@@ -343,28 +343,13 @@ export function InvitesView({
                   </thead>
                   <tbody>
                     {visible.map((code) => (
-                      <tr
-                        key={code.code}
-                        style={{
-                          background: code.code === selected ? 'var(--mx-inset)' : 'transparent',
-                          cursor: 'pointer',
-                        }}
-                        onClick={() => setSelected(code.code)}
-                      >
+                      <tr key={code.code}>
                         <td>
                           <button
                             type="button"
-                            className="mx-mono"
+                            className="mx-pick mx-mono"
                             aria-pressed={code.code === selected}
                             onClick={() => setSelected(code.code)}
-                            style={{
-                              background: 'none',
-                              border: 0,
-                              padding: 0,
-                              color: 'inherit',
-                              font: 'inherit',
-                              cursor: 'pointer',
-                            }}
                           >
                             {code.code}
                           </button>

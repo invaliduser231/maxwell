@@ -63,20 +63,9 @@ function ListRow({
   return (
     <button
       type="button"
-      className="mx-row"
+      className="mx-row mx-row-button"
       onClick={onPick}
       aria-current={selected ? 'true' : undefined}
-      style={{
-        width: '100%',
-        font: 'inherit',
-        color: 'inherit',
-        textAlign: 'left',
-        cursor: 'pointer',
-        borderLeft: 0,
-        borderRight: 0,
-        borderBottom: 0,
-        background: selected ? 'var(--mx-inset)' : 'transparent',
-      }}
     >
       <Avatar src={member.avatar} name={member.name} size={30} />
       <span className="mx-row-main">

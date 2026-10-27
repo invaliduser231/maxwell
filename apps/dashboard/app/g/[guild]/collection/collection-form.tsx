@@ -978,11 +978,7 @@ function SetsPanel({
         </Invite>
       ) : null}
       {sets.map((entry) => (
-        <div
-          key={entry.id}
-          className="mx-row"
-          style={{ background: entry.id === selected ? 'var(--mx-inset)' : undefined }}
-        >
+        <div key={entry.id} className="mx-row">
           <div className="mx-row-main">
             <span className="mx-row-title">{entry.name}</span>
             <span className="mx-sub">
@@ -997,7 +993,7 @@ function SetsPanel({
           </span>
           <button
             type="button"
-            className="mx-btn mx-btn-ghost"
+            className="mx-pick mx-sub"
             aria-label={t('Edit {name}', { name: entry.name })}
             aria-pressed={entry.id === selected}
             onClick={() => setSelected(entry.id === selected ? null : entry.id)}

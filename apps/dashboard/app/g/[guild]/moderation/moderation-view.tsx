@@ -234,19 +234,13 @@ function CasesTab({
                   {cases.map((entry) => {
                     const action = ACTION_NAMES[entry.action];
                     return (
-                      <tr
-                        key={entry.number}
-                        style={{
-                          background:
-                            entry.number === selected?.number ? 'var(--mx-inset)' : undefined,
-                        }}
-                      >
+                      <tr key={entry.number}>
                         <td>
                           <button
                             type="button"
-                            className="mx-btn mx-btn-ghost mx-mono"
+                            className="mx-pick mx-mono"
                             aria-label={t('Open case {number}', { number: String(entry.number) })}
-                            style={{ padding: '2px 6px', minHeight: 26 }}
+                            aria-current={entry.number === selected?.number ? 'true' : undefined}
                             onClick={() => go({ page: query.page, case: entry.number })}
                           >
                             #{entry.number}
