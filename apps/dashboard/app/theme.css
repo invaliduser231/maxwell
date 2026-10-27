@@ -253,7 +253,7 @@ body,
 
 .mx-span {
   display: grid;
-  grid-template-columns: repeat(3, 96px);
+  grid-template-columns: repeat(3, minmax(0, 96px));
   gap: 8px;
   max-width: 100%;
 }
@@ -562,6 +562,28 @@ input[type="color"]::-webkit-color-swatch {
 
 .mx-seg {
   background: var(--mx-inset);
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+.mx-btn {
+  max-width: 100%;
+  text-align: center;
+}
+.mx-suffixed {
+  min-width: 0;
+  max-width: 100%;
+}
+.mx-suffixed > .mx-input {
+  flex: 1;
+  min-width: 0;
+}
+.mx-add-trigger {
+  max-width: 100%;
+  white-space: normal;
+}
+.mx-panel-head > .mx-inline {
+  min-width: 0;
+  max-width: 100%;
 }
 .mx-seg button {
   color: var(--mx-muted);

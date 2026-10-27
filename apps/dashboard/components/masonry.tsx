@@ -53,8 +53,8 @@ function place(grid: HTMLElement) {
     Math.max(1, Math.ceil((child.getBoundingClientRect().height + GAP) / ROW)),
   );
   const widths = children.map((child) => {
-    const end = getComputedStyle(child).gridColumnEnd;
-    const match = /span (\d+)/.exec(end);
+    const style = getComputedStyle(child);
+    const match = /span (\d+)/.exec(`${style.gridColumnStart} ${style.gridColumnEnd}`);
     return match ? Number(match[1]) : (spanClass(child) ?? 12);
   });
 
