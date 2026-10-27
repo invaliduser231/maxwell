@@ -41,7 +41,7 @@ export default async function RolesPage({ params }: { params: Promise<{ guild: s
 
   return (
     <ModuleShell {...loaded.shell}>
-      <RolesForm saved={loaded.config} posted={posted} holders={holders} kept={kept} />
+      <RolesForm posted={posted} holders={holders} kept={kept} />
     </ModuleShell>
   );
 }
