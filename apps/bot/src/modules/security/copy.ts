@@ -129,6 +129,7 @@ const en = {
       ),
     ended: (checked: number) =>
       `Raid mode is off. ${plural(checked, 'member')} went through the check meanwhile.`,
+    calmed: (userId: string) => `Raid mode is off, ended by ${mention.user(userId)}.`,
     already: 'Raid mode is already on.',
     notActive: 'Raid mode is not on.',
     extended: (until: string) => `Raid mode stays on until ${until}.`,

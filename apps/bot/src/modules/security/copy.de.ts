@@ -127,7 +127,8 @@ const de: SecurityCopy = {
         )}. Endet ${until}, wenn es ruhig bleibt.`,
       ),
     ended: (checked: number) =>
-      `Raid-Modus ist aus. ${plural(checked, 'Mitglied', 'Mitglieder')} gingen in der Zeit durch die Prüfung.`,
+      `Raid-Modus ist aus. In der Zeit geprüft: ${plural(checked, 'Mitglied', 'Mitglieder')}.`,
+    calmed: (userId: string) => `Raid-Modus ist aus, beendet von ${mention.user(userId)}.`,
     already: 'Der Raid-Modus ist schon an.',
     notActive: 'Der Raid-Modus ist nicht an.',
     extended: (until: string) => `Der Raid-Modus bleibt bis ${until} an.`,

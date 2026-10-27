@@ -94,7 +94,11 @@ export function securityCommands(
     examples: ['security calm'],
     async run(cmd) {
       const ended = await raid.end(cmd.guildId, { id: cmd.message.author.id });
-      if (!ended) await cmd.reply({ content: copy.raid.notActive, deleteAfter: 15_000 });
+      if (!ended) {
+        await cmd.reply({ content: copy.raid.notActive, deleteAfter: 15_000 });
+        return;
+      }
+      await cmd.reply(cmd.services.voice.done(copy.raid.calmed(cmd.message.author.id), cmd.seed));
     },
   };
 
@@ -143,6 +147,8 @@ export function securityCommands(
       name: 'security',
       description: copy.commands.security,
       guildOnly: true,
+      permissions: status.permissions,
+      run: status.run,
       subcommands: [status, raidOn, calm, pass, trap],
     },
   ];
