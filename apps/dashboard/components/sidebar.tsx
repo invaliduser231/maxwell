@@ -2,12 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { logout } from '@/lib/actions';
 import { lockedCount, type PageGroup, POLE_COLOR } from '@/lib/pages';
 import { CommunitySwitcher, type SwitcherCommunity } from './community-switcher';
 import { useT } from './i18n';
-import { LanguageSwitch } from './language-switch';
-import { Avatar, LockIcon, Logo, ModuleIcon } from './ui';
+import { LockIcon, ModuleIcon } from './ui';
 
 export interface SidebarProps {
   guildId: string;
@@ -17,7 +15,6 @@ export interface SidebarProps {
   groups: PageGroup[];
   voted: boolean;
   voteUrl: string | null;
-  user: { name: string; avatarUrl: string };
   others: SwitcherCommunity[];
 }
 
@@ -39,27 +36,11 @@ export function Sidebar(props: SidebarProps) {
         flexDirection: 'column',
         gap: 12,
         position: 'sticky',
-        top: 0,
-        maxHeight: '100vh',
+        top: 'var(--mx-topbar)',
+        maxHeight: 'calc(100vh - var(--mx-topbar))',
         overflowY: 'auto',
       }}
     >
-      <Link
-        href="/"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 9,
-          textDecoration: 'none',
-          padding: '2px 8px',
-        }}
-      >
-        <Logo />
-        <span style={{ fontFamily: 'var(--mx-display)', fontWeight: 700, fontSize: 17 }}>
-          Maxwell
-        </span>
-      </Link>
-
       <CommunitySwitcher
         current={{
           id: props.guildId,
@@ -82,7 +63,7 @@ export function Sidebar(props: SidebarProps) {
                 href={page.key === 'overview' ? base : `${base}/${page.key}`}
                 aria-current={page.key === active ? 'page' : undefined}
               >
-                <ModuleIcon d={page.icon} fill="var(--pole)" />
+                <ModuleIcon d={page.icon} fill="var(--pole)" size={22} />
                 <span style={{ flex: 1, minWidth: 0 }}>{t(page.name)}</span>
                 {page.locked && !props.voted ? (
                   <LockIcon label={t('Locked until you vote')} />
@@ -116,31 +97,6 @@ export function Sidebar(props: SidebarProps) {
           </span>
         </a>
       ) : null}
-
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 9,
-          padding: '8px 8px 0',
-          borderTop: '1px solid var(--mx-line)',
-        }}
-      >
-        <Avatar src={props.user.avatarUrl} name={props.user.name} size={26} />
-        <span className="mx-ellipsis" style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>
-          {props.user.name}
-        </span>
-        <LanguageSwitch />
-        <form action={logout}>
-          <button
-            type="submit"
-            className="mx-btn mx-btn-ghost"
-            style={{ fontSize: 12, minHeight: 28, padding: '4px 8px' }}
-          >
-            {t('Log out')}
-          </button>
-        </form>
-      </div>
     </nav>
   );
 }

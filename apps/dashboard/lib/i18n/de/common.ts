@@ -1,6 +1,8 @@
 export const common = {
   Dashboard: 'Dashboard',
   'Log out': 'Abmelden',
+  'Account menu': 'Kontomenü',
+  Language: 'Sprache',
   'Vote on fluxerlist': 'Auf fluxerlist voten',
   'Unlocks {count} modules for you': 'Schaltet {count} Module für dich frei',
   'Locked until you vote': 'Gesperrt, bis du votest',

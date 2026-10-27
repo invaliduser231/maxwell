@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { GuildProvider } from '@/components/guild';
 import { LiveProvider } from '@/components/live';
 import { Sidebar } from '@/components/sidebar';
+import { TopBar } from '@/components/top-bar';
 import { canSee, requireGuild } from '@/lib/access';
 import { communities } from '@/lib/communities';
 import { db } from '@/lib/db';
@@ -61,6 +62,7 @@ export default async function GuildLayout({
       }}
     >
       <LiveProvider guildId={guildId}>
+        <TopBar user={{ name: access.user.displayName, avatarUrl: access.user.avatarUrl }} />
         <div className="mx-app">
           <div className="mx-side-slot">
             <Sidebar
@@ -71,7 +73,6 @@ export default async function GuildLayout({
               groups={groups}
               voted={access.voted}
               voteUrl={voteUrl}
-              user={{ name: access.user.displayName, avatarUrl: access.user.avatarUrl }}
               others={others}
             />
           </div>
