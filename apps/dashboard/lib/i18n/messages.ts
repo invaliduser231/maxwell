@@ -17,6 +17,7 @@ import { giveaways } from './de/giveaways';
 import { insights } from './de/insights';
 import { invites } from './de/invites';
 import { levels } from './de/levels';
+import { logs } from './de/logs';
 import { members } from './de/members';
 import { moderation } from './de/moderation';
 import { overview } from './de/overview';
@@ -24,10 +25,12 @@ import { pages } from './de/pages';
 import { roles } from './de/roles';
 import { scheduler } from './de/scheduler';
 import { security } from './de/security';
+import { starboard } from './de/starboard';
 import { start } from './de/start';
 import { suggestions } from './de/suggestions';
 import { tickets } from './de/tickets';
 import { time } from './de/time';
+import { voice } from './de/voice';
 import { welcome } from './de/welcome';
 
 export const messages = {
@@ -62,4 +65,7 @@ export const messages = {
   ...levels,
   ...suggestions,
   ...welcome,
+  ...starboard,
+  ...voice,
+  ...logs,
 } as const;

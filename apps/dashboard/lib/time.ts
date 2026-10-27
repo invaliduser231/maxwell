@@ -14,14 +14,6 @@ export function toMs(value: Moment): number {
   return value.getTime();
 }
 
-export function count(value: number): string {
-  return Math.round(value).toLocaleString('en-US');
-}
-
-export function plural(value: number, one: string, many = `${one}s`): string {
-  return `${count(value)} ${value === 1 ? one : many}`;
-}
-
 export function bytes(t: Translator, value: number): string {
   if (value <= 0) return '0 KB';
   if (value < 1024 * 1024) return `${Math.max(1, Math.round(value / 1024))} KB`;

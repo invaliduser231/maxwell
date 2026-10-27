@@ -58,7 +58,7 @@ export const economy = {
   Sold: 'Verkauft',
   hidden: 'versteckt',
   'Per member': 'Pro Mitglied',
-  'No limit': 'Keine Grenze',
+  'No limit': 'Kein Limit',
   'Restocking.': 'Wird aufgefüllt.',
   Restock: 'Auffüllen',
   Transactions: 'Buchungen',

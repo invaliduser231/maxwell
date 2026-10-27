@@ -4,8 +4,10 @@ import type { VoiceConfig, VoiceLobby } from '@maxwell/core/modules/voice';
 import { useState } from 'react';
 import { ChannelSelect, NumberInput, Switch, TextInput } from '@/components/controls';
 import { ChannelType, useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { useDraft } from '@/components/module-shell';
 import { Chip, Empty, Field, Fields, Grid, Panel, PanelBody, Row } from '@/components/ui';
+import type { Key } from '@/lib/i18n';
 
 export interface OpenRoom {
   channelId: string;
@@ -37,7 +39,11 @@ function Speaker({ size = 18, color = '#3A9EEA' }: { size?: number; color?: stri
   );
 }
 
-function roomName(template: string, vars: { name: string; username: string; n: number }): string {
+function roomName(
+  template: string,
+  fallback: string,
+  vars: { name: string; username: string; n: number },
+): string {
   const values: Record<string, string> = {
     name: vars.name,
     username: vars.username,
@@ -47,8 +53,17 @@ function roomName(template: string, vars: { name: string; username: string; n: n
     .replace(/\{([a-z]+)\}/gi, (match, key: string) => values[key.toLowerCase()] ?? match)
     .replace(/\s+/g, ' ')
     .trim();
-  return [...(text || 'Voice room')].slice(0, 100).join('');
+  return [...(text || fallback)].slice(0, 100).join('');
 }
+
+const commands: { cmd: string; what: Key }[] = [
+  { cmd: 'room', what: 'show the owner' },
+  { cmd: 'room name Late night', what: 'rename' },
+  { cmd: 'room limit 4', what: 'set a limit' },
+  { cmd: 'room lock', what: 'lock' },
+  { cmd: 'room unlock', what: 'unlock' },
+  { cmd: 'room transfer @member', what: 'hand over' },
+];
 
 export function VoiceForm({
   rooms,
@@ -59,6 +74,7 @@ export function VoiceForm({
   prefix: string;
   viewer: { name: string; username: string };
 }) {
+  const t = useT();
   const { channels } = useGuild();
   const { value, set, update, readOnly } = useDraft<VoiceConfig>();
   const [selected, setSelected] = useState(0);
@@ -68,10 +84,10 @@ export function VoiceForm({
   const channelOf = (id: string | null | undefined) =>
     id ? channels.find((channel) => channel.id === id) : undefined;
   const nameOf = (id: string | null | undefined) =>
-    id ? (channelOf(id)?.name ?? 'Deleted channel') : '';
+    id ? (channelOf(id)?.name ?? t('Deleted channel')) : '';
   const categoryOf = (entry: VoiceLobby) => {
     const id = entry.categoryId ?? channelOf(entry.channelId)?.parentId ?? null;
-    return id ? nameOf(id) : 'No category';
+    return id ? nameOf(id) : t('No category');
   };
   const voiceChannels = channels.filter((channel) => channel.type === ChannelType.Voice);
   const free = voiceChannels.find(
@@ -93,7 +109,12 @@ export function VoiceForm({
       ...previous,
       lobbies: [
         ...previous.lobbies,
-        { channelId: free.id, categoryId: null, nameTemplate: "{name}'s room", userLimit: 0 },
+        {
+          channelId: free.id,
+          categoryId: null,
+          nameTemplate: t("{name}'s room"),
+          userLimit: 0,
+        },
       ],
     }));
     setSelected(value.lobbies.length);
@@ -108,40 +129,35 @@ export function VoiceForm({
   };
 
   const preview = lobby
-    ? roomName(lobby.nameTemplate, { name: viewer.name, username: viewer.username, n: 1 })
+    ? roomName(lobby.nameTemplate, t('Voice room'), {
+        name: viewer.name,
+        username: viewer.username,
+        n: 1,
+      })
     : '';
 
-  const commands = [
-    { cmd: 'room', what: 'show the owner' },
-    { cmd: 'room name Late night', what: 'rename' },
-    { cmd: 'room limit 4', what: 'set a limit' },
-    { cmd: 'room lock', what: 'lock' },
-    { cmd: 'room unlock', what: 'unlock' },
-    { cmd: 'room transfer @member', what: 'hand over' },
-  ];
-
   const owners = (
-    <Panel title="Owners" span={4} id="vc-cmd">
-      <Row title="Owner manages the room">
+    <Panel title={t('Owners')} span={4} id="vc-cmd">
+      <Row title={t('Owner manages the room')}>
         <Switch
           order
-          label="Owner manages the room"
+          label={t('Owner manages the room')}
           checked={value.ownerPermissions}
           onChange={(ownerPermissions) => set({ ownerPermissions })}
         />
       </Row>
-      <Row title="Hand over when the owner leaves">
+      <Row title={t('Hand over when the owner leaves')}>
         <Switch
           order
-          label="Hand over when the owner leaves"
+          label={t('Hand over when the owner leaves')}
           checked={value.transferOnLeave}
           onChange={(transferOnLeave) => set({ transferOnLeave })}
         />
       </Row>
-      <Row title="Rooms at once">
+      <Row title={t('Rooms at once')}>
         <div style={{ width: 96 }}>
           <NumberInput
-            label="Rooms at once"
+            label={t('Rooms at once')}
             value={value.maxRooms}
             min={1}
             max={200}
@@ -150,7 +166,7 @@ export function VoiceForm({
         </div>
       </Row>
       <div className="mx-panel-body" style={{ borderTop: '1px solid var(--mx-line)' }}>
-        <span className="mx-label">Commands</span>
+        <span className="mx-label">{t('Commands')}</span>
         <div
           className="mx-inset"
           style={{
@@ -167,7 +183,7 @@ export function VoiceForm({
                 {prefix}
                 {command.cmd}
               </span>
-              <span className="mx-sub">{command.what}</span>
+              <span className="mx-sub">{t(command.what)}</span>
             </div>
           ))}
         </div>
@@ -181,7 +197,7 @@ export function VoiceForm({
         <Panel span={8} id="vc-hubs">
           <Empty mood="sleeping">
             <div className="mx-stack" style={{ alignItems: 'center' }}>
-              <span>No create channels yet.</span>
+              <span>{t('No create channels yet.')}</span>
               {readOnly ? null : (
                 <button
                   type="button"
@@ -189,11 +205,11 @@ export function VoiceForm({
                   disabled={!free}
                   onClick={add}
                 >
-                  Add create channel
+                  {t('Add create channel')}
                 </button>
               )}
               {!readOnly && !free ? (
-                <span className="mx-sub">Make a voice channel first</span>
+                <span className="mx-sub">{t('Make a voice channel first')}</span>
               ) : null}
             </div>
           </Empty>
@@ -206,19 +222,19 @@ export function VoiceForm({
   return (
     <Grid>
       <Panel
-        title="Create channels"
+        title={t('Create channels')}
         span={5}
         id="vc-hubs"
         actions={
           readOnly ? null : (
             <button type="button" className="mx-btn" disabled={!free} onClick={add}>
-              Add
+              {t('Add')}
             </button>
           )
         }
       >
         {value.lobbies.length === 0 ? (
-          <Empty mood="sleeping">No create channels yet.</Empty>
+          <Empty mood="sleeping">{t('No create channels yet.')}</Empty>
         ) : (
           value.lobbies.map((entry, position) => (
             <div key={entry.channelId} className="mx-row">
@@ -231,7 +247,10 @@ export function VoiceForm({
               >
                 <span className="mx-row-title">{nameOf(entry.channelId)}</span>
                 <span className="mx-sub">
-                  into {categoryOf(entry)}, {openIn(entry.channelId)} open now
+                  {t('into {category}, {count} open now', {
+                    category: categoryOf(entry),
+                    count: openIn(entry.channelId),
+                  })}
                 </span>
               </button>
             </div>
@@ -247,14 +266,14 @@ export function VoiceForm({
           actions={
             readOnly ? null : (
               <button type="button" className="mx-btn mx-btn-ghost" onClick={remove}>
-                Remove
+                {t('Remove')}
               </button>
             )
           }
         >
           <PanelBody>
             <Fields>
-              <Field label="Join channel">
+              <Field label={t('Join channel')}>
                 <ChannelSelect
                   value={lobby.channelId}
                   kinds={[ChannelType.Voice]}
@@ -269,22 +288,22 @@ export function VoiceForm({
                   }}
                 />
               </Field>
-              <Field label="Create rooms in">
+              <Field label={t('Create rooms in')}>
                 <ChannelSelect
                   value={lobby.categoryId}
                   kinds={[ChannelType.Category]}
-                  none="Same as the join channel"
+                  none={t('Same as the join channel')}
                   onChange={(categoryId) => patch({ categoryId })}
                 />
               </Field>
-              <Field label="Name" hint="{name}, {username}, {n}">
+              <Field label={t('Name')} hint="{name}, {username}, {n}">
                 <TextInput
                   value={lobby.nameTemplate}
                   maxLength={100}
                   onChange={(nameTemplate) => patch({ nameTemplate })}
                 />
               </Field>
-              <Field label="Member limit" hint="0 for no limit">
+              <Field label={t('Member limit')} hint={t('0 for no limit')}>
                 <NumberInput
                   value={lobby.userLimit}
                   min={0}
@@ -293,7 +312,7 @@ export function VoiceForm({
                 />
               </Field>
             </Fields>
-            <div className="mx-preview" role="group" aria-label="Preview of a new room">
+            <div className="mx-preview" role="group" aria-label={t('Preview of a new room')}>
               <div className="mx-sub">{categoryOf(lobby)}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
                 <Speaker size={16} color="#9A9EA6" />
@@ -301,7 +320,7 @@ export function VoiceForm({
                   {preview}
                 </span>
                 <span className="mx-sub">
-                  {lobby.userLimit > 0 ? `0 / ${lobby.userLimit}` : 'No limit'}
+                  {lobby.userLimit > 0 ? `0 / ${lobby.userLimit}` : t('No limit')}
                 </span>
               </div>
             </div>
@@ -310,34 +329,38 @@ export function VoiceForm({
       ) : null}
 
       <Panel
-        title="Open rooms"
+        title={t('Open rooms')}
         span={8}
         id="vc-open"
-        actions={rooms.length > 0 ? <span className="mx-sub">{rooms.length} right now</span> : null}
+        actions={
+          rooms.length > 0 ? (
+            <span className="mx-sub">{t('{count} right now', { count: rooms.length })}</span>
+          ) : null
+        }
       >
         {rooms.length === 0 ? (
-          <Empty mood="sleeping">Nobody is in a room right now.</Empty>
+          <Empty mood="sleeping">{t('Nobody is in a room right now.')}</Empty>
         ) : (
           <div className="mx-scroll">
             <table className="mx-table">
               <thead>
                 <tr>
-                  <th scope="col">Room</th>
-                  <th scope="col">Owner</th>
-                  <th scope="col">Members</th>
-                  <th scope="col">Open for</th>
-                  <th scope="col">State</th>
+                  <th scope="col">{t('Room')}</th>
+                  <th scope="col">{t('Owner')}</th>
+                  <th scope="col">{t('Members')}</th>
+                  <th scope="col">{t('Open for')}</th>
+                  <th scope="col">{t('State')}</th>
                 </tr>
               </thead>
               <tbody>
                 {rooms.map((room) => (
                   <tr key={room.channelId}>
                     <td>{nameOf(room.channelId)}</td>
-                    <td>{room.owner}</td>
+                    <td>{t.raw(room.owner)}</td>
                     <td>{room.members}</td>
                     <td className="mx-muted">{room.openFor}</td>
                     <td>
-                      <Chip>{room.locked ? 'Locked' : 'Open'}</Chip>
+                      <Chip>{room.locked ? t('Locked') : t('Open')}</Chip>
                     </td>
                   </tr>
                 ))}

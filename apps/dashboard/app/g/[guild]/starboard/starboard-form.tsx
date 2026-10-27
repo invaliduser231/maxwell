@@ -12,10 +12,11 @@ import {
   TextInput,
 } from '@/components/controls';
 import { useChannelName } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { EmbedPreview, Markdown, MessagePreview } from '@/components/message-preview';
 import { useDraft } from '@/components/module-shell';
 import { Avatar, Empty, Field, Fields, Grid, Panel, PanelBody, Row } from '@/components/ui';
-import { count, plural } from '@/lib/time';
+import type { Key } from '@/lib/i18n';
 
 export interface Author {
   name: string;
@@ -45,35 +46,35 @@ export interface Summary {
 
 type Period = 'week' | 'month' | 'all';
 
-const presets = [
-  { value: '⭐', label: 'Star', plural: 'stars' },
-  { value: '🔥', label: 'Fire', plural: 'fires' },
-  { value: '❤️', label: 'Heart', plural: 'hearts' },
-] as const;
+const presets: { value: string; label: Key; one: Key; other: Key }[] = [
+  { value: '⭐', label: 'Star', one: '{n} star', other: '{n} stars' },
+  { value: '🔥', label: 'Fire', one: '{n} fire', other: '{n} fires' },
+  { value: '❤️', label: 'Heart', one: '{n} heart', other: '{n} hearts' },
+];
 
-const periods = [
+const periods: { value: Period; label: Key }[] = [
   { value: 'week', label: 'Week' },
   { value: 'month', label: 'Month' },
   { value: 'all', label: 'All time' },
-] as const;
-
-const reactionOptions = [
-  ...presets.map((entry) => ({ value: entry.value as string, label: entry.label })),
-  { value: 'custom', label: 'Custom' },
 ];
 
 function Reaction() {
+  const t = useT();
   const { value, set } = useDraft<StarboardConfig>();
   const preset = presets.some((entry) => entry.value === value.emoji);
   const [custom, setCustom] = useState(!preset);
   const mode = custom || !preset ? 'custom' : value.emoji;
+  const options = [
+    ...presets.map((entry) => ({ value: entry.value, label: t(entry.label) })),
+    { value: 'custom', label: t('Custom') },
+  ];
   return (
     <>
-      <Field label="Reaction">
+      <Field label={t('Reaction')}>
         <Select
-          label="Reaction"
+          label={t('Reaction')}
           value={mode}
-          options={reactionOptions}
+          options={options}
           onChange={(next) => {
             if (next === 'custom') {
               setCustom(true);
@@ -85,10 +86,10 @@ function Reaction() {
         />
       </Field>
       {mode === 'custom' ? (
-        <Field label="Custom emoji">
+        <Field label={t('Custom emoji')}>
           <TextInput
             mono
-            label="Custom emoji"
+            label={t('Custom emoji')}
             placeholder="name:id"
             maxLength={80}
             value={preset ? '' : value.emoji}
@@ -101,14 +102,18 @@ function Reaction() {
 }
 
 function Preview({ post, author }: { post: TopPost | null; author: Author }) {
+  const t = useT();
   const { value } = useDraft<StarboardConfig>();
   const channelName = useChannelName();
-  const word = presets.find((entry) => entry.value === value.emoji)?.plural ?? 'reactions';
+  const preset = presets.find((entry) => entry.value === value.emoji);
   const stars = Math.max(value.threshold, post?.stars ?? value.threshold);
+  const word = preset
+    ? t.plural(stars, preset.one, preset.other)
+    : t.plural(stars, '{n} reaction', '{n} reactions');
   const where = post ? channelName(post.channelId) : '#general';
   return (
     <div className="mx-preview">
-      <MessagePreview content={`**${count(stars)} ${word}** in ${where}`}>
+      <MessagePreview content={`**${word}** ${t('in {channel}', { channel: where })}`}>
         <EmbedPreview color="#F26B3A">
           <span
             style={{
@@ -122,7 +127,7 @@ function Preview({ post, author }: { post: TopPost | null; author: Author }) {
             <Avatar src={author.avatarUrl} name={author.name} size={20} />
             {author.username ? `${author.name} (@${author.username})` : author.name}
           </span>
-          <Markdown text={post ? post.content || 'Image' : 'This one deserves a star.'} />
+          <Markdown text={post ? post.content || t('Image') : t('This one deserves a star.')} />
           {post?.image ? (
             <div
               aria-hidden="true"
@@ -137,10 +142,10 @@ function Preview({ post, author }: { post: TopPost | null; author: Author }) {
                 fontSize: 13,
               }}
             >
-              Image
+              {t('Image')}
             </div>
           ) : null}
-          <span style={{ fontSize: 13, color: '#3A9EEA' }}>Jump to message</span>
+          <span style={{ fontSize: 13, color: '#3A9EEA' }}>{t('Jump to message')}</span>
         </EmbedPreview>
       </MessagePreview>
     </div>
@@ -158,19 +163,20 @@ export function StarboardForm({
   people: Record<string, Author>;
   viewer: Author;
 }) {
+  const t = useT();
   const { value, set } = useDraft<StarboardConfig>();
   const channelName = useChannelName();
   const [period, setPeriod] = useState<Period>('month');
   const list = top[period];
   const sample = top.month[0] ?? top.all[0] ?? null;
   const sampleAuthor = sample ? (people[sample.authorId] ?? viewer) : viewer;
-  const person = (id: string) => people[id]?.name ?? 'Unknown member';
+  const person = (id: string) => people[id]?.name ?? t('Unknown member');
 
   const toggles: { key: keyof StarboardConfig; label: string }[] = [
-    { key: 'selfStar', label: 'Count stars on your own post' },
-    { key: 'excludeNsfw', label: 'Ignore NSFW channels' },
-    { key: 'allowBots', label: 'Allow posts from bots' },
-    { key: 'removeBelowThreshold', label: 'Remove when stars drop below the limit' },
+    { key: 'selfStar', label: t('Count stars on your own post') },
+    { key: 'excludeNsfw', label: t('Ignore NSFW channels') },
+    { key: 'allowBots', label: t('Allow posts from bots') },
+    { key: 'removeBelowThreshold', label: t('Remove when stars drop below the limit') },
   ];
 
   const hasStats = summary.posts > 0 || summary.allStars > 0 || top.all.length > 0;
@@ -184,53 +190,57 @@ export function StarboardForm({
           style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))' }}
         >
           <div className="mx-stat">
-            <span className="mx-stat-label">Starred in 30 days</span>
-            <span className="mx-stat-value">{count(summary.posts)}</span>
+            <span className="mx-stat-label">{t('Starred in 30 days')}</span>
+            <span className="mx-stat-value">{t.count(summary.posts)}</span>
             {summary.delta !== 0 ? (
               <span className="mx-sub">
                 <span className={summary.delta > 0 ? 'mx-up' : 'mx-down'}>
-                  {summary.delta > 0 ? `+${count(summary.delta)}` : `-${count(-summary.delta)}`}
+                  {summary.delta > 0 ? `+${t.count(summary.delta)}` : `-${t.count(-summary.delta)}`}
                 </span>{' '}
-                vs the 30 days before
+                {t('vs the 30 days before')}
               </span>
             ) : null}
           </div>
           <div className="mx-stat">
-            <span className="mx-stat-label">Stars given</span>
-            <span className="mx-stat-value">{count(summary.stars)}</span>
-            <span className="mx-sub">{count(summary.allStars)} all time</span>
+            <span className="mx-stat-label">{t('Stars given')}</span>
+            <span className="mx-stat-value">{t.count(summary.stars)}</span>
+            <span className="mx-sub">{t('{count} all time', { count: summary.allStars })}</span>
           </div>
           {summary.topChannel ? (
             <div className="mx-stat">
-              <span className="mx-stat-label">Top channel</span>
+              <span className="mx-stat-label">{t('Top channel')}</span>
               <span className="mx-stat-value mx-ellipsis">
                 {channelName(summary.topChannel.id)}
               </span>
-              <span className="mx-sub">{plural(summary.topChannel.posts, 'post')}</span>
+              <span className="mx-sub">
+                {t.plural(summary.topChannel.posts, '{n} post', '{n} posts')}
+              </span>
             </div>
           ) : null}
           {summary.topAuthor ? (
             <div className="mx-stat">
-              <span className="mx-stat-label">Most starred member</span>
+              <span className="mx-stat-label">{t('Most starred member')}</span>
               <span className="mx-stat-value mx-ellipsis">{person(summary.topAuthor.id)}</span>
-              <span className="mx-sub">{plural(summary.topAuthor.posts, 'post')}</span>
+              <span className="mx-sub">
+                {t.plural(summary.topAuthor.posts, '{n} post', '{n} posts')}
+              </span>
             </div>
           ) : null}
         </div>
       ) : null}
 
       <Grid>
-        <Panel title="Settings" span={5} id="sb-set">
+        <Panel title={t('Settings')} span={5} id="sb-set">
           <PanelBody>
             <Fields>
-              <Field label="Channel">
+              <Field label={t('Channel')}>
                 <ChannelSelect
                   value={value.channelId}
                   onChange={(channelId) => set({ channelId })}
                 />
               </Field>
               <Reaction />
-              <Field label="Stars needed">
+              <Field label={t('Stars needed')}>
                 <NumberInput
                   value={value.threshold}
                   min={1}
@@ -251,7 +261,7 @@ export function StarboardForm({
           ))}
           <div className="mx-panel-body" style={{ borderTop: '1px solid var(--mx-line)' }}>
             <div className="mx-field">
-              <span className="mx-label">Ignored channels</span>
+              <span className="mx-label">{t('Ignored channels')}</span>
               <ChannelMulti
                 value={value.ignoredChannelIds}
                 onChange={(ignoredChannelIds) => set({ ignoredChannelIds })}
@@ -262,11 +272,11 @@ export function StarboardForm({
 
         <div className="mx-s7 mx-stack" style={{ gap: 16, minWidth: 0 }}>
           <Panel
-            title="Preview"
+            title={t('Preview')}
             id="sb-prev"
             actions={
               <span className="mx-sub">
-                {value.channelId ? channelName(value.channelId) : 'No channel'}
+                {value.channelId ? channelName(value.channelId) : t('No channel')}
               </span>
             }
           >
@@ -276,18 +286,24 @@ export function StarboardForm({
           </Panel>
 
           <Panel
-            title="Top posts"
+            title={t('Top posts')}
             id="sb-top"
             actions={
               top.all.length > 0 ? (
-                <Seg label="Period" value={period} options={periods} onChange={setPeriod} view />
+                <Seg
+                  label={t('Period')}
+                  value={period}
+                  options={periods.map((option) => ({ ...option, label: t(option.label) }))}
+                  onChange={setPeriod}
+                  view
+                />
               ) : null
             }
           >
             {top.all.length === 0 ? (
-              <Empty mood="sleeping">No starred posts yet.</Empty>
+              <Empty mood="sleeping">{t('No starred posts yet.')}</Empty>
             ) : list.length === 0 ? (
-              <Empty>Nothing starred in this period.</Empty>
+              <Empty>{t('Nothing starred in this period.')}</Empty>
             ) : (
               list.map((post) => {
                 const author = people[post.authorId];
@@ -297,7 +313,7 @@ export function StarboardForm({
                     leading={
                       <>
                         <span className="mx-stat-value" style={{ fontSize: 16, width: 44 }}>
-                          {count(post.stars)}
+                          {t.count(post.stars)}
                         </span>
                         <Avatar
                           src={author?.avatarUrl ?? null}
@@ -308,19 +324,22 @@ export function StarboardForm({
                     }
                     title={
                       <span className="mx-ellipsis" style={{ display: 'block', fontWeight: 400 }}>
-                        {post.content || 'Image'}
+                        {post.content || t('Image')}
                       </span>
                     }
-                    sub={`${person(post.authorId)} in ${channelName(post.channelId)}`}
+                    sub={t('{name} in {channel}', {
+                      name: person(post.authorId),
+                      channel: channelName(post.channelId),
+                    })}
                   >
                     <a
                       className="mx-btn mx-btn-ghost"
                       href={post.url}
                       target="_blank"
                       rel="noreferrer"
-                      aria-label={`Open the post by ${person(post.authorId)}`}
+                      aria-label={t('Open the post by {name}', { name: person(post.authorId) })}
                     >
-                      Open
+                      {t('View')}
                     </a>
                   </Row>
                 );

@@ -1,6 +1,6 @@
 'use client';
 
-import { type LogEvent, type LogsConfig, logEventNames } from '@maxwell/core/modules/logs';
+import type { LogEvent, LogsConfig } from '@maxwell/core/modules/logs';
 import { type CSSProperties, useState, useTransition } from 'react';
 import {
   ChannelMulti,
@@ -11,15 +11,17 @@ import {
   useChannelOptions,
 } from '@/components/controls';
 import { ChannelType, useChannelName, useGuild } from '@/components/guild';
+import { useT } from '@/components/i18n';
 import { Listbox, type ListOption } from '@/components/listbox';
 import { EmbedPreview, MessagePreview } from '@/components/message-preview';
 import { useDraft } from '@/components/module-shell';
 import { type Status, StatusText } from '@/components/status-text';
 import { Callout, Grid, Panel, PanelBody } from '@/components/ui';
 import { runAction } from '@/lib/actions';
+import type { Key, Translator } from '@/lib/i18n';
 import { clock } from '@/lib/time';
 
-const groups: { name: string; events: LogEvent[] }[] = [
+const groups: { name: Key; events: LogEvent[] }[] = [
   { name: 'Messages', events: ['messageDelete', 'messageEdit', 'messageBulkDelete'] },
   {
     name: 'Members',
@@ -28,6 +30,23 @@ const groups: { name: string; events: LogEvent[] }[] = [
   { name: 'Server', events: ['channels', 'roles', 'invites'] },
   { name: 'Voice', events: ['voice'] },
 ];
+
+const eventNames: Record<LogEvent, Key> = {
+  messageDelete: 'Messages deleted',
+  messageEdit: 'Messages edited',
+  messageBulkDelete: 'Bulk deletes',
+  memberJoin: 'Member joins',
+  memberLeave: 'Member leaves',
+  memberRoles: 'Member roles',
+  nicknames: 'Nicknames',
+  timeouts: 'Timeouts',
+  roles: 'Roles',
+  channels: 'Channels',
+  voice: 'Voice',
+  invites: 'Invites',
+  bans: 'Bans',
+  kicks: 'Kicks',
+};
 
 const RED = '#EC5B78';
 const BLUE = '#3A9EEA';
@@ -52,124 +71,126 @@ interface Preview {
 }
 
 function previewOf(
+  t: Translator,
   event: LogEvent,
   viewer: { id: string; name: string; handle: string },
   channel: string,
   role: string,
 ): Preview {
   const author = `${viewer.name} (@${viewer.handle})`;
-  const user = `User ${viewer.id}`;
+  const user = t('User {id}', { id: viewer.id });
+  const created = t('Account created 2 years ago');
   switch (event) {
     case 'messageDelete':
       return {
-        title: 'Message deleted',
+        title: t('Message deleted'),
         color: RED,
         author,
-        lines: ['see you all tomorrow', `in ${channel}, sent 2 minutes ago`],
-        footer: `${user} / Message 1520884113`,
+        lines: [t('see you all tomorrow'), t('in {channel}, sent 2 minutes ago', { channel })],
+        footer: `${user} / ${t('Message {id}', { id: '1520884113' })}`,
       };
     case 'messageEdit':
       return {
-        title: 'Message edited',
+        title: t('Message edited'),
         color: BLUE,
         author,
-        lines: ['Before: back in 5', 'After: back in 10', `in ${channel}`],
-        footer: `${user} / Message 1520771902`,
+        lines: [t('Before: back in 5'), t('After: back in 10'), t('in {channel}', { channel })],
+        footer: `${user} / ${t('Message {id}', { id: '1520771902' })}`,
       };
     case 'messageBulkDelete':
       return {
-        title: 'Messages deleted in bulk',
+        title: t('Messages deleted in bulk'),
         color: RED,
         author: channel,
-        lines: [`48 messages in ${channel}`, 'The text of all of them is attached.'],
+        lines: [
+          t('{count} messages in {channel}', { count: 48, channel }),
+          t('The text of all of them is attached.'),
+        ],
         footer: 'deleted-messages.txt',
       };
     case 'memberJoin':
       return {
-        title: 'Member joined',
+        title: t('Member joined'),
         color: GREEN,
         author,
-        lines: ['Account created 2 years ago'],
-        footer: `Member #1,205 / ${user}`,
+        lines: [created],
+        footer: `${t('Member #{number}', { number: 1205 })} / ${user}`,
       };
     case 'memberLeave':
-      return {
-        title: 'Member left',
-        color: GREY,
-        author,
-        lines: ['Account created 2 years ago'],
-        footer: user,
-      };
+      return { title: t('Member left'), color: GREY, author, lines: [created], footer: user };
     case 'nicknames':
       return {
-        title: 'Nickname changed',
+        title: t('Nickname changed'),
         color: BLUE,
         author,
-        lines: [`Before: ${viewer.handle}`, `After: ${viewer.name}`],
+        lines: [
+          t('Before: {value}', { value: viewer.handle }),
+          t('After: {value}', { value: viewer.name }),
+        ],
         footer: user,
       };
     case 'memberRoles':
       return {
-        title: 'Roles changed',
+        title: t('Roles changed'),
         color: BLUE,
         author,
-        lines: [`Added ${role}`],
+        lines: [t('Added {role}', { role })],
         footer: user,
       };
     case 'timeouts':
       return {
-        title: 'Member timed out',
+        title: t('Member timed out'),
         color: YELLOW,
         author,
-        lines: ['Until in 1 hour', 'Reason: Spam'],
+        lines: [t('Until in 1 hour'), t('Reason: {reason}', { reason: 'Spam' })],
         footer: user,
       };
     case 'bans':
       return {
-        title: 'Member banned',
+        title: t('Member banned'),
         color: RED,
         author,
-        lines: ['By Maxwell', 'Reason: Raid account'],
+        lines: [t('By Maxwell'), t('Reason: {reason}', { reason: t('Raid account') })],
         footer: user,
       };
     case 'kicks':
       return {
-        title: 'Member kicked',
+        title: t('Member kicked'),
         color: RED,
         author,
-        lines: ['By Maxwell', 'Reason: Alt account'],
+        lines: [t('By Maxwell'), t('Reason: {reason}', { reason: t('Alt account') })],
         footer: user,
       };
     case 'channels':
       return {
-        title: 'Channel updated',
+        title: t('Channel updated'),
         color: BLUE,
         author,
-        lines: [`${channel}`, 'Slowmode: off to 5 seconds'],
-        footer: 'Channel 1427120055',
+        lines: [channel, t('Slowmode: off to 5 seconds')],
+        footer: t('Channel {id}', { id: '1427120055' }),
       };
     case 'roles':
       return {
-        title: 'Role updated',
+        title: t('Role updated'),
         color: BLUE,
         author,
-        lines: [role, 'Added Manage Messages'],
-        footer: 'Role 1427112004',
+        lines: [role, t('Added Manage Messages')],
+        footer: t('Role {id}', { id: '1427112004' }),
       };
     case 'invites':
       return {
-        title: 'Invite created',
+        title: t('Invite created'),
         color: BLUE,
         author,
-        lines: [`k8Rt2Lmq for ${channel}`],
+        lines: [t('{code} for {channel}', { code: 'k8Rt2Lmq', channel })],
         footer: user,
       };
     case 'voice':
       return {
-        title: 'Joined voice',
+        title: t('Joined voice'),
         color: GREY,
         author,
-        lines: [`${viewer.name} joined Lounge.`],
+        lines: [t('{name} joined Lounge.', { name: viewer.name })],
         footer: user,
       };
   }
@@ -225,26 +246,27 @@ function ChannelOverride({
   disabled: boolean;
   onChange: (next: string | null) => void;
 }) {
+  const t = useT();
   const options = useChannelOptions();
   const channelName = useChannelName();
   const missing = value !== null && !options.some((option) => option.value === value);
   const all: ListOption[] = [
     {
       value: '',
-      label: fallback ? `Default (${channelName(fallback)})` : 'Default',
+      label: fallback ? t('Default ({channel})', { channel: channelName(fallback) }) : t('Default'),
       muted: true,
     },
-    ...(missing && value ? [{ value, label: 'Deleted channel', muted: true }] : []),
+    ...(missing && value ? [{ value, label: t('Deleted channel'), muted: true }] : []),
     ...options,
   ];
-  const text = value ? channelName(value) : fallback ? channelName(fallback) : 'Not set';
+  const text = value ? channelName(value) : fallback ? channelName(fallback) : t('Not set');
   const quiet = !value;
   return (
     <Listbox
       compact
       value={value ?? ''}
       options={all}
-      label={`Channel for ${name}`}
+      label={t('Channel for {name}', { name })}
       disabled={disabled}
       onChange={(next) => onChange(next || null)}
       style={
@@ -273,6 +295,7 @@ export function LogsForm({
   viewer: { id: string; name: string; handle: string };
   now: string;
 }) {
+  const t = useT();
   const { guildId, channels, roles, timezone } = useGuild();
   const channelName = useChannelName();
   const { value, set, update, readOnly } = useDraft<LogsConfig>();
@@ -284,8 +307,9 @@ export function LogsForm({
     value.routes[event]?.channelId ?? value.defaultChannelId;
   const firstText = channels.find((channel) => channel.type === ChannelType.Text);
   const sampleChannel = firstText ? `#${firstText.name}` : '#general';
-  const sampleRole = roles.find((role) => role.id !== guildId && !role.managed)?.name ?? 'Regular';
-  const preview = previewOf(selected, viewer, sampleChannel, sampleRole);
+  const sampleRole =
+    roles.find((role) => role.id !== guildId && !role.managed)?.name ?? t('Regular');
+  const preview = previewOf(t, selected, viewer, sampleChannel, sampleRole);
   const target = routeChannel(selected);
   const savedTarget = saved.routes[selected]?.enabled
     ? (saved.routes[selected]?.channelId ?? saved.defaultChannelId)
@@ -295,15 +319,15 @@ export function LogsForm({
   return (
     <Grid>
       <Panel
-        title="Events"
+        title={t('Events')}
         span={8}
         id="events"
         actions={
           <div style={{ width: 220 }}>
             <ChannelSelect
-              label="Default channel"
-              none="Choose a default channel"
-              placeholder="Default channel"
+              label={t('Default channel')}
+              none={t('Choose a default channel')}
+              placeholder={t('Default channel')}
               value={value.defaultChannelId}
               onChange={(defaultChannelId) =>
                 update((previous) => ({
@@ -323,7 +347,7 @@ export function LogsForm({
       >
         {value.defaultChannelId ? null : (
           <PanelBody>
-            <Callout>Pick a default channel to start.</Callout>
+            <Callout>{t('Pick a default channel to start.')}</Callout>
           </PanelBody>
         )}
         <div style={{ paddingBottom: 8 }}>
@@ -334,13 +358,13 @@ export function LogsForm({
                 className="mx-label"
                 style={{ padding: '14px 16px 2px', color: 'var(--mx-faint)' }}
               >
-                {group.name}
+                {t(group.name)}
               </div>
               <div>
                 {group.events.map((event) => {
                   const route = value.routes[event];
                   const on = route?.enabled ?? true;
-                  const name = logEventNames[event];
+                  const name = t(eventNames[event]);
                   const current = event === selected;
                   return (
                     <div key={event} className="mx-row" style={{ padding: '5px 16px' }}>
@@ -348,7 +372,7 @@ export function LogsForm({
                         type="button"
                         className="mx-pick"
                         aria-pressed={current}
-                        aria-label={`Preview ${name}`}
+                        aria-label={t('Preview {name}', { name })}
                         onClick={() => {
                           setSelected(event);
                           setStatus(null);
@@ -375,7 +399,7 @@ export function LogsForm({
                       <Switch
                         order
                         checked={on}
-                        label={`${name} ${on ? 'on' : 'off'}`}
+                        label={on ? t('{name} on', { name }) : t('{name} off', { name })}
                         onChange={(enabled) =>
                           set({
                             routes: {
@@ -395,10 +419,10 @@ export function LogsForm({
       </Panel>
 
       <div className="mx-s4 mx-stack" style={{ gap: 16, minWidth: 0 }}>
-        <Panel title={`Preview: ${logEventNames[selected]}`} id="preview">
+        <Panel title={t('Preview: {name}', { name: t(eventNames[selected]) })} id="preview">
           <PanelBody>
             <div className="mx-preview">
-              <div className="mx-sub">{target ? channelName(target) : 'No channel yet'}</div>
+              <div className="mx-sub">{target ? channelName(target) : t('No channel yet')}</div>
               <MessagePreview avatarSize={32} time={clock(now, timezone)}>
                 <EmbedPreview
                   color={preview.color}
@@ -420,19 +444,24 @@ export function LogsForm({
                       const result = await runAction(guildId, 'logs', 'test', { event: selected });
                       setStatus(
                         result.ok
-                          ? { message: `Sent to ${channelName(savedTarget)}.`, error: false }
+                          ? {
+                              message: t('Sent to {channel}.', {
+                                channel: channelName(savedTarget),
+                              }),
+                              error: false,
+                            }
                           : { message: result.error, error: true },
                       );
                     })
                   }
                 >
-                  Send a test
+                  {t('Send a test')}
                 </button>
                 {dirtyRoutes ? (
-                  <span className="mx-sub">Save first</span>
+                  <span className="mx-sub">{t('Save first')}</span>
                 ) : !savedTarget ? (
                   <span className="mx-sub">
-                    {saved.routes[selected]?.enabled ? 'Pick a channel' : 'This event is off'}
+                    {saved.routes[selected]?.enabled ? t('Pick a channel') : t('This event is off')}
                   </span>
                 ) : null}
                 <StatusText status={status} />
@@ -441,10 +470,10 @@ export function LogsForm({
           </PanelBody>
         </Panel>
 
-        <Panel title="Ignore" id="ignore">
+        <Panel title={t('Ignore')} id="ignore">
           <PanelBody>
             <div className="mx-field">
-              <span className="mx-label">Channels</span>
+              <span className="mx-label">{t('Channels')}</span>
               <ChannelMulti
                 kinds={ignoreKinds}
                 value={value.ignoredChannelIds}
@@ -454,7 +483,7 @@ export function LogsForm({
               />
             </div>
             <div className="mx-field">
-              <span className="mx-label">Roles</span>
+              <span className="mx-label">{t('Roles')}</span>
               <RoleMulti
                 value={value.ignoredRoleIds}
                 onChange={(ignoredRoleIds) => set({ ignoredRoleIds: ignoredRoleIds.slice(0, 50) })}
@@ -462,7 +491,7 @@ export function LogsForm({
             </div>
             <ToggleRow
               order
-              title="Ignore bots"
+              title={t('Ignore bots')}
               checked={value.ignoreBots}
               onChange={(ignoreBots) => set({ ignoreBots })}
             />
