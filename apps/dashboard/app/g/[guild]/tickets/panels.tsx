@@ -12,6 +12,7 @@ import {
   TextInput,
   ToggleRow,
 } from '@/components/controls';
+import { EmojiPicker } from '@/components/emoji-picker';
 import { ChannelType, useChannelName, useGuild } from '@/components/guild';
 import { useT } from '@/components/i18n';
 import { EmbedPreview, Markdown, MessagePreview } from '@/components/message-preview';
@@ -329,11 +330,12 @@ function PanelSetup({
             />
           </Field>
           <Field label={t('Emoji')}>
-            <TextInput
-              value={panel.emoji}
-              maxLength={80}
-              placeholder={t('Envelope')}
-              onChange={(emoji) => patch({ emoji: emoji.trim() })}
+            <EmojiPicker
+              value={panel.emoji || null}
+              label={t('Emoji')}
+              fallback="📩"
+              clearable
+              onChange={(emoji) => patch({ emoji: emoji ?? '' })}
             />
           </Field>
         </Fields>

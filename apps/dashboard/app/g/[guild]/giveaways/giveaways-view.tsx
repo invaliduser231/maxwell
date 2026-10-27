@@ -15,6 +15,7 @@ import {
   ToggleRow,
   useRoleOptions,
 } from '@/components/controls';
+import { EmojiPicker } from '@/components/emoji-picker';
 import { useChannelName, useGuild, useRoleName } from '@/components/guild';
 import { useT } from '@/components/i18n';
 import { EmbedPreview, MessagePreview } from '@/components/message-preview';
@@ -771,11 +772,12 @@ function SettingsPanel() {
       <PanelBody>
         <Fields>
           <Field label={t('Entry emoji')}>
-            <TextInput
-              value={value.emoji ?? ''}
-              maxLength={100}
-              placeholder={t('Default')}
-              onChange={(emoji) => set({ emoji: emoji.trim() ? emoji : null })}
+            <EmojiPicker
+              value={value.emoji}
+              label={t('Entry emoji')}
+              fallback="🎉"
+              clearable
+              onChange={(emoji) => set({ emoji })}
             />
           </Field>
           <Field label={t('Ping when it starts')}>

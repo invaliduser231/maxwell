@@ -13,6 +13,7 @@ import {
   TextInput,
   ToggleRow,
 } from '@/components/controls';
+import { EmojiPicker } from '@/components/emoji-picker';
 import { useChannelName, useGuild } from '@/components/guild';
 import { useT } from '@/components/i18n';
 import { MessagePreview } from '@/components/message-preview';
@@ -318,11 +319,10 @@ function RulesGate({ posted }: { posted: { channelId: string; messageId: string 
               <RoleSelect value={rules.roleId} onChange={(roleId) => setRules({ roleId })} />
             </Field>
             <Field label={t('Reaction')}>
-              <TextInput
-                mono
-                value={rules.emoji}
-                maxLength={80}
-                onChange={(emoji) => setRules({ emoji: emoji.trim() })}
+              <EmojiPicker
+                value={rules.emoji || null}
+                label={t('Reaction')}
+                onChange={(emoji) => setRules({ emoji: emoji ?? '' })}
               />
             </Field>
             <Field label={t('Existing message ID')}>

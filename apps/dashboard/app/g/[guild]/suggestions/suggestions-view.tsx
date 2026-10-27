@@ -4,6 +4,7 @@ import type { SuggestionStatus, SuggestionsConfig } from '@maxwell/core/modules/
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { ChannelSelect, Seg, Switch, TextInput } from '@/components/controls';
+import { EmojiPicker } from '@/components/emoji-picker';
 import { useChannelName, useGuild } from '@/components/guild';
 import { useT } from '@/components/i18n';
 import { EmbedPreview, MessagePreview } from '@/components/message-preview';
@@ -324,19 +325,21 @@ function SettingsPanel() {
         </Field>
         <div className="mx-fields" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
           <Field label={t('Vote up with')}>
-            <TextInput
-              value={value.upEmoji ?? ''}
-              maxLength={100}
-              placeholder={t('Default')}
-              onChange={(upEmoji) => set({ upEmoji: upEmoji.trim() ? upEmoji : null })}
+            <EmojiPicker
+              value={value.upEmoji}
+              label={t('Vote up with')}
+              fallback="👍"
+              clearable
+              onChange={(upEmoji) => set({ upEmoji })}
             />
           </Field>
           <Field label={t('Vote down with')}>
-            <TextInput
-              value={value.downEmoji ?? ''}
-              maxLength={100}
-              placeholder={t('Default')}
-              onChange={(downEmoji) => set({ downEmoji: downEmoji.trim() ? downEmoji : null })}
+            <EmojiPicker
+              value={value.downEmoji}
+              label={t('Vote down with')}
+              fallback="👎"
+              clearable
+              onChange={(downEmoji) => set({ downEmoji })}
             />
           </Field>
         </div>

@@ -9,8 +9,8 @@ import {
   Seg,
   Select,
   Switch,
-  TextInput,
 } from '@/components/controls';
+import { EmojiPicker } from '@/components/emoji-picker';
 import { useChannelName } from '@/components/guild';
 import { useT } from '@/components/i18n';
 import { EmbedPreview, Markdown, MessagePreview } from '@/components/message-preview';
@@ -87,13 +87,12 @@ function Reaction() {
       </Field>
       {mode === 'custom' ? (
         <Field label={t('Custom emoji')}>
-          <TextInput
-            mono
+          <EmojiPicker
             label={t('Custom emoji')}
-            placeholder="name:id"
-            maxLength={80}
-            value={preset ? '' : value.emoji}
-            onChange={(emoji) => set({ emoji: emoji.trim() })}
+            value={preset ? null : value.emoji}
+            onChange={(emoji) => {
+              if (emoji) set({ emoji });
+            }}
           />
         </Field>
       ) : null}
