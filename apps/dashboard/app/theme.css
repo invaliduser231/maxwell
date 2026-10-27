@@ -36,6 +36,26 @@ body,
   gap: 16px;
   min-width: 0;
 }
+.mx-weights {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 8px 20px;
+}
+.mx-weight {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+.mx-masonry {
+  grid-auto-rows: 4px;
+  row-gap: 0;
+  grid-auto-flow: row dense;
+}
+.mx-masonry > * {
+  align-self: start;
+}
 .mx-panel {
   background: var(--mx-panel);
   overflow: clip;
@@ -86,13 +106,13 @@ body,
 .mx-row .mx-btn,
 .mx-row .mx-chip-x,
 .mx-row .mx-listbox-button,
-.mx-row a,
+.mx-row a:not(.mx-pick),
 .mx-row input,
 .mx-table tr .mx-seg,
 .mx-table tr .mx-switch,
 .mx-table tr .mx-btn,
 .mx-table tr .mx-listbox-button,
-.mx-table tr a,
+.mx-table tr a:not(.mx-pick),
 .mx-table tr input {
   position: relative;
   z-index: 1;
@@ -111,6 +131,21 @@ body,
 .mx-table tr:has(.mx-pick):hover {
   background: rgba(255, 255, 255, 0.025);
 }
+.mx-row-button {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+.mx-row-button:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+.mx-row-button[aria-current="true"],
 .mx-row:has(.mx-pick[aria-pressed="true"]),
 .mx-row:has(.mx-pick[aria-current="true"]),
 .mx-table tr:has(.mx-pick[aria-pressed="true"]),
@@ -245,6 +280,10 @@ body,
   gap: 8px;
   text-align: left;
   cursor: pointer;
+}
+.mx-listbox-button > .mx-ellipsis {
+  flex: 1;
+  min-width: 0;
 }
 .mx-listbox-button:focus-visible {
   outline: 0;
@@ -547,6 +586,17 @@ input[type="color"]::-webkit-color-swatch {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+.mx-panel > .mx-toggle-row {
+  padding: 12px 16px;
+}
+.mx-panel > .mx-toggle-row + .mx-toggle-row,
+.mx-panel > .mx-panel-body + .mx-toggle-row,
+.mx-panel > .mx-toggle-row + .mx-panel-body {
+  border-top: 1px solid var(--mx-line);
+}
+.mx-panel > .mx-toggle-row + .mx-panel-body {
+  padding-top: 14px;
 }
 .mx-table th {
   color: var(--mx-faint);
