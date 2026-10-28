@@ -32,8 +32,12 @@ const schema = z.object({
 
 export type Config = z.infer<typeof schema>;
 
+export function withoutEmpty(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  return Object.fromEntries(Object.entries(env).filter(([, value]) => value !== ''));
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  const result = schema.safeParse(env);
+  const result = schema.safeParse(withoutEmpty(env));
   if (!result.success) {
     const problems = result.error.issues.map(
       (issue) => `${issue.path.join('.')}: ${issue.message}`,

@@ -30,7 +30,10 @@ export type Env = z.infer<typeof schema>;
 let cached: Env | null = null;
 
 export function env(): Env {
-  if (!cached) cached = schema.parse(process.env);
+  if (!cached) {
+    const present = Object.entries(process.env).filter(([, value]) => value !== '');
+    cached = schema.parse(Object.fromEntries(present));
+  }
   return cached;
 }
 
