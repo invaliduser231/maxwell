@@ -25,6 +25,7 @@ export const POLE_COLOR: Record<Pole, string> = {
 
 const icons: Record<string, string> = {
   overview: 'M44 44h30v30H44zM86 44h30v30H86zM44 86h30v30H44zM86 86h30v30H86z',
+  inbox: 'M40 86l14-36h52l14 36v28H40zM40 86h24l6 12h20l6-12h24',
   moderation: 'M80 36l38 14v28c0 25-17 42-38 48-21-6-38-23-38-48V50z',
   members: 'M80 40a18 18 0 1 0 0 36 18 18 0 1 0 0-36zM46 122c4-20 18-32 34-32s30 12 34 32',
   automod: 'M90 36 56 88h26l-12 36 36-54H80z',
@@ -83,6 +84,7 @@ export const pageGroups: PageGroup[] = [
   {
     title: 'Keeping order',
     pages: [
+      page('inbox', 'Inbox', 'south', 'moderation'),
       page('moderation', 'Moderation', 'south'),
       page('members', 'Member files', 'south', 'moderation'),
       page('automod', 'AutoMod', 'south'),

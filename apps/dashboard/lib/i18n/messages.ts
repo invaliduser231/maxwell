@@ -14,6 +14,7 @@ import { forms } from './de/forms';
 import { games } from './de/games';
 import { general } from './de/general';
 import { giveaways } from './de/giveaways';
+import { inbox } from './de/inbox';
 import { insights } from './de/insights';
 import { invites } from './de/invites';
 import { landing } from './de/landing';
@@ -61,6 +62,7 @@ export const messages = {
   ...invites,
   ...members,
   ...moderation,
+  ...inbox,
   ...tickets,
   ...scheduler,
   ...roles,
