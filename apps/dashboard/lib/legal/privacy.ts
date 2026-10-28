@@ -55,7 +55,7 @@ Some modules unlock after a vote for Maxwell on fluxerlist.com. To check this, w
 
 ### Audit trail
 
-Changes made in the dashboard are recorded with the acting user's ID, the time, the module and the values before and after, so that admins can see who changed what and undo it. Entries are currently kept for as long as the community uses Maxwell.
+Changes made in the dashboard are recorded with the acting user's ID, the time, the module and the values before and after, so that admins can see who changed what and undo it. Entries are deleted after 12 months.
 
 - **Legal basis:** Art. 6(1)(f) GDPR (traceability of changes).
 
@@ -63,14 +63,14 @@ Changes made in the dashboard are recorded with the acting user's ID, the time, 
 
 Maxwell receives messages and events from the communities it is in, such as message content, user IDs, names, avatars, roles, joins and leaves. Most of it is only looked at and not stored. What is stored depends on the modules the admins turned on:
 
-- **Moderation:** cases with member, moderator, reason, evidence links and an excerpt of up to 1,000 characters from the message a moderator replied to; notes about members; a history of names and nicknames. Cases are kept until the admins delete them, or for the number of days they set (at least 30). Name history is deleted after 365 days.
+- **Moderation:** cases with member, moderator, reason, evidence links and an excerpt of up to 1,000 characters from the message a moderator replied to; notes about members; a history of names and nicknames. Cases are deleted after two years by default; admins can choose 90 days, one year or no limit. Name history is deleted after 365 days.
 - **AutoMod:** recent messages with author, roles and content (up to 4,000 characters), so that rules can look back; deleted after 7 days. Hits with the triggering message are deleted after 180 days, test runs after 30 days.
 - **Security:** verification checks with a risk score and its reasons (for example account age, avatar, name, joins in a wave, earlier bans), captcha attempts and security events; deleted after 90 days.
 - **Logs:** Maxwell keeps the last 10,000 messages of all communities in memory only, so it can show the old text when a message is edited or deleted. Nothing of this is written to our database, and it is gone when the bot restarts. The log entries themselves are posted into a channel of the community and then belong to the community.
-- **Invites and joins:** when a member joined or left, which invite they used and who created it.
+- **Invites and joins:** when a member joined or left, which invite they used and who created it; deleted 12 months after the member left.
 - **Welcome and roles:** whether a member accepted the rules; roles a member had, so they can be given back on rejoin (deleted 180 days after leaving by default); temporary roles until they run out.
 - **Levels, economy, collection and games:** XP, balances, transactions, purchases, inventory, cards, trades, scores and activity counts. Activity counts for the collection are deleted after 400 days.
-- **Tickets and modmail:** tickets with opener, members, subject and rating, and, if transcripts are on (the default), every message in the ticket with author, name, avatar link, content, attachment names and links and edits. When someone sends Maxwell a direct message, we store the DM channel so replies can reach them.
+- **Tickets and modmail:** tickets with opener, members, subject and rating, and, if transcripts are on (the default), every message in the ticket with author, name, avatar link, content, attachment names and links and edits. Closed tickets are deleted with their transcript 12 months after closing. When someone sends Maxwell a direct message, we store the DM channel so replies can reach them.
 - **Forms, suggestions, events, polls and giveaways:** answers, suggestions, votes, sign-ups, entries and winners.
 - **Starboard:** the author and content of starred messages.
 - **Scheduler:** reminders with their text until they are delivered or removed.
@@ -79,7 +79,7 @@ Maxwell receives messages and events from the communities it is in, such as mess
 - **Cards:** background pictures that admins upload or link. Maxwell downloads linked pictures once and stores them as JPEG. Avatars are drawn onto cards and kept in memory only.
 - **Custom commands, voice rooms and feeds:** who last used a command, owners and members of voice rooms while the room exists. Feeds store no personal data.
 
-Where we found no fixed period above, data is kept as long as the community uses Maxwell and the admins do not delete it.
+Where no period is given above, data is kept as long as the community uses Maxwell and the admins do not delete it.
 
 - **Purpose:** running the modules the admins of a community turned on.
 - **Legal basis:** Art. 6(1)(f) GDPR. The legitimate interest is that of the community and of us: moderating the community, protecting it against spam and raids, and running the features its members use.
@@ -114,11 +114,11 @@ The bot writes technical logs with community, channel, role and ticket IDs and e
 - **m!forgetme confirm** deletes your data in that community: levels, balances, notes, name history, AutoMod and security records, form answers, votes and the other module data. Some things stay, because the community needs them or they involve other people: moderation cases about you; messages in closed tickets (your name and ID are removed from the ticket); open tickets, pending form answers and pending security checks until they are handled. The request itself is recorded in the audit trail with your user ID.
 - For anything else, an email to [rainer@schnittert.com](mailto:rainer@schnittert.com) is enough.
 
-When Maxwell is removed from a community, its data currently stays stored. Admins can ask us to delete it.
+When Maxwell is removed from a community, all data of that community is deleted after 30 days. If Maxwell is added again before that, everything is still there.
 
 ## 10. Backups
 
-Every night we back up the complete database. The backups are stored in the same server cluster and kept for 14 days. Deleted data therefore remains in backups for up to 14 days. We only use them to restore data after an error or outage.
+Every night we back up the complete database. Before the backup is written, it is encrypted with a key whose counterpart for decryption only we hold, offline. The backups are stored in the same server cluster and kept for 14 days. Deleted data therefore remains in backups for up to 14 days. We only use them to restore data after an error or outage.
 
 - **Legal basis:** Art. 6(1)(f) GDPR (protection against data loss) and Art. 32 GDPR.
 
@@ -152,7 +152,7 @@ You can lodge a complaint with a data protection supervisory authority (Art. 77 
 
 ## 15. Security
 
-Connections are encrypted, Fluxer tokens are encrypted on top, and sessions are stored only as hashes. Only a few people have access to the servers. In the event of a data breach we will notify the supervisory authority and, where required, you (Art. 33 and 34 GDPR).
+Connections are encrypted, Fluxer tokens are encrypted on top, sessions are stored only as hashes, and backups are encrypted. Only a few people have access to the servers. In the event of a data breach we will notify the supervisory authority and, where required, you (Art. 33 and 34 GDPR).
 
 ## 16. Changes
 
