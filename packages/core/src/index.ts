@@ -14,4 +14,5 @@ export * from './modules/catalog.js';
 export * from './modules/general.js';
 export * from './modules/invites.js';
 export * from './modules/types.js';
+export * from './retention.js';
 export * from './votes/votes.js';

@@ -1,3 +1,4 @@
+import { RetentionStore } from '@maxwell/core';
 import general from '@maxwell/core/modules/general';
 import { defineBotModule } from '../../runtime/module.js';
 import { generalCommands } from './commands.js';
@@ -5,6 +6,11 @@ import { greet } from './onboarding.js';
 import { privacyCommands } from './privacy.js';
 
 const VOTE_SYNC_MS = 60 * 60_000;
+const DAY = 86_400_000;
+
+function retentionAt(at: number): { runAt: Date; dedupeKey: string } {
+  return { runAt: new Date(at), dedupeKey: `general.retention:${Math.floor(at / DAY)}` };
+}
 
 export default defineBotModule({
   definition: general,
@@ -42,10 +48,23 @@ export default defineBotModule({
         dedupeKey: 'general.votes.sync',
       });
     });
+    const retention = new RetentionStore(services.sql);
+    ctx.job('retention', async () => {
+      const now = Date.now();
+      try {
+        const removed = await retention.run(now);
+        if (Object.values(removed).some((count) => count > 0))
+          log.info(removed, 'old data removed');
+      } finally {
+        await ctx.schedule('retention', retentionAt(now + DAY));
+      }
+    });
+
     ctx.on(
       'ready',
       async () => {
         await ctx.schedule('votes.sync', { dedupeKey: 'general.votes.sync' });
+        await ctx.schedule('retention', retentionAt(Date.now() + 60_000));
       },
       { always: true },
     );
