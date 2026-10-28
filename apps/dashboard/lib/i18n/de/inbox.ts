@@ -41,4 +41,20 @@ export const inbox = {
   'That item is gone.': 'Den Eintrag gibt es nicht mehr.',
   'Keep reason and note under 1,500 characters.':
     'Grund und Notiz müssen unter 1.500 Zeichen bleiben.',
+  'Appeal a ban': 'Einspruch gegen einen Bann',
+  'Send appeal': 'Einspruch senden',
+  'The moderators see your name and this text.':
+    'Die Moderation sieht deinen Namen und diesen Text.',
+  'This community does not take appeals here.': 'Diese Community nimmt hier keine Einsprüche an.',
+  'Why should the ban be lifted?': 'Warum sollte der Bann aufgehoben werden?',
+  'Write at least 20 characters.': 'Schreib mindestens 20 Zeichen.',
+  'You are not banned in {server}.': 'Du bist in {server} nicht gebannt.',
+  'You can appeal again on {date}.': 'Am {date} kannst du wieder Einspruch einlegen.',
+  'You get a direct message when they decide.':
+    'Du bekommst eine Direktnachricht, sobald entschieden ist.',
+  'Your appeal is with the moderators.': 'Dein Einspruch liegt bei der Moderation.',
+  'Your appeal was accepted.': 'Dein Einspruch wurde angenommen.',
+  'Your appeal was declined.': 'Dein Einspruch wurde abgelehnt.',
+  'Write between 20 and 2,000 characters.': 'Schreib zwischen 20 und 2.000 Zeichen.',
+  'This appeal cannot be sent right now.': 'Der Einspruch lässt sich gerade nicht senden.',
 } as const;
