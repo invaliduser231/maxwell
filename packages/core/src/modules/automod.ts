@@ -254,5 +254,89 @@ export default defineModule({
         create index automod_held_incident on automod_held (incident_id);
       `,
     },
+    {
+      id: '5-partitions',
+      up: `
+        alter table automod_messages rename to automod_messages_old;
+        alter table automod_messages_old rename constraint automod_messages_pkey to automod_messages_old_pkey;
+        alter index automod_messages_replay rename to automod_messages_old_replay;
+        alter index automod_messages_age rename to automod_messages_old_age;
+
+        create table automod_messages (
+          guild_id bigint not null,
+          message_id bigint not null,
+          channel_id bigint not null,
+          author_id bigint not null,
+          author_roles jsonb not null default '[]',
+          author_bot boolean not null default false,
+          content text not null,
+          mention_users integer not null default 0,
+          mention_roles integer not null default 0,
+          created_at timestamptz not null,
+          primary key (guild_id, message_id, created_at)
+        ) partition by range (created_at);
+
+        create index automod_messages_replay on automod_messages (guild_id, created_at, message_id);
+        create table automod_messages_default partition of automod_messages default;
+
+        create table automod_history_guilds (
+          guild_id bigint primary key,
+          last_at timestamptz not null default now()
+        );
+
+        create function automod_messages_rotate(keep_days integer) returns integer
+        language plpgsql as $$
+        declare
+          today date := (now() at time zone 'utc')::date;
+          day date;
+          name text;
+          lower timestamptz;
+          upper timestamptz;
+          child record;
+          dropped integer := 0;
+        begin
+          for day in
+            select generate_series(today - keep_days, today + 2, interval '1 day')::date
+          loop
+            name := 'automod_messages_p' || to_char(day, 'YYYYMMDD');
+            if to_regclass(name) is null then
+              lower := day::timestamp at time zone 'utc';
+              upper := lower + interval '1 day';
+              execute format('create table %I (like automod_messages including defaults)', name);
+              execute format(
+                'with moved as (delete from automod_messages_default where created_at >= %L and created_at < %L returning *) insert into %I select * from moved',
+                lower, upper, name
+              );
+              execute format(
+                'alter table automod_messages attach partition %I for values from (%L) to (%L)',
+                name, lower, upper
+              );
+            end if;
+          end loop;
+          for child in
+            select c.relname from pg_inherits i
+            join pg_class c on c.oid = i.inhrelid
+            join pg_class p on p.oid = i.inhparent
+            where p.relname = 'automod_messages' and c.relname ~ '^automod_messages_p[0-9]{8}$'
+          loop
+            if to_date(substr(child.relname, 19), 'YYYYMMDD') < today - keep_days then
+              execute format('drop table %I', child.relname);
+              dropped := dropped + 1;
+            end if;
+          end loop;
+          delete from automod_messages_default where created_at < now() - make_interval(days => keep_days);
+          return dropped;
+        end
+        $$;
+
+        select automod_messages_rotate(7);
+        insert into automod_messages
+          select * from automod_messages_old where created_at >= now() - interval '7 days'
+          on conflict do nothing;
+        insert into automod_history_guilds (guild_id, last_at)
+          select guild_id, max(created_at) from automod_messages group by guild_id;
+        drop table automod_messages_old;
+      `,
+    },
   ],
 });

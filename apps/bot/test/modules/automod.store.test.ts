@@ -127,12 +127,36 @@ describe.skipIf(!url)('AutomodStore', () => {
     expect((await store.listDryRuns(guild))[0]?.id).toBe(runId);
   });
 
-  it('purges old and surplus messages', async () => {
-    const removed = await store.purgeMessages(new Date(Date.now() - 7 * 86_400_000), 2);
-    expect(removed).toBeGreaterThanOrEqual(2);
+  it('rotates old days away and trims busy communities', async () => {
+    await store.rotateMessages(7);
+    expect(await store.messageCount(guild)).toBe(3);
+    const trimmed = await store.trimMessages(2, new Date(Date.now() - 3_600_000));
+    expect(trimmed).toBeGreaterThanOrEqual(1);
     expect(await store.messageCount(guild)).toBe(2);
     expect(await store.messageGuilds()).toContain(guild);
     expect(await store.dropMessages(guild)).toBe(2);
+    expect(await store.messageGuilds()).not.toContain(guild);
+  });
+
+  it('keeps day partitions for the history window only', async () => {
+    const [today] = await sql<{ name: string }[]>`
+      select 'automod_messages_p' || to_char((now() at time zone 'utc')::date, 'YYYYMMDD') as name
+    `;
+    const parts = await sql<{ name: string }[]>`
+      select c.relname as name from pg_inherits i
+      join pg_class c on c.oid = i.inhrelid
+      join pg_class p on p.oid = i.inhparent
+      where p.relname = 'automod_messages' and c.relname ~ '^automod_messages_p[0-9]{8}$'
+    `;
+    expect(parts.map((part) => part.name)).toContain(today?.name);
+    expect(parts.length).toBe(10);
+    await sql.unsafe(
+      'create table automod_messages_p20000101 (like automod_messages including defaults)',
+    );
+    await sql.unsafe(
+      "alter table automod_messages attach partition automod_messages_p20000101 for values from ('2000-01-01 00:00+00') to ('2000-01-02 00:00+00')",
+    );
+    expect(await store.rotateMessages(7)).toBe(1);
   });
 
   it('tracks incidents and members held at the gate', async () => {

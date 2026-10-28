@@ -161,9 +161,8 @@ export class AutomodStore {
   }
 
   async purgeHits(olderThan: Date): Promise<number> {
-    const rows = await this
-      .sql`delete from automod_hits where created_at < ${olderThan} returning 1`;
-    return rows.length;
+    const result = await this.sql`delete from automod_hits where created_at < ${olderThan}`;
+    return result.count;
   }
 
   async saveMessages(messages: readonly StoredMessage[]): Promise<void> {
@@ -192,7 +191,17 @@ export class AutomodStore {
         author_bot boolean, content text, mention_users integer, mention_roles integer,
         created_at timestamptz
       )
-      on conflict (guild_id, message_id) do nothing
+      where not exists (
+        select 1 from automod_messages m
+        where m.guild_id = x.guild_id and m.message_id = x.message_id
+      )
+      on conflict (guild_id, message_id, created_at) do nothing
+    `;
+    const guilds = [...new Set(messages.map((message) => message.guildId))];
+    await this.sql`
+      insert into automod_history_guilds (guild_id, last_at)
+      select unnest(${guilds}::bigint[]), now()
+      on conflict (guild_id) do update set last_at = excluded.last_at
     `;
   }
 
@@ -234,41 +243,45 @@ export class AutomodStore {
 
   async messageGuilds(): Promise<string[]> {
     const rows = await this.sql<{ guildId: string }[]>`
-      select distinct guild_id as "guildId" from automod_messages
+      select guild_id::text as "guildId" from automod_history_guilds
     `;
     return rows.map((row) => row.guildId);
   }
 
-  async purgeMessages(olderThan: Date, maxPerGuild: number): Promise<number> {
-    const old = await this.sql`
-      delete from automod_messages where created_at < ${olderThan} returning 1
+  async rotateMessages(keepDays: number): Promise<number> {
+    const [row] = await this.sql<{ dropped: number }[]>`
+      select automod_messages_rotate(${keepDays}::integer) as dropped
     `;
-    const crowded = await this.sql<{ guildId: string }[]>`
-      select guild_id as "guildId" from automod_messages
-      group by guild_id having count(*) > ${maxPerGuild}
+    return row?.dropped ?? 0;
+  }
+
+  async trimMessages(maxPerGuild: number, activeSince: Date): Promise<number> {
+    const active = await this.sql<{ guildId: string }[]>`
+      select guild_id::text as "guildId" from automod_history_guilds where last_at >= ${activeSince}
     `;
-    let extra = 0;
-    for (const { guildId } of crowded) {
-      const rows = await this.sql`
-        delete from automod_messages
-        where guild_id = ${guildId} and (created_at, message_id) < (
-          select created_at, message_id from automod_messages
-          where guild_id = ${guildId}
-          order by created_at desc, message_id desc
-          offset ${maxPerGuild - 1} limit 1
-        )
-        returning 1
+    let removed = 0;
+    for (const { guildId } of active) {
+      const [cutoff] = await this.sql<{ createdAt: Date; messageId: string }[]>`
+        select created_at as "createdAt", message_id::text as "messageId" from automod_messages
+        where guild_id = ${guildId}
+        order by created_at desc, message_id desc
+        offset ${maxPerGuild} limit 1
       `;
-      extra += rows.length;
+      if (!cutoff) continue;
+      const result = await this.sql`
+        delete from automod_messages
+        where guild_id = ${guildId}
+          and (created_at, message_id) <= (${cutoff.createdAt}, ${cutoff.messageId}::bigint)
+      `;
+      removed += result.count;
     }
-    return old.length + extra;
+    return removed;
   }
 
   async dropMessages(guildId: string): Promise<number> {
-    const rows = await this.sql`
-      delete from automod_messages where guild_id = ${guildId} returning 1
-    `;
-    return rows.length;
+    const result = await this.sql`delete from automod_messages where guild_id = ${guildId}`;
+    await this.sql`delete from automod_history_guilds where guild_id = ${guildId}`;
+    return result.count;
   }
 
   async createDryRun(
@@ -334,10 +347,8 @@ export class AutomodStore {
   }
 
   async purgeDryRuns(olderThan: Date): Promise<number> {
-    const rows = await this.sql`
-      delete from automod_dryruns where created_at < ${olderThan} returning 1
-    `;
-    return rows.length;
+    const result = await this.sql`delete from automod_dryruns where created_at < ${olderThan}`;
+    return result.count;
   }
 
   async startIncident(

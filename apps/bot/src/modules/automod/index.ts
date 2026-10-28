@@ -243,9 +243,10 @@ export default defineBotModule({
       const now = Date.now();
       try {
         await history.flush();
-        const removed = await store.purgeMessages(
-          new Date(now - HISTORY_DAYS * DAY),
+        const days = await store.rotateMessages(HISTORY_DAYS);
+        const trimmed = await store.trimMessages(
           MAX_MESSAGES_PER_GUILD,
+          new Date(now - 2 * PURGE_EVERY),
         );
         await store.purgeHits(new Date(now - HIT_RETENTION_DAYS * DAY));
         await store.purgeDryRuns(new Date(now - DRYRUN_RETENTION_DAYS * DAY));
@@ -254,7 +255,9 @@ export default defineBotModule({
           const keep = (await ctx.enabled(guildId)) && (await ctx.config(guildId)).keepHistory;
           if (!keep) dropped += await store.dropMessages(guildId);
         }
-        if (removed + dropped > 0) log.info({ removed, dropped }, 'automod history purged');
+        if (days + trimmed + dropped > 0) {
+          log.info({ days, trimmed, dropped }, 'automod history purged');
+        }
       } finally {
         await ctx.schedule('purge', purgeAt(now + PURGE_EVERY));
       }
