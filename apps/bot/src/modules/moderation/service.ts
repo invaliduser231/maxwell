@@ -15,6 +15,7 @@ import { copy, reasons } from './copy.js';
 import { caseEmbed } from './embeds.js';
 import { escalationFor, stepDurationMs } from './escalation.js';
 import { type Attribution, AuditHolds, ExpectedActions } from './expected.js';
+import { inboxCopy } from './inbox-copy.js';
 import { auditReason, clip, humanDuration, renderTemplate } from './text.js';
 
 const DAY = 86_400_000;
@@ -344,8 +345,13 @@ export class ModerationService {
         duration: duration ?? copy.permanent,
       },
     );
+    const dashboard = this.services.config.DASHBOARD_URL?.replace(/\/+$/, '');
+    const appeal =
+      action === 'ban' && config.appeals && dashboard
+        ? `\n${inboxCopy.appealLine(`${dashboard}/appeal/${guildId}`)}`
+        : '';
     const sent = await this.services.platform
-      .sendDirect(userId, { content: clip(text, 2_000) })
+      .sendDirect(userId, { content: `${clip(text, 2_000 - appeal.length)}${appeal}` })
       .catch(() => false);
     return sent ? 'sent' : 'failed';
   }

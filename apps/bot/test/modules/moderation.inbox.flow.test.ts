@@ -230,6 +230,26 @@ describe.skipIf(!url)('moderation inbox flows', () => {
     expect(review?.outcome).toBe('declined');
   });
 
+  it('adds the appeal link to the ban message when appeals are on', async () => {
+    const target = '410000000000000007';
+    config.appeals = true;
+    try {
+      await moderation.act({
+        guildId: guild,
+        action: 'ban',
+        userId: target,
+        moderatorId: mod,
+        reason: 'raid',
+        source: 'command',
+      });
+    } finally {
+      config.appeals = false;
+    }
+    const message = direct.find((entry) => entry.user === target)?.out;
+    const text = typeof message === 'string' ? message : (message?.content ?? '');
+    expect(text).toContain(`https://dash.example/appeal/${guild}`);
+  });
+
   it('lifts the ban when an appeal is accepted and tells the member', async () => {
     const appeal = await inbox.store.appeal({
       guildId: guild,

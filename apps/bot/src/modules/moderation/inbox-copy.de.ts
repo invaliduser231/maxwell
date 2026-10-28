@@ -52,6 +52,7 @@ const de: InboxCopy = {
     `Dein Einspruch in **${server}** wurde angenommen. Mit einer Einladung kannst du wieder beitreten.`,
   appealDeclined: (server: string) => `Dein Einspruch in **${server}** wurde abgelehnt.`,
   more: (n: number) => `und ${count(n)} weitere`,
+  appealLine: (url: string) => `Einspruch einlegen kannst du hier: ${url}`,
 };
 
 export default de;

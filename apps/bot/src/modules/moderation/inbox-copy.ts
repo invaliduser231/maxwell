@@ -54,6 +54,7 @@ const en = {
     `Your appeal in **${server}** was accepted. You can join again with an invite.`,
   appealDeclined: (server: string) => `Your appeal in **${server}** was declined.`,
   more: (n: number) => `and ${count(n)} more`,
+  appealLine: (url: string) => `You can appeal here: ${url}`,
 };
 
 export type InboxCopy = typeof en;
