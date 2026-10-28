@@ -28,6 +28,14 @@ export const escalationStep = z.object({
 
 export type EscalationStep = z.output<typeof escalationStep>;
 
+export const inboxKinds = ['report', 'appeal', 'review'] as const;
+
+export type InboxKind = (typeof inboxKinds)[number];
+
+export const inboxStatuses = ['open', 'claimed', 'resolved', 'dismissed'] as const;
+
+export type InboxStatus = (typeof inboxStatuses)[number];
+
 export const defaultDmTemplate =
   'You were {action} in **{server}**.\nReason: {reason}\n-# Questions go to the server staff, not to me.';
 
@@ -50,6 +58,10 @@ export const moderationConfig = z.object({
   escalationEnabled: z.boolean().default(true),
   escalationWindowDays: z.number().int().min(1).max(365).default(30),
   escalationSteps: z.array(escalationStep).max(10).default(defaultEscalation),
+  inboxChannelId: z.string().nullable().default(null),
+  reports: z.boolean().default(true),
+  reportEmoji: z.string().min(1).max(100).nullable().default(null),
+  appeals: z.boolean().default(false),
 });
 
 export type ModerationConfig = z.output<typeof moderationConfig>;
@@ -162,6 +174,42 @@ export default defineModule({
         where ranked.id = n.id;
         alter table moderation_notes alter column number set not null;
         create unique index moderation_notes_number on moderation_notes (guild_id, number);
+      `,
+    },
+    {
+      id: '6-inbox',
+      up: `
+        create table moderation_inbox (
+          id bigint generated always as identity primary key,
+          guild_id bigint not null,
+          number integer not null,
+          kind text not null check (kind in ('report', 'appeal', 'review')),
+          status text not null default 'open'
+            check (status in ('open', 'claimed', 'resolved', 'dismissed')),
+          subject_id bigint,
+          reporters bigint[] not null default '{}',
+          channel_id bigint,
+          message_id bigint,
+          excerpt text,
+          body text,
+          case_number integer,
+          assignee_id bigint,
+          outcome text,
+          outcome_case integer,
+          note text,
+          resolved_by bigint,
+          resolved_at timestamptz,
+          notice_channel_id bigint,
+          notice_message_id bigint,
+          created_at timestamptz not null default now(),
+          updated_at timestamptz not null default now()
+        );
+
+        create unique index moderation_inbox_number on moderation_inbox (guild_id, number);
+        create index moderation_inbox_guild on moderation_inbox (guild_id, status, created_at desc);
+        create index moderation_inbox_subject on moderation_inbox (guild_id, subject_id);
+        create unique index moderation_inbox_review on moderation_inbox (guild_id, case_number)
+          where kind = 'review';
       `,
     },
   ],

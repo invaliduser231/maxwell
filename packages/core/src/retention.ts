@@ -5,6 +5,7 @@ export const RETENTION = {
   closedTicketDays: 365,
   leftMemberDays: 365,
   auditDays: 365,
+  closedInboxDays: 365,
 } as const;
 
 const DAY = 86_400_000;
@@ -14,6 +15,7 @@ export interface RetentionResult {
   tickets: number;
   joins: number;
   audit: number;
+  inbox: number;
 }
 
 export class RetentionStore {
@@ -26,6 +28,7 @@ export class RetentionStore {
       tickets: await this.pruneClosedTickets(before(RETENTION.closedTicketDays)),
       joins: await this.pruneLeftMembers(before(RETENTION.leftMemberDays)),
       audit: await this.pruneAudit(before(RETENTION.auditDays)),
+      inbox: await this.pruneInbox(before(RETENTION.closedInboxDays)),
     };
   }
 
@@ -73,6 +76,19 @@ export class RetentionStore {
   async pruneAudit(before: Date): Promise<number> {
     const rows = await this.sql`
       delete from audit_entries where created_at < ${before} returning id
+    `;
+    return rows.length;
+  }
+
+  async pruneInbox(before: Date): Promise<number> {
+    const [exists] = await this.sql<{ ok: boolean }[]>`
+      select to_regclass('moderation_inbox') is not null as ok
+    `;
+    if (!exists?.ok) return 0;
+    const rows = await this.sql`
+      delete from moderation_inbox
+      where status in ('resolved', 'dismissed') and resolved_at < ${before}
+      returning id
     `;
     return rows.length;
   }

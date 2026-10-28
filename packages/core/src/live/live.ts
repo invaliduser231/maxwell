@@ -44,6 +44,7 @@ export const liveTables: LiveTable[] = [
   },
   { table: 'member_joins', module: 'invites' },
   { table: 'moderation_cases', module: 'moderation' },
+  { table: 'moderation_inbox', module: 'moderation' },
   { table: 'moderation_locks', module: 'moderation' },
   { table: 'moderation_notes', module: 'moderation' },
   { table: 'roles_menu_messages', module: 'roles' },
