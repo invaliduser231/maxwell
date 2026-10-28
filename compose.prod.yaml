@@ -1,0 +1,67 @@
+name: maxwell
+
+x-app: &app
+  env_file: .env
+  restart: unless-stopped
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:18.6
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: maxwell
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: maxwell
+    volumes:
+      - postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "maxwell"]
+      interval: 5s
+      retries: 10
+
+  bot:
+    <<: *app
+    build:
+      context: .
+      dockerfile: apps/bot/Dockerfile
+    image: maxwell-bot
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://maxwell:${POSTGRES_PASSWORD}@postgres:5432/maxwell
+
+  dashboard:
+    <<: *app
+    build:
+      context: .
+      dockerfile: apps/dashboard/Dockerfile
+    image: maxwell-dashboard
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://maxwell:${POSTGRES_PASSWORD}@postgres:5432/maxwell
+    ports:
+      - "${DASHBOARD_BIND:-127.0.0.1}:${DASHBOARD_PORT:-3000}:3000"
+
+  backup:
+    image: postgres:18.6
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: maxwell
+      PGDATABASE: maxwell
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_TIME: ${BACKUP_TIME:-03:17}
+      KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    entrypoint: ["/bin/bash", "/scripts/backup.sh"]
+    volumes:
+      - ${BACKUP_DIR:-./backups}:/backups
+      - ./deploy/compose/backup.sh:/scripts/backup.sh:ro
+      - ${BACKUP_KEY_DIR:-./backup-key}:/keys:ro
+
+volumes:
+  postgres:
