@@ -345,15 +345,16 @@ export class ModerationService {
         duration: duration ?? copy.permanent,
       },
     );
-    const dashboard = this.services.config.DASHBOARD_URL?.replace(/\/+$/, '');
-    const appeal =
-      action === 'ban' && config.appeals && dashboard
-        ? `\n${inboxCopy.appealLine(`${dashboard}/appeal/${guildId}`)}`
-        : '';
+    const appeal = action === 'ban' && config.appeals ? this.#appealLine(guildId) : '';
     const sent = await this.services.platform
       .sendDirect(userId, { content: `${clip(text, 2_000 - appeal.length)}${appeal}` })
       .catch(() => false);
     return sent ? 'sent' : 'failed';
+  }
+
+  #appealLine(guildId: string): string {
+    const dashboard = this.services.config.DASHBOARD_URL?.replace(/\/+$/, '');
+    return dashboard ? `\n${inboxCopy.appealLine(`${dashboard}/appeal/${guildId}`)}` : '';
   }
 
   async #escalate(
