@@ -6,11 +6,14 @@ import { actionCommands } from './commands/actions.js';
 import { caseCommands } from './commands/cases.js';
 import { channelCommands } from './commands/channels.js';
 import { noteCommands } from './commands/notes.js';
+import { reportCommands } from './commands/report.js';
 import { Confirmations } from './confirm.js';
 import { registerEvents } from './events.js';
+import { ModInbox } from './inbox.js';
+import { registerInbox } from './inbox-jobs.js';
 import { registerJobs } from './jobs.js';
 import { NameTracker } from './names.js';
-import { exportMember } from './privacy.js';
+import { exportInbox, exportMember } from './privacy.js';
 import { ModerationService } from './service.js';
 
 export default defineBotModule({
@@ -21,14 +24,23 @@ export default defineBotModule({
     const tools = new ChannelTools(moderation);
     const names = new NameTracker(store);
     const confirmations = new Confirmations();
+    const inbox = new ModInbox(moderation);
 
     registerJobs(moderation, tools);
     registerEvents(moderation, names, confirmations);
+    registerInbox(inbox);
     ctx.onShutdown(() => confirmations.stop());
     ctx.privacy({
-      export: (guildId, userId) => exportMember(store, guildId, userId),
+      export: async (guildId, userId) => {
+        const [cases, reports] = await Promise.all([
+          exportMember(store, guildId, userId),
+          exportInbox(inbox.store, guildId, userId),
+        ]);
+        return cases || reports ? { ...cases, ...(reports ? { inbox: reports } : {}) } : null;
+      },
       forget: async (guildId, userId) => {
         await store.forgetMember(guildId, userId);
+        await inbox.store.forget(guildId, userId);
         names.forget(guildId, userId);
       },
     });
@@ -37,6 +49,7 @@ export default defineBotModule({
       ...actionCommands(moderation),
       ...caseCommands(moderation),
       ...noteCommands(moderation),
+      ...reportCommands(inbox),
       ...channelCommands(tools, confirmations),
     ];
   },

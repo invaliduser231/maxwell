@@ -68,9 +68,19 @@ export class ActionError extends Error {
 
 type Ctx = ModuleContext<typeof moderationConfig>;
 
+type ReviewListener = (row: CaseRow) => Promise<void>;
+type ReviewResolvedListener = (
+  guildId: string,
+  number: number,
+  approved: boolean,
+  moderatorId: string | null,
+) => Promise<void>;
+
 export class ModerationService {
   readonly expected = new ExpectedActions();
   readonly holds = new AuditHolds();
+  readonly #reviewListeners: ReviewListener[] = [];
+  readonly #resolvedListeners: ReviewResolvedListener[] = [];
 
   constructor(
     readonly ctx: Ctx,
@@ -83,6 +93,22 @@ export class ModerationService {
 
   config(guildId: string): Promise<ModerationConfig> {
     return this.ctx.config(guildId);
+  }
+
+  onReview(listener: ReviewListener): void {
+    this.#reviewListeners.push(listener);
+  }
+
+  onReviewResolved(listener: ReviewResolvedListener): void {
+    this.#resolvedListeners.push(listener);
+  }
+
+  async #emit<T extends unknown[]>(listeners: ((...args: T) => Promise<void>)[], ...args: T) {
+    for (const listener of listeners) {
+      await listener(...args).catch((error) =>
+        this.services.log.warn({ err: error, module: 'moderation' }, 'review listener failed'),
+      );
+    }
   }
 
   async act(input: ActInput): Promise<ActResult> {
@@ -347,6 +373,7 @@ export class ModerationService {
         source: 'escalation',
         meta: { suggested: step.action, durationMinutes: step.durationMinutes, warns: active },
       });
+      await this.#emit(this.#reviewListeners, flagged.row);
       return { kind: 'review', row: flagged.row, step, active, days };
     }
 
@@ -383,6 +410,7 @@ export class ModerationService {
       await this.store.setMeta(guildId, number, { review: copy.reviewDeclined(by) });
       await this.store.voidCase(guildId, number, moderatorId, reasons.declined);
       await this.refreshLog(guildId, number);
+      await this.#emit(this.#resolvedListeners, guildId, number, false, moderatorId);
       return null;
     }
     const suggested = row.meta.suggested;
@@ -401,6 +429,7 @@ export class ModerationService {
     await this.store.end(guildId, number);
     await this.store.setMeta(guildId, number, { review: copy.reviewApproved(by) });
     await this.refreshLog(guildId, number);
+    await this.#emit(this.#resolvedListeners, guildId, number, true, moderatorId);
     return result;
   }
 }

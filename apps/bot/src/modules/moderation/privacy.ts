@@ -1,3 +1,4 @@
+import type { InboxStore } from '@maxwell/core/stores/inbox';
 import type { CaseRow, ModerationStore, NameRow } from '@maxwell/core/stores/moderation';
 
 function iso(date: Date | null): string | null {
@@ -42,5 +43,30 @@ export async function exportMember(
     nameHistory: data.names.map(exportName),
     notesAboutYou: data.notes,
     casesYouIssued: data.issued,
+  };
+}
+
+export async function exportInbox(
+  inbox: InboxStore,
+  guildId: string,
+  userId: string,
+): Promise<Record<string, unknown> | null> {
+  const data = await inbox.memberData(guildId, userId);
+  if (data.about.length === 0 && data.reported.length === 0) return null;
+  return {
+    appeals: data.about.map((item) => ({
+      number: item.number,
+      text: item.body,
+      status: item.status,
+      createdAt: iso(item.createdAt),
+      resolvedAt: iso(item.resolvedAt),
+    })),
+    reportsYouMade: data.reported.map((item) => ({
+      number: item.number,
+      text: item.body,
+      excerpt: item.excerpt,
+      status: item.status,
+      createdAt: iso(item.createdAt),
+    })),
   };
 }

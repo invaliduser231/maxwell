@@ -58,6 +58,7 @@ describe('module setup', () => {
         'notes',
         'purge',
         'reason',
+        'report',
         'slowmode',
         'timeout',
         'unban',
@@ -69,15 +70,35 @@ describe('module setup', () => {
     );
     expect(commands.every((command) => command.guildOnly === true)).toBe(true);
     const leaves = commands.flatMap((command) => [command, ...(command.subcommands ?? [])]);
-    for (const command of leaves.filter((entry) => entry.name !== 'warnings')) {
+    for (const command of leaves.filter((entry) => !['warnings', 'report'].includes(entry.name))) {
       expect(command.permissions?.length, command.name).toBeGreaterThan(0);
       expect(typeof command.allow, command.name).toBe('function');
     }
     expect(jobs.sort()).toEqual(
-      ['action', 'expire', 'retention', 'review', 'sweep', 'sync', 'unlock'].sort(),
+      [
+        'action',
+        'expire',
+        'inbox.assign',
+        'inbox.notify',
+        'inbox.resolve',
+        'retention',
+        'review',
+        'sweep',
+        'sync',
+        'unlock',
+      ].sort(),
     );
     expect(undos).toEqual(
-      expect.arrayContaining(['ban', 'timeout', 'warn', 'unban', 'lock', 'unlock', 'slowmode']),
+      expect.arrayContaining([
+        'ban',
+        'timeout',
+        'warn',
+        'unban',
+        'lock',
+        'unlock',
+        'slowmode',
+        'inbox',
+      ]),
     );
     expect(events).toEqual(
       expect.arrayContaining(['banAdd', 'banRemove', 'memberUpdate', 'auditLog']),
