@@ -14,6 +14,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 COPY tsconfig.base.json ./
 COPY packages/core packages/core
 COPY apps/dashboard apps/dashboard
+ENV NEXT_OUTPUT=standalone
 RUN pnpm --filter @maxwell/core build && pnpm --filter @maxwell/dashboard build
 
 FROM node:24.22.1-bookworm-slim AS runtime

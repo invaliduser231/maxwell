@@ -6,7 +6,7 @@ const rootEnv = resolve(import.meta.dirname, '../../.env');
 if (existsSync(rootEnv)) process.loadEnvFile(rootEnv);
 
 const config: NextConfig = {
-  output: 'standalone',
+  output: process.env.NEXT_OUTPUT === 'standalone' ? 'standalone' : undefined,
   outputFileTracingRoot: resolve(import.meta.dirname, '../..'),
   serverExternalPackages: ['postgres'],
   poweredByHeader: false,
