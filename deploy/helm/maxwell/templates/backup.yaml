@@ -1,5 +1,6 @@
 {{- if and .Values.backup.enabled .Values.postgres.enabled }}
 {{- $p := .Values.postgres }}
+{{- $b := .Values.backup }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -16,8 +17,21 @@ spec:
   {{- end }}
   resources:
     requests:
-      storage: {{ .Values.backup.storage.size }}
+      storage: {{ $b.storage.size }}
 ---
+{{- if $b.encryption.publicKey }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "maxwell.name" . }}-backup-key
+  labels:
+    {{- include "maxwell.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backup
+data:
+  backup.asc: |
+    {{- $b.encryption.publicKey | nindent 4 }}
+---
+{{- end }}
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -26,7 +40,7 @@ metadata:
     {{- include "maxwell.labels" . | nindent 4 }}
     app.kubernetes.io/component: backup
 spec:
-  schedule: {{ .Values.backup.schedule | quote }}
+  schedule: {{ $b.schedule | quote }}
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 2
   failedJobsHistoryLimit: 3
@@ -45,6 +59,85 @@ spec:
             runAsUser: 999
             runAsGroup: 999
             fsGroup: 999
+          {{- if $b.offsite.enabled }}
+          initContainers:
+            - name: pg-dump
+              image: "{{ $p.image.repository }}:{{ $p.image.tag }}"
+              imagePullPolicy: {{ $p.image.pullPolicy }}
+              env:
+                - name: PGHOST
+                  value: {{ include "maxwell.postgresHost" . }}
+                - name: PGUSER
+                  value: {{ $p.user | quote }}
+                - name: PGDATABASE
+                  value: {{ $p.database | quote }}
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "maxwell.secretName" . }}
+                      key: POSTGRES_PASSWORD
+                - name: KEEP_DAYS
+                  value: {{ $b.keepDays | quote }}
+                - name: GNUPGHOME
+                  value: /tmp/gnupg
+              command:
+                - /bin/bash
+                - -ec
+                - |
+                  set -o pipefail
+                  file="/backups/maxwell-$(date -u +%Y%m%d-%H%M%S).dump"
+                  if [ -s /keys/backup.asc ]; then
+                    mkdir -p -m 700 "$GNUPGHOME"
+                    pg_dump --format=custom \
+                      | gpg --batch --no-tty --trust-model always --recipient-file /keys/backup.asc \
+                        --encrypt --output "$file.gpg.partial"
+                    mv "$file.gpg.partial" "$file.gpg"
+                  else
+                    pg_dump --format=custom --file="$file.partial"
+                    mv "$file.partial" "$file"
+                  fi
+                  find /backups -name 'maxwell-*.dump*' -mtime +"$KEEP_DAYS" -delete
+                  ls -lh /backups
+              volumeMounts:
+                - name: backups
+                  mountPath: /backups
+                - name: tmp
+                  mountPath: /tmp
+                {{- if $b.encryption.publicKey }}
+                - name: keys
+                  mountPath: /keys
+                  readOnly: true
+                {{- end }}
+          containers:
+            - name: offsite
+              image: "{{ $b.offsite.image.repository }}:{{ $b.offsite.image.tag }}"
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: REMOTE
+                  value: {{ required "backup.offsite.remote is required" $b.offsite.remote | quote }}
+                - name: KEEP_DAYS
+                  value: {{ $b.keepDays | quote }}
+                - name: RCLONE_CONFIG
+                  value: /config/rclone.conf
+                - name: HOME
+                  value: /tmp
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  rclone copy /backups "$REMOTE" --include 'maxwell-*.dump*'
+                  rclone delete "$REMOTE" --include 'maxwell-*.dump*' --min-age "${KEEP_DAYS}d"
+                  rclone lsl "$REMOTE"
+              volumeMounts:
+                - name: backups
+                  mountPath: /backups
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+                - name: rclone
+                  mountPath: /config
+                  readOnly: true
+          {{- else }}
           containers:
             - name: pg-dump
               image: "{{ $p.image.repository }}:{{ $p.image.tag }}"
@@ -62,21 +155,55 @@ spec:
                       name: {{ include "maxwell.secretName" . }}
                       key: POSTGRES_PASSWORD
                 - name: KEEP_DAYS
-                  value: {{ .Values.backup.keepDays | quote }}
+                  value: {{ $b.keepDays | quote }}
+                - name: GNUPGHOME
+                  value: /tmp/gnupg
               command:
-                - /bin/sh
+                - /bin/bash
                 - -ec
                 - |
+                  set -o pipefail
                   file="/backups/maxwell-$(date -u +%Y%m%d-%H%M%S).dump"
-                  pg_dump --format=custom --file="$file.partial"
-                  mv "$file.partial" "$file"
-                  find /backups -name 'maxwell-*.dump' -mtime +"$KEEP_DAYS" -delete
+                  if [ -s /keys/backup.asc ]; then
+                    mkdir -p -m 700 "$GNUPGHOME"
+                    pg_dump --format=custom \
+                      | gpg --batch --no-tty --trust-model always --recipient-file /keys/backup.asc \
+                        --encrypt --output "$file.gpg.partial"
+                    mv "$file.gpg.partial" "$file.gpg"
+                  else
+                    pg_dump --format=custom --file="$file.partial"
+                    mv "$file.partial" "$file"
+                  fi
+                  find /backups -name 'maxwell-*.dump*' -mtime +"$KEEP_DAYS" -delete
                   ls -lh /backups
               volumeMounts:
                 - name: backups
                   mountPath: /backups
+                - name: tmp
+                  mountPath: /tmp
+                {{- if $b.encryption.publicKey }}
+                - name: keys
+                  mountPath: /keys
+                  readOnly: true
+                {{- end }}
+          {{- end }}
           volumes:
             - name: backups
               persistentVolumeClaim:
                 claimName: {{ include "maxwell.name" . }}-backups
+            - name: tmp
+              emptyDir: {}
+            {{- if $b.encryption.publicKey }}
+            - name: keys
+              configMap:
+                name: {{ include "maxwell.name" . }}-backup-key
+            {{- end }}
+            {{- if $b.offsite.enabled }}
+            - name: rclone
+              secret:
+                secretName: {{ required "backup.offsite.existingSecret is required" $b.offsite.existingSecret }}
+                items:
+                  - key: rclone.conf
+                    path: rclone.conf
+            {{- end }}
 {{- end }}
