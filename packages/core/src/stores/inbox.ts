@@ -82,6 +82,18 @@ export interface Resolution {
   note: string | null;
 }
 
+export type InboxState = Pick<
+  InboxItem,
+  | 'number'
+  | 'status'
+  | 'assigneeId'
+  | 'outcome'
+  | 'outcomeCase'
+  | 'note'
+  | 'resolvedBy'
+  | 'resolvedAt'
+>;
+
 export const ACTIVE: readonly InboxStatus[] = ['open', 'claimed'];
 export const APPEAL_WAIT_DAYS = 30;
 
@@ -290,7 +302,7 @@ export class InboxStore {
     );
   }
 
-  async restore(guildId: string, previous: InboxItem): Promise<InboxItem | null> {
+  async restore(guildId: string, previous: InboxState): Promise<InboxItem | null> {
     const [row] = await this.sql<InboxItem[]>`
       update moderation_inbox
       set status = ${previous.status}, assignee_id = ${previous.assigneeId},
