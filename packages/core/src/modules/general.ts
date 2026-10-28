@@ -10,7 +10,7 @@ export const generalConfig = z.object({
   timezone: z.string().min(1).default('UTC'),
   disabledCommands: z.array(z.string()).default([]),
   commandChannels: z.array(z.string()).default([]),
-  caseRetentionDays: z.number().int().min(30).nullable().default(null),
+  caseRetentionDays: z.number().int().min(30).nullable().default(730),
 });
 
 export type GeneralConfig = z.infer<typeof generalConfig>;
