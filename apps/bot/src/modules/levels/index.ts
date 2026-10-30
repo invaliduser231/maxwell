@@ -4,7 +4,7 @@ import { LevelStore } from '@maxwell/core/stores/levels';
 import { defineBotModule } from '../../runtime/module.js';
 import { CardPager } from './board.js';
 import { levelCommands } from './commands.js';
-import { audit, copy } from './copy.js';
+import { audit } from './copy.js';
 import { parseImport, parseMode } from './importer.js';
 import { LevelTracker } from './tracker.js';
 
