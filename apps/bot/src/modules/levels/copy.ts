@@ -10,6 +10,8 @@ const en = {
   giveDescription: 'Gives a member XP.',
   takeDescription: 'Takes XP from a member.',
   resetDescription: 'Sets a member back to zero.',
+  hideDescription: 'Hides you from the public community page.',
+  showDescription: 'Shows you on the public community page again.',
 
   noXpSelf: ['No XP yet. Say something first.', 'Nothing on the board for you yet.'],
   noXpOther: (userId: string) => `${mention.user(userId)} has no XP yet.`,
@@ -40,6 +42,10 @@ const en = {
   reset: (userId: string) => `${mention.user(userId)} is back at zero.`,
   nothingToReset: (userId: string) => `${mention.user(userId)} has no XP to reset.`,
   botTarget: "Bots don't collect XP.",
+  hidden: 'You are off the public community page. Leaderboards in chat still show you.',
+  alreadyHidden: 'You are already off the public community page.',
+  shown: 'You can show up on the public community page again.',
+  alreadyShown: 'You are not hidden from the public community page.',
 
   rewardReason: (level: number) => `Level ${level} reward`,
   levelUp: '**{name}** is now level {level}.',

@@ -9,6 +9,8 @@ const de: LevelsCopy = {
   giveDescription: 'Gibt einem Mitglied XP.',
   takeDescription: 'Nimmt einem Mitglied XP weg.',
   resetDescription: 'Setzt ein Mitglied auf null zurück.',
+  hideDescription: 'Blendet dich auf der öffentlichen Community-Seite aus.',
+  showDescription: 'Zeigt dich wieder auf der öffentlichen Community-Seite.',
 
   noXpSelf: ['Noch keine XP. Schreib erst mal was.', 'Für dich steht noch nichts auf der Liste.'],
   noXpOther: (userId: string) => `${mention.user(userId)} hat noch keine XP.`,
@@ -38,6 +40,11 @@ const de: LevelsCopy = {
   reset: (userId: string) => `${mention.user(userId)} steht wieder bei null.`,
   nothingToReset: (userId: string) => `${mention.user(userId)} hat keine XP zum Zurücksetzen.`,
   botTarget: 'Bots sammeln keine XP.',
+  hidden:
+    'Du stehst nicht mehr auf der öffentlichen Community-Seite. Ranglisten im Chat zeigen dich weiter.',
+  alreadyHidden: 'Du bist auf der öffentlichen Community-Seite schon ausgeblendet.',
+  shown: 'Du kannst wieder auf der öffentlichen Community-Seite auftauchen.',
+  alreadyShown: 'Du bist auf der öffentlichen Community-Seite nicht ausgeblendet.',
 
   rewardReason: (level: number) => `Belohnung für Level ${level}`,
   levelUp: '**{name}** ist jetzt Level {level}.',

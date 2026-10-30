@@ -37,13 +37,33 @@ export function levelCommands(
   pager: CardPager,
   wallets: BackgroundSource,
 ): Command[] {
+  const visibility = (hidden: boolean): Command => ({
+    name: hidden ? 'hide' : 'show',
+    description: hidden ? copy.hideDescription : copy.showDescription,
+    guildOnly: true,
+    cooldown: 5_000,
+    examples: [hidden ? 'rank hide' : 'rank show'],
+    async run(ctx) {
+      const changed = await store.setPublicHidden(ctx.guildId, ctx.message.author.id, hidden);
+      if (!changed) {
+        await ctx.reply({
+          content: hidden ? copy.alreadyHidden : copy.alreadyShown,
+          deleteAfter: 15_000,
+        });
+        return;
+      }
+      await ctx.reply(ctx.services.voice.done(hidden ? copy.hidden : copy.shown, ctx.seed));
+    },
+  });
+
   const rank: Command = {
     name: 'rank',
     description: copy.rankDescription,
     guildOnly: true,
     cooldown: 5_000,
     args: [{ name: 'member', type: 'user', optional: true }],
-    examples: ['rank', 'rank @Lena'],
+    examples: ['rank', 'rank @Lena', 'rank hide', 'rank show'],
+    subcommands: [visibility(true), visibility(false)],
     async run(ctx) {
       const { voice, platform, cards } = ctx.services;
       const userId = ctx.args.string('member') ?? ctx.message.author.id;
