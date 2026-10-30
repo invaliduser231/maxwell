@@ -103,6 +103,7 @@ export default defineBotModule({
           level: levelFromXp(data.xp, config.curve).level,
           rank: data.rank,
           lastXpAt: data.lastXpAt?.toISOString() ?? null,
+          hiddenFromPublicPage: data.hiddenPublic,
         };
       },
       forget: (guildId, userId) => store.forget(guildId, userId),
