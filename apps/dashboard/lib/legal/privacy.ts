@@ -87,6 +87,15 @@ Where no period is given above, data is kept as long as the community uses Maxwe
 
 **For members of communities:** the admins of a community decide what Maxwell does there. You can also turn to them, and to us at [rainer@schnittert.com](mailto:rainer@schnittert.com).
 
+### Maxwell Shield
+
+Communities can take part in Maxwell Shield. If a community takes part, Maxwell records bans there for raids, nukes, honeypots and very high risk scores, and bans that moderators share with the command **m!security shield**: the user ID, the kind of ban, who shared it and when. Other communities that take part never see where or why someone was reported. They only learn that at least two other communities reported the same user, which raises the risk score when that user joins and can lead to a captcha. Maxwell never bans anyone because of Shield.
+
+- **Purpose:** protecting communities and their members against raids and taken-over accounts.
+- **Legal basis:** Art. 6(1)(f) GDPR. The legitimate interest is that of the communities taking part and their members in protection against coordinated attacks.
+- **Retention:** 90 days, or until the ban is lifted or the community stops taking part.
+- You can object (section 14) and ask by email whether and why you are listed.
+
 ## 6. Who sees the data
 
 - **Admins and moderators of a community** see the data of their community in the dashboard and in Fluxer, for example cases, notes, member files, transcripts and logs, depending on the access they were given.

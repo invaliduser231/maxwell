@@ -40,8 +40,9 @@ You may not use Maxwell for:
 5. **Illegal content:** for example child sexual abuse material, terrorist content, incitement to hatred, threats, defamation, infringement of copyright or personality rights, publishing other people's private information, fraud, phishing.
 6. **Harassment and hate:** targeted harassment, hate against people or groups, calls for violence.
 7. **Attacks:** attacks on our or other systems, including through feeds or picture addresses.
-8. **Circumventing safeguards:** getting around cooldowns, vote checks or security features of Maxwell or Fluxer, exploiting security vulnerabilities. Please report vulnerabilities to [rainer@schnittert.com](mailto:rainer@schnittert.com).
-9. **Violating Fluxer's terms** or Fluxer's rules for bots.
+8. **Misusing Maxwell Shield:** sharing bans that are not about raids, spam or attacks, for example because of a personal dispute.
+9. **Circumventing safeguards:** getting around cooldowns, vote checks or security features of Maxwell or Fluxer, exploiting security vulnerabilities. Please report vulnerabilities to [rainer@schnittert.com](mailto:rainer@schnittert.com).
+10. **Violating Fluxer's terms** or Fluxer's rules for bots.
 
 ## 6. Measures
 
