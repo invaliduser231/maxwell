@@ -69,6 +69,7 @@ export const riskWeights = z
     priorKick: points(2),
     priorBan: points(4),
     newInviter: points(2),
+    shield: points(6),
     established: points(-2),
   })
   .prefault({});
@@ -144,6 +145,19 @@ export const honeypotSettings = z
   })
   .prefault({});
 
+export const shieldSources = ['raid', 'nuke', 'severe', 'honeypot', 'manual'] as const;
+
+export type ShieldSource = (typeof shieldSources)[number];
+
+export const SHIELD_MIN_COMMUNITIES = 2;
+export const SHIELD_DAYS = 90;
+
+export const shieldSettings = z
+  .object({
+    enabled: z.boolean().default(false),
+  })
+  .prefault({});
+
 export const securityConfig = z.object({
   logChannelId: id.nullable().default(null),
   alertRoleId: id.nullable().default(null),
@@ -151,6 +165,7 @@ export const securityConfig = z.object({
   raid: raidSettings,
   nuke: nukeSettings,
   honeypot: honeypotSettings,
+  shield: shieldSettings,
 });
 
 export type SecurityConfig = z.infer<typeof securityConfig>;
@@ -159,6 +174,7 @@ export type VerificationSettings = SecurityConfig['verification'];
 export type RaidSettings = SecurityConfig['raid'];
 export type NukeSettings = SecurityConfig['nuke'];
 export type HoneypotSettings = SecurityConfig['honeypot'];
+export type ShieldSettings = SecurityConfig['shield'];
 
 export default defineModule({
   key: 'security',
@@ -222,6 +238,22 @@ export default defineModule({
         );
 
         create unique index security_raids_open on security_raids (guild_id) where ended_at is null;
+      `,
+    },
+    {
+      id: '2-shield',
+      up: `
+        create table security_shield_reports (
+          guild_id bigint not null,
+          user_id bigint not null,
+          source text not null check (source in ('raid', 'nuke', 'severe', 'honeypot', 'manual')),
+          reported_by bigint,
+          created_at timestamptz not null default now(),
+          expires_at timestamptz not null,
+          primary key (guild_id, user_id)
+        );
+
+        create index security_shield_reports_user on security_shield_reports (user_id, expires_at);
       `,
     },
   ],
