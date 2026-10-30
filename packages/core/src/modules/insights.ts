@@ -8,6 +8,9 @@ export const insightsConfig = z.object({
   countBots: z.boolean().default(false),
   trackVoice: z.boolean().default(true),
   retentionDays: z.number().int().min(30).max(730).default(INSIGHTS_RETENTION_DEFAULT),
+  digestChannelId: z.string().nullable().default(null),
+  digestDay: z.number().int().min(0).max(6).default(0),
+  digestHour: z.number().int().min(0).max(23).default(9),
 });
 
 export type InsightsConfig = z.output<typeof insightsConfig>;
@@ -17,6 +20,9 @@ export const moderationModules = ['moderation', 'automod'] as const;
 export const NATIVE_MODULE = 'native';
 export const nativeActions = ['ban', 'kick'] as const;
 export type NativeAction = (typeof nativeActions)[number];
+
+export const digestActions = ['warn', 'timeout', 'kick', 'ban'] as const;
+export type DigestAction = (typeof digestActions)[number];
 
 export default defineModule({
   key: 'insights',
@@ -80,6 +86,18 @@ export default defineModule({
         );
 
         create index insights_moderation_actor on insights_moderation (guild_id, actor_id);
+      `,
+    },
+    {
+      id: '3-digests',
+      up: `
+        create table insights_digests (
+          guild_id bigint not null,
+          week text not null,
+          channel_id bigint not null,
+          posted_at timestamptz not null default now(),
+          primary key (guild_id, week)
+        );
       `,
     },
   ],

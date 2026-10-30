@@ -1,5 +1,7 @@
 import type { Sql } from '../db/sql.js';
 import {
+  type DigestAction,
+  digestActions,
   INSIGHTS_RETENTION_DEFAULT,
   moderationModules,
   NATIVE_MODULE,
@@ -117,6 +119,15 @@ export interface InsightsSummary {
   leaves: number;
   voiceMinutes: number;
   moderationActions: number;
+}
+
+export interface DigestNumbers {
+  joins: number;
+  leaves: number;
+  messages: number;
+  activeMembers: number;
+  channels: ChannelCount[];
+  moderation: Record<DigestAction, number>;
 }
 
 const CHUNK = 500;
@@ -260,6 +271,64 @@ export class InsightsStore {
         moderationActions: 0,
       }
     );
+  }
+
+  async digest(guildId: string, range: Range): Promise<DigestNumbers> {
+    const fromDay = utcDay(range.from);
+    const toDay = utcDay(range.to);
+    const [summary, channels, moderation] = await Promise.all([
+      this.summary(guildId, range),
+      this.topChannels(guildId, range, 3),
+      this.sql<{ action: DigestAction; count: number }[]>`
+        select a.action, greatest(
+          (select count(*) from moderation_cases c
+            where c.guild_id = ${guildId} and c.action = a.action and c.voided_at is null
+              and c.created_at >= ${range.from} and c.created_at < ${range.to}),
+          (select coalesce(sum(n.count), 0) from insights_moderation n
+            where n.guild_id = ${guildId} and n.action = a.action
+              and n.day >= ${fromDay}::date and n.day < ${toDay}::date)
+        )::int as count
+        from unnest(${this.sql.array([...digestActions])}::text[]) as a(action)
+      `,
+    ]);
+    const counts = Object.fromEntries(digestActions.map((action) => [action, 0])) as Record<
+      DigestAction,
+      number
+    >;
+    for (const row of moderation) counts[row.action] = row.count;
+    return {
+      joins: summary.joins,
+      leaves: summary.leaves,
+      messages: summary.messages,
+      activeMembers: summary.activeMembers,
+      channels: [...channels],
+      moderation: counts,
+    };
+  }
+
+  async digestGuilds(): Promise<string[]> {
+    const rows = await this.sql<{ guildId: string }[]>`
+      select m.guild_id::text as "guildId"
+      from guild_modules m
+      join guilds g on g.id = m.guild_id
+      where m.module = 'insights' and m.enabled is true and g.left_at is null
+        and coalesce(m.config->>'digestChannelId', '') <> ''
+    `;
+    return rows.map((row) => row.guildId);
+  }
+
+  async claimDigest(guildId: string, week: string, channelId: string): Promise<boolean> {
+    const rows = await this.sql`
+      insert into insights_digests (guild_id, week, channel_id)
+      values (${guildId}, ${week}, ${channelId})
+      on conflict (guild_id, week) do nothing
+      returning week
+    `;
+    return rows.length > 0;
+  }
+
+  async releaseDigest(guildId: string, week: string): Promise<void> {
+    await this.sql`delete from insights_digests where guild_id = ${guildId} and week = ${week}`;
   }
 
   async messages(
@@ -477,6 +546,7 @@ export class InsightsStore {
       await tx`delete from insights_members where guild_id = ${guildId}`;
       await tx`delete from insights_voice where guild_id = ${guildId}`;
       await tx`delete from insights_moderation where guild_id = ${guildId}`;
+      await tx`delete from insights_digests where guild_id = ${guildId}`;
     });
   }
 
@@ -496,6 +566,7 @@ export class InsightsStore {
       ['insights_members', 'day'],
       ['insights_voice', 'day'],
       ['insights_moderation', 'day'],
+      ['insights_digests', 'posted_at'],
     ];
     for (const [table, column] of tables) {
       const result = await this.sql`
