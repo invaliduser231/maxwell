@@ -39,4 +39,7 @@ export const insights = {
   'Count bots': 'Bots mitzählen',
   'Count voice time': 'Sprachzeit mitzählen',
   'Nothing counted yet.': 'Noch nichts gezählt.',
+  'Weekly digest': 'Wochenbericht',
+  Day: 'Tag',
+  'Send a test digest now': 'Testbericht jetzt senden',
 } as const;

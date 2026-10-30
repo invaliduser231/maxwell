@@ -2,12 +2,14 @@
 
 import type { InsightsConfig } from '@maxwell/core/modules/insights';
 import { usePathname, useRouter } from 'next/navigation';
-import { useTransition } from 'react';
-import { ChannelMulti, Seg, Select, Switch } from '@/components/controls';
+import { useState, useTransition } from 'react';
+import { ChannelMulti, ChannelSelect, Seg, Select, Switch } from '@/components/controls';
 import { ChannelType, useChannelName, useGuild } from '@/components/guild';
 import { useT } from '@/components/i18n';
 import { useDraft } from '@/components/module-shell';
+import { type Status, StatusText } from '@/components/status-text';
 import { Empty, Field, Fields, Grid, Panel, PanelBody, Row } from '@/components/ui';
+import { runAction } from '@/lib/actions';
 import type { Key, Translator } from '@/lib/i18n';
 
 export type RangeDays = 7 | 30 | 90;
@@ -59,8 +61,8 @@ const keepFor: { value: string; label: Key }[] = [
   { value: '730', label: '2 years' },
 ];
 
-function weekdayNames(locale: string): string[] {
-  const format = new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' });
+function weekdayNames(locale: string, weekday: 'short' | 'long' = 'short'): string[] {
+  const format = new Intl.DateTimeFormat(locale, { weekday, timeZone: 'UTC' });
   return Array.from({ length: 7 }, (_, index) =>
     format.format(new Date(Date.UTC(2024, 0, 1 + index))),
   );
@@ -606,6 +608,84 @@ function Settings() {
   );
 }
 
+function Digest({ timezone }: { timezone: string }) {
+  const t = useT();
+  const { guildId } = useGuild();
+  const channelName = useChannelName();
+  const { value, set, readOnly, dirty, save } = useDraft<InsightsConfig>();
+  const [status, setStatus] = useState<Status>(null);
+  const [pending, start] = useTransition();
+  const weekdays = weekdayNames(t.locale, 'long');
+  const channelId = value.digestChannelId;
+
+  const test = () =>
+    start(async () => {
+      if (dirty && !(await save())) return;
+      const result = await runAction(guildId, 'insights', 'digest.test');
+      setStatus(
+        result.ok
+          ? { message: t('Sent to {channel}.', { channel: channelName(channelId) }), error: false }
+          : { message: result.error, error: true },
+      );
+    });
+
+  return (
+    <Panel
+      title={t('Weekly digest')}
+      span={12}
+      id="insights-digest"
+      actions={<span className="mx-sub">{timezone.replaceAll('_', ' ')}</span>}
+    >
+      <PanelBody>
+        <Fields>
+          <Field label={t('Channel')}>
+            <ChannelSelect
+              label={t('Channel')}
+              none={t('Off')}
+              value={channelId}
+              onChange={(digestChannelId) => set({ digestChannelId })}
+            />
+          </Field>
+          <Field label={t('Day')}>
+            <Select
+              label={t('Day')}
+              value={String(value.digestDay)}
+              options={weekdays.map((name, index) => ({ value: String(index), label: name }))}
+              disabled={!channelId}
+              onChange={(next) => set({ digestDay: Number(next) })}
+            />
+          </Field>
+          <Field label={t('Time')}>
+            <Select
+              label={t('Time')}
+              value={String(value.digestHour)}
+              options={HOURS.map((hour) => ({
+                value: String(hour),
+                label: `${String(hour).padStart(2, '0')}:00`,
+              }))}
+              disabled={!channelId}
+              onChange={(next) => set({ digestHour: Number(next) })}
+            />
+          </Field>
+        </Fields>
+        {readOnly ? null : (
+          <div className="mx-inline">
+            <button
+              type="button"
+              className="mx-btn"
+              disabled={pending || !channelId}
+              onClick={test}
+            >
+              {t('Send a test digest now')}
+            </button>
+            <StatusText status={status} />
+          </div>
+        )}
+      </PanelBody>
+    </Panel>
+  );
+}
+
 export function InsightsView({
   days,
   timezone,
@@ -658,6 +738,7 @@ export function InsightsView({
         ) : null}
         {moderated ? <Moderation weeks={weeks} span={talk ? 4 : 6} /> : null}
         {invited ? <RetentionTable rows={retention} /> : null}
+        <Digest timezone={timezone} />
         <Settings />
       </Grid>
     </div>
