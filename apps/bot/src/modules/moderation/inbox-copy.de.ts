@@ -15,6 +15,8 @@ const de: InboxCopy = {
     report: (n: number) => `Meldung #${n}`,
     appeal: (n: number) => `Einspruch #${n}`,
     review: (n: number) => `Prüfung #${n}`,
+    gate: (n: number) => `Einlass #${n}`,
+    check: (n: number) => `Verifizierung #${n}`,
   },
   fields: {
     member: 'Mitglied',
@@ -23,6 +25,8 @@ const de: InboxCopy = {
     report: 'Meldung',
     appeal: 'Einspruch',
     review: 'Grund',
+    gate: 'Wartend',
+    check: 'Verifizierung',
     status: 'Status',
     outcome: 'Ergebnis',
     note: 'Notiz',
@@ -46,8 +50,22 @@ const de: InboxCopy = {
     approved: 'Bestätigt',
     declined: 'Abgelehnt',
     deleted: 'Nachricht gelöscht',
+    let_in: 'Hereingelassen',
+    banned: 'Gebannt',
+    left: 'Hat den Server verlassen',
+    passed: 'Captcha gelöst',
+    released: 'Hereingelassen',
     none: 'Nichts unternommen',
   },
+  gateHeld: (n: number) =>
+    n === 1 ? '1 Mitglied wartet am Einlass' : `${count(n)} Mitglieder warten am Einlass`,
+  checkStates: {
+    undelivered: 'Das Captcha ließ sich nicht zustellen.',
+    failed: 'Captcha nicht gelöst.',
+    expired: 'Captcha nicht rechtzeitig gelöst.',
+  },
+  riskScore: (score: number, reasons: string) =>
+    `Risikowert ${score}${reasons ? `: ${reasons}` : ''}`,
   appealAccepted: (server: string) =>
     `Dein Einspruch in **${server}** wurde angenommen. Mit einer Einladung kannst du wieder beitreten.`,
   appealDeclined: (server: string) => `Dein Einspruch in **${server}** wurde abgelehnt.`,

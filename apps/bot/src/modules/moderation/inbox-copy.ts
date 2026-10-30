@@ -17,6 +17,8 @@ const en = {
     report: (n: number) => `Report #${n}`,
     appeal: (n: number) => `Appeal #${n}`,
     review: (n: number) => `Review #${n}`,
+    gate: (n: number) => `Gate #${n}`,
+    check: (n: number) => `Verification #${n}`,
   } satisfies Record<InboxKind, (n: number) => string>,
   fields: {
     member: 'Member',
@@ -25,6 +27,8 @@ const en = {
     report: 'Report',
     appeal: 'Appeal',
     review: 'Reason',
+    gate: 'Waiting',
+    check: 'Verification',
     status: 'Status',
     outcome: 'Outcome',
     note: 'Note',
@@ -48,8 +52,21 @@ const en = {
     approved: 'Approved',
     declined: 'Declined',
     deleted: 'Message deleted',
+    let_in: 'Let in',
+    banned: 'Banned',
+    left: 'Left the server',
+    passed: 'Passed the captcha',
+    released: 'Let in',
     none: 'No action',
   },
+  gateHeld: (n: number) => `${plural(n, 'member')} waiting at the gate`,
+  checkStates: {
+    undelivered: 'The captcha could not be sent.',
+    failed: 'Failed the captcha.',
+    expired: 'Did not solve the captcha in time.',
+  },
+  riskScore: (score: number, reasons: string) =>
+    `Risk score ${score}${reasons ? `: ${reasons}` : ''}`,
   appealAccepted: (server: string) =>
     `Your appeal in **${server}** was accepted. You can join again with an invite.`,
   appealDeclined: (server: string) => `Your appeal in **${server}** was declined.`,
@@ -61,7 +78,13 @@ export type InboxCopy = typeof en;
 
 export const inboxCopy = localized(en, { de });
 
-const kinds: Record<InboxKind, string> = { report: 'report', appeal: 'appeal', review: 'review' };
+const kinds: Record<InboxKind, string> = {
+  report: 'report',
+  appeal: 'appeal',
+  review: 'review',
+  gate: 'gate',
+  check: 'verification',
+};
 
 export const inboxAudit = {
   claim: (kind: InboxKind, n: number) => `Claimed ${kinds[kind]} #${n}`,

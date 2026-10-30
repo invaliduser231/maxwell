@@ -5,6 +5,7 @@ import { mention } from '../../commands/mentions.js';
 import type { ChannelChange, MemberJoin, MemberUpdate } from '../../platform/types.js';
 import type { ModuleContext } from '../../runtime/module.js';
 import { lines, snowflakeDate, subtext, timestamp } from '../../ui/format.js';
+import { InboxFeed } from '../moderation/feed.js';
 import { audit, copy } from './copy.js';
 import type { AutomodConfig, automodConfig, RaidShieldConfig } from './types.js';
 
@@ -61,6 +62,7 @@ export interface GateResult {
 }
 
 export class RaidShield {
+  readonly #feed: InboxFeed;
   readonly window = new JoinWindow();
   readonly #active = new Map<string, { incident: Incident | null; at: number }>();
   readonly #queues = new Map<string, Promise<void>>();
@@ -68,7 +70,9 @@ export class RaidShield {
   constructor(
     private readonly ctx: Ctx,
     private readonly store: AutomodStore,
-  ) {}
+  ) {
+    this.#feed = new InboxFeed(ctx.services);
+  }
 
   onJoin(join: MemberJoin): Promise<void> {
     const previous = this.#queues.get(join.guildId) ?? Promise.resolve();
@@ -159,7 +163,9 @@ export class RaidShield {
       this.ctx.services.log.warn({ err: error, guild: guildId }, 'gate role could not be added');
       return false;
     }
-    return this.store.hold(guildId, userId, incidentId, reason);
+    const held = await this.store.hold(guildId, userId, incidentId, reason);
+    if (held) await this.#feed.gate(guildId, (await this.store.held(guildId)).length);
+    return held;
   }
 
   async startLockdown(
@@ -279,6 +285,8 @@ export class RaidShield {
     }
     await this.store.resolveHeld(guildId, done, 'let_in', by.id);
     await this.store.resolveHeld(guildId, gone, 'left', by.id);
+    const remaining = (await this.store.held(guildId)).length;
+    await this.#feed.gateClosed(guildId, remaining, 'let_in', by.id);
     if (done.length > 0) {
       await this.ctx.record(guildId, by, 'automod.gate.letin', audit.auditLetIn(done.length), {
         after: { userIds: done },
@@ -304,6 +312,8 @@ export class RaidShield {
       }
     }
     await this.store.resolveHeld(guildId, done, 'banned', by.id);
+    const remaining = (await this.store.held(guildId)).length;
+    await this.#feed.gateClosed(guildId, remaining, 'banned', by.id);
     if (done.length > 0) {
       await this.ctx.record(guildId, by, 'automod.gate.banall', audit.auditBanAll(done.length), {
         after: { userIds: done },
@@ -323,10 +333,13 @@ export class RaidShield {
         log.warn({ err: error, guild: guildId }, 'gate role could not be added back');
       }
     }
+    await this.#feed.gate(guildId, (await this.store.held(guildId)).length);
   }
 
   async onLeave(guildId: string, userId: string): Promise<void> {
     await this.store.resolveHeld(guildId, [userId], 'left', null);
+    const remaining = (await this.store.held(guildId)).length;
+    await this.#feed.gateClosed(guildId, remaining, 'left', null);
   }
 
   async onMemberUpdate(update: MemberUpdate): Promise<void> {

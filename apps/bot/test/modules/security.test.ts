@@ -448,6 +448,7 @@ function harness(overrides: Record<string, unknown> = {}) {
     settings: {
       config: async (_g: string, key: string, schema: { parse(v: unknown): unknown }) =>
         key === 'automod' ? automodSettings : schema.parse({}),
+      enabled: async () => false,
     },
     guilds: { prefix: async () => 'm!' },
     log: { warn() {}, info() {}, debug() {}, error() {} },

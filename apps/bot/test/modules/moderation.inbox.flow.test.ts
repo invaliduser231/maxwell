@@ -3,6 +3,7 @@ import definition, { moderationConfig } from '@maxwell/core/modules/moderation';
 import { ModerationStore } from '@maxwell/core/stores/moderation';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createLogger } from '../../src/log.js';
+import { InboxFeed } from '../../src/modules/moderation/feed.js';
 import { ModInbox } from '../../src/modules/moderation/inbox.js';
 import { ModerationService } from '../../src/modules/moderation/service.js';
 import type { IncomingMessage, Outgoing, UserRef } from '../../src/platform/types.js';
@@ -92,6 +93,7 @@ describe.skipIf(!url)('moderation inbox flows', () => {
       platform,
       log: createLogger('silent', false),
       guilds: { prefix: async () => '!' },
+      settings: { enabled: async () => true },
       config: { FLUXER_WEB_URL: 'https://fluxer.app', DASHBOARD_URL: 'https://dash.example' },
     } as unknown as Services;
     const ctx = {
@@ -124,6 +126,7 @@ describe.skipIf(!url)('moderation inbox flows', () => {
     await sql`delete from moderation_inbox where guild_id = ${guild}`;
     await sql`delete from moderation_cases where guild_id = ${guild}`;
     await sql`delete from moderation_counters where guild_id = ${guild}`;
+    await sql`delete from jobs where guild_id = ${guild}`;
     await sql.end();
   });
 
@@ -271,5 +274,62 @@ describe.skipIf(!url)('moderation inbox flows', () => {
     expect(resolved?.outcome).toBe('unban');
     expect(unbans).toEqual([spammer]);
     expect(direct.at(-1)?.user).toBe(spammer);
+  });
+  const jobKinds = async () =>
+    (
+      await sql<{ kind: string }[]>`select kind from jobs where guild_id = ${guild} order by id`
+    ).map((row) => row.kind);
+
+  it('keeps one gate item while members wait and hands decisions to AutoMod', async () => {
+    const feed = new InboxFeed(moderation.services);
+    await feed.gate(guild, 2);
+    await feed.gate(guild, 5);
+    const gates = await inbox.store.list(guild, { kind: 'gate' });
+    expect(gates).toHaveLength(1);
+    expect(gates[0]?.body).toBe('5');
+    expect((await inbox.embed(gates[0] as never)).fields?.some((f) => f.value.includes('5'))).toBe(
+      true,
+    );
+    expect(await jobKinds()).toContain('moderation.inbox.notify');
+
+    const resolved = await inbox.resolve(guild, {
+      number: gates[0]?.number ?? 0,
+      status: 'resolved',
+      action: 'ban',
+      durationSeconds: null,
+      reason: null,
+      deleteMessage: false,
+      note: null,
+      by: mod,
+    });
+    expect(resolved?.outcome).toBe('banned');
+    expect(await jobKinds()).toContain('automod.gate.banall');
+
+    await feed.gate(guild, 1);
+    await feed.gateClosed(guild, 0, 'let_in', mod);
+    expect(await inbox.store.list(guild, { kind: 'gate' })).toHaveLength(0);
+  });
+
+  it('turns stuck verifications into items and lets members in through Security', async () => {
+    const feed = new InboxFeed(moderation.services);
+    await feed.check(guild, lena, '9001', 'undelivered');
+    const [item] = await inbox.store.list(guild, { kind: 'check' });
+    expect(item?.subjectId).toBe(lena);
+    const resolved = await inbox.resolve(guild, {
+      number: item?.number ?? 0,
+      status: 'resolved',
+      action: null,
+      durationSeconds: null,
+      reason: null,
+      deleteMessage: false,
+      note: null,
+      by: mod,
+    });
+    expect(resolved?.outcome).toBe('released');
+    expect(await jobKinds()).toContain('security.pass');
+
+    await feed.check(guild, tom, '9002', 'failed');
+    await feed.checksClosedFor(guild, tom, 'left', null);
+    expect(await inbox.store.list(guild, { kind: 'check' })).toHaveLength(0);
   });
 });

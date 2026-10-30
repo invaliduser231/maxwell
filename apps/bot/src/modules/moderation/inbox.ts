@@ -1,4 +1,5 @@
 import type { Actor } from '@maxwell/core';
+import { enqueue } from '@maxwell/core';
 import type { InboxKind } from '@maxwell/core/modules/moderation';
 import {
   type InboxItem,
@@ -7,11 +8,14 @@ import {
   type ReportResult,
 } from '@maxwell/core/stores/inbox';
 import type { CaseRow } from '@maxwell/core/stores/moderation';
+import { SecurityStore } from '@maxwell/core/stores/security';
 import { z } from 'zod';
 import { mention } from '../../commands/mentions.js';
 import type { Embed, EmbedField, IncomingMessage, ReactionEvent } from '../../platform/types.js';
 import { palette } from '../../ui/palette.js';
 import { sameEmoji } from '../roles/emoji.js';
+import { copy as securityCopy } from '../security/copy.js';
+import { storedReasons } from '../security/risk.js';
 import { jumpUrl } from '../starboard/render.js';
 import { excerptOf } from './commands/actions.js';
 import { inboxAudit, inboxCopy } from './inbox-copy.js';
@@ -244,7 +248,8 @@ export class ModInbox {
       });
     }
     if (item.excerpt) fields.push({ name: '​', value: quote(clip(item.excerpt, 1_000)) });
-    if (item.body) fields.push({ name: bodyLabel(item.kind), value: clip(item.body, 1_000) });
+    const body = await this.#body(item);
+    if (body) fields.push({ name: bodyLabel(item.kind), value: clip(body, 1_000) });
     const outcome = outcomeLine(item);
     if (outcome) fields.push({ name: inboxCopy.fields.outcome, value: outcome, inline: true });
     if (item.note) fields.push({ name: inboxCopy.fields.note, value: clip(item.note, 1_000) });
@@ -258,6 +263,30 @@ export class ModInbox {
       fields,
       timestamp: item.createdAt,
     };
+  }
+
+  async #body(item: InboxItem): Promise<string | null> {
+    if (item.kind === 'gate') {
+      const held = Number(item.body);
+      return Number.isFinite(held) ? inboxCopy.gateHeld(held) : null;
+    }
+    if (item.kind !== 'check') return item.body;
+    const state = checkStates.find((entry) => entry === item.body);
+    const lines = state ? [inboxCopy.checkStates[state]] : [];
+    if (item.refId) {
+      const check = await new SecurityStore(this.services.sql)
+        .check(item.guildId, item.refId)
+        .catch(() => null);
+      if (check) {
+        const reasons = storedReasons(check.reasons).map(securityCopy.reason).join(', ');
+        lines.push(inboxCopy.riskScore(check.score, reasons));
+      }
+    }
+    return lines.length > 0 ? lines.join('\n') : null;
+  }
+
+  async #enqueue(guildId: string, kind: string, payload: Record<string, unknown>) {
+    await enqueue(this.services.sql, { kind, guildId, payload });
   }
 
   async #apply(
@@ -288,6 +317,20 @@ export class ModInbox {
       } finally {
         this.#resolving.delete(key);
       }
+    }
+
+    if (item.kind === 'gate') {
+      if (input.status === 'dismissed') return { outcome: 'none', caseNumber: null };
+      const ban = input.action === 'ban';
+      await this.#enqueue(item.guildId, ban ? 'automod.gate.banall' : 'automod.gate.letin', {
+        by: input.by,
+      });
+      return { outcome: ban ? 'banned' : 'let_in', caseNumber: null };
+    }
+
+    if (item.kind === 'check' && input.status === 'resolved' && !input.action && item.subjectId) {
+      await this.#enqueue(item.guildId, 'security.pass', { userId: item.subjectId, by: input.by });
+      return { outcome: 'released', caseNumber: null };
     }
 
     if (input.status === 'dismissed' || !item.subjectId)
@@ -377,8 +420,12 @@ function reporterList(ids: readonly string[]): string {
 function bodyLabel(kind: InboxKind): string {
   if (kind === 'appeal') return inboxCopy.fields.appeal;
   if (kind === 'review') return inboxCopy.fields.review;
+  if (kind === 'gate') return inboxCopy.fields.gate;
+  if (kind === 'check') return inboxCopy.fields.check;
   return inboxCopy.fields.report;
 }
+
+const checkStates = ['undelivered', 'failed', 'expired'] as const;
 
 function statusLine(item: InboxItem): string {
   const who = (id: string | null) => (id ? mention.user(id) : inboxCopy.status.open);
@@ -411,6 +458,12 @@ function outcomeLine(item: InboxItem): string | null {
       return outcomes.declined;
     case 'deleted':
       return outcomes.deleted;
+    case 'let_in':
+    case 'banned':
+    case 'left':
+    case 'passed':
+    case 'released':
+      return outcomes[item.outcome];
     default:
       return outcomes.none;
   }

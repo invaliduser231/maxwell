@@ -6,6 +6,7 @@ import { inGuild } from '../../i18n/language.js';
 import type { Embed, MemberJoin, MemberUpdate } from '../../platform/types.js';
 import { lines, snowflakeDate, timestamp } from '../../ui/format.js';
 import { palette } from '../../ui/palette.js';
+import { InboxFeed } from '../moderation/feed.js';
 import { matches, normalizeAnswer, renderCaptcha } from './captcha.js';
 import { copy, reasons } from './copy.js';
 import type { Ctx, Guard } from './guard.js';
@@ -87,7 +88,11 @@ export class Verifier {
     private readonly raid: RaidProbe,
     readonly inbox: Inbox,
     private readonly now: () => number = Date.now,
-  ) {}
+  ) {
+    this.feed = new InboxFeed(ctx.services);
+  }
+
+  readonly feed: InboxFeed;
 
   onJoin(join: MemberJoin): Promise<void> {
     const previous = this.#queues.get(join.guildId) ?? Promise.resolve();
@@ -297,6 +302,7 @@ export class Verifier {
       }
     }
     await this.store.setCode(check.id, captcha.code, method);
+    if (method === 'none') await this.feed.check(guildId, userId, check.id, 'undelivered');
     await this.ctx.schedule('verify.expire', {
       guildId,
       payload: { checkId: check.id },
@@ -356,6 +362,7 @@ export class Verifier {
     status: Exclude<CheckStatus, 'pending' | 'clear'>,
   ): Promise<void> {
     this.inbox.remove(check.userId);
+    if (status === 'passed') await this.feed.checkClosed(check.guildId, check.id, 'passed', null);
     if (!check.logChannelId || !check.logMessageId) return;
     const { platform } = this.ctx.services;
     const member = await platform.member(check.guildId, check.userId).catch(() => null);
@@ -427,6 +434,7 @@ export class Verifier {
       const kick = config.verification.onExpire === 'kick';
       await reply(kick ? copy.dm.kicked(guildName) : copy.dm.failed(guildName));
       if (kick) await this.guard.punish(check.guildId, userId, 'kick', reasons.failed);
+      else await this.feed.check(check.guildId, userId, check.id, 'failed');
       await this.#finish(resolved, 'failed');
     });
     return true;
@@ -461,6 +469,7 @@ export class Verifier {
       )
       .catch(() => false);
     if (kick) await this.guard.punish(guildId, check.userId, 'kick', reasons.expired);
+    else await this.feed.check(guildId, check.userId, check.id, 'expired');
     await this.#finish(resolved, 'expired');
   }
 
@@ -468,12 +477,14 @@ export class Verifier {
     const check = await this.store.resolveMember(guildId, userId, 'released');
     const released = await this.guard.release(guildId, userId, by);
     if (check) await this.#finish(check, 'released');
+    await this.feed.checksClosedFor(guildId, userId, 'released', by);
     return check !== null || released;
   }
 
   async onLeave(guildId: string, userId: string): Promise<void> {
     const check = await this.store.resolveMember(guildId, userId, 'left');
     if (check) await this.#finish(check, 'left');
+    await this.feed.checksClosedFor(guildId, userId, 'left', null);
   }
 
   async onMemberUpdate(update: MemberUpdate): Promise<void> {
