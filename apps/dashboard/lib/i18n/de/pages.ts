@@ -30,6 +30,7 @@ export const pages = {
   Settings: 'Einstellungen',
   Cards: 'Karten',
   General: 'Allgemein',
+  'Public page': 'Öffentliche Seite',
   'Dashboard access': 'Dashboard-Zugriff',
   'Audit trail': 'Änderungsverlauf',
 } as const;

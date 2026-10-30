@@ -1,13 +1,14 @@
 'use server';
 
 import { catalog } from '@maxwell/core';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, updateTag } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import type { Result } from '@/lib/actions';
 import { db } from '@/lib/db';
 import { FluxerError, leaveGuild, updateBotProfile } from '@/lib/fluxer';
 import { admin, editor } from '@/lib/guard';
+import { publicTag } from '@/lib/public-page';
 
 const prefixSchema = z.string().trim().min(1).max(8).regex(/^\S+$/, 'No spaces in the prefix.');
 
@@ -125,6 +126,7 @@ export async function resetSettings(guildId: string): Promise<Result> {
       undo: { kind: 'module.config', payload: { module: definition.key, config: state.config } },
     });
   }
+  updateTag(publicTag(guildId));
   revalidatePath(`/g/${guildId}`, 'layout');
   return { ok: true };
 }

@@ -55,6 +55,8 @@ const icons: Record<string, string> = {
   cards:
     'M40 50h80a6 6 0 0 1 6 6v48a6 6 0 0 1-6 6H40a6 6 0 0 1-6-6V56a6 6 0 0 1 6-6zM40 100l24-24 18 18 12-12 26 22',
   general: 'M80 58a22 22 0 1 0 0 44 22 22 0 1 0 0-44zM80 34v12M80 114v12M34 80h12M114 80h12',
+  public:
+    'M80 40a40 40 0 1 0 0 80 40 40 0 1 0 0-80zM40 80h80M80 40c-16 12-16 68 0 80M80 40c16 12 16 68 0 80',
   access: 'M60 64a20 20 0 1 0 0 40 20 20 0 1 0 0-40zM78 84h46M108 84v16',
   audit: 'M116 80a36 36 0 1 1-11-26M106 34v22H84',
 };
@@ -131,6 +133,7 @@ export const pageGroups: PageGroup[] = [
     pages: [
       page('cards', 'Cards', 'neutral'),
       page('general', 'General', 'neutral'),
+      page('public', 'Public page', 'neutral', 'general'),
       page('access', 'Dashboard access', 'neutral', null, true),
       page('audit', 'Audit trail', 'neutral', null, true),
     ],

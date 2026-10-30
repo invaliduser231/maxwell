@@ -1,7 +1,7 @@
 'use server';
 
 import { canUndo, enqueue, moduleByKey } from '@maxwell/core';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, updateTag } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -9,6 +9,7 @@ import { guildAccess, levelOf } from './access';
 import { db } from './db';
 import { editor } from './guard';
 import { isLang, LANG_COOKIE } from './i18n';
+import { publicTag } from './public-page';
 import { destroySession, getSession, secureCookies } from './session';
 
 export type Result<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
@@ -47,6 +48,7 @@ export async function saveModule(
   if (keys.length > 0) {
     const patch = Object.fromEntries(keys.map((key) => [key, next[key]]));
     await modules.update(guildId, module, patch, { id: check.access.user.id }, summary);
+    updateTag(publicTag(guildId));
   }
   revalidatePath(`/g/${guildId}`, 'layout');
   return { ok: true, data: next };
@@ -62,6 +64,7 @@ export async function setModuleEnabled(
   const check = await editor(guildId, module);
   if ('error' in check) return { ok: false, error: check.error };
   await db().modules.setEnabled(guildId, module, enabled, { id: check.access.user.id });
+  updateTag(publicTag(guildId));
   revalidatePath(`/g/${guildId}`, 'layout');
   return { ok: true };
 }
