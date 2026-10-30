@@ -93,6 +93,18 @@ describe('message cache', () => {
     expect(cache.get('1')).toBeNull();
   });
 
+  it('caps each community so a busy one does not push out a quiet one', () => {
+    const cache = new MessageCache(10, 3);
+    cache.add(message('q1', 'quiet', { guildId: '900000000000000002' }));
+    for (let i = 0; i < 8; i++) cache.add(message(`b${i}`, 'busy'));
+    expect(cache.get('q1')?.content).toBe('quiet');
+    expect(cache.get('b4')).toBeNull();
+    expect(cache.get('b7')?.content).toBe('busy');
+    expect(cache.size).toBe(4);
+    expect(cache.forgetAuthor('900000000000000002', cache.get('q1')?.authorId ?? '')).toBe(1);
+    expect(cache.size).toBe(3);
+  });
+
   it('skips direct messages', () => {
     const cache = new MessageCache();
     cache.add(message('1', 'dm', { guildId: null }));
