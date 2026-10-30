@@ -79,9 +79,7 @@ export function Sidebar(props: SidebarProps) {
                 <ModuleIcon d={page.icon} fill="var(--pole)" size={22} />
                 <span style={{ flex: 1, minWidth: 0 }}>{t(page.name)}</span>
                 {page.key === 'inbox' && inbox ? (
-                  <span className="mx-nav-count" aria-label={t('{count} open', { count: inbox })}>
-                    {t.count(inbox)}
-                  </span>
+                  <span className="mx-nav-count">{t.count(inbox)}</span>
                 ) : null}
                 {page.locked && !props.voted ? (
                   <LockIcon label={t('Locked until you vote')} />

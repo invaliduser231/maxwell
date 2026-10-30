@@ -72,5 +72,4 @@ export const inbox = {
   'Gate #{number}': 'Einlass #{number}',
   'Verification #{number}': 'Verifizierung #{number}',
   Verifications: 'Verifizierungen',
-  '{count} open': '{count} offen',
 } as const;
