@@ -2,9 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
+import { openCount } from '@/app/g/[guild]/inbox/actions';
 import { lockedCount, type PageGroup, POLE_COLOR } from '@/lib/pages';
 import { CommunitySwitcher, type SwitcherCommunity } from './community-switcher';
 import { useT } from './i18n';
+import { useLive } from './live';
 import { LockIcon, ModuleIcon } from './ui';
 
 export interface SidebarProps {
@@ -16,6 +19,7 @@ export interface SidebarProps {
   voted: boolean;
   voteUrl: string | null;
   others: SwitcherCommunity[];
+  inboxCount: number | null;
 }
 
 export function Sidebar(props: SidebarProps) {
@@ -24,6 +28,15 @@ export function Sidebar(props: SidebarProps) {
   const base = `/g/${props.guildId}`;
   const active =
     pathname === base ? 'overview' : (pathname.slice(base.length + 1).split('/')[0] ?? '');
+  const [inbox, setInbox] = useState(props.inboxCount);
+  useLive(['moderation'], () => {
+    if (props.inboxCount === null) return;
+    openCount(props.guildId)
+      .then((result) => {
+        if (result.ok && result.data !== undefined) setInbox(result.data);
+      })
+      .catch(() => {});
+  });
 
   return (
     <nav
@@ -65,6 +78,11 @@ export function Sidebar(props: SidebarProps) {
               >
                 <ModuleIcon d={page.icon} fill="var(--pole)" size={22} />
                 <span style={{ flex: 1, minWidth: 0 }}>{t(page.name)}</span>
+                {page.key === 'inbox' && inbox ? (
+                  <span className="mx-nav-count" aria-label={t('{count} open', { count: inbox })}>
+                    {t.count(inbox)}
+                  </span>
+                ) : null}
                 {page.locked && !props.voted ? (
                   <LockIcon label={t('Locked until you vote')} />
                 ) : null}

@@ -838,3 +838,14 @@ input[type="color"]::-webkit-color-swatch {
   position: absolute;
   right: 7px;
 }
+.mx-nav-count {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--mx-raised);
+  color: var(--mx-text);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}

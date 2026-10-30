@@ -10,6 +10,7 @@ import { db } from '@/lib/db';
 import { env } from '@/lib/env';
 import { guildChannels, guildEmojis, guildRoles } from '@/lib/fluxer';
 import { pageGroups } from '@/lib/pages';
+import { inboxCounts } from './inbox/data';
 
 export async function generateMetadata({
   params,
@@ -44,6 +45,9 @@ export default async function GuildLayout({
     .map((group) => ({ ...group, pages: group.pages.filter((page) => canSee(access, page.key)) }))
     .filter((group) => group.pages.length > 0);
   const voteUrl = env().VOTE_URL ?? null;
+  const inbox = canSee(access, 'inbox')
+    ? await inboxCounts(guildId, access.user.id).catch(() => null)
+    : null;
 
   return (
     <GuildProvider
@@ -74,6 +78,7 @@ export default async function GuildLayout({
               voted={access.voted}
               voteUrl={voteUrl}
               others={others}
+              inboxCount={inbox ? inbox.open + inbox.claimed : null}
             />
           </div>
           <main className="mx-main">{children}</main>
