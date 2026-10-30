@@ -72,4 +72,5 @@ export const inbox = {
   'Gate #{number}': 'Einlass #{number}',
   'Verification #{number}': 'Verifizierung #{number}',
   Verifications: 'Verifizierungen',
+  'Share with Maxwell Shield': 'Mit Maxwell Shield teilen',
 } as const;

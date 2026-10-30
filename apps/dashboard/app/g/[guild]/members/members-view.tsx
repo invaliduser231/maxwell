@@ -3,7 +3,7 @@
 import type { MemberView } from '@maxwell/core/stores/moderation';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
-import { Seg, Select } from '@/components/controls';
+import { Checkbox, Seg, Select } from '@/components/controls';
 import { useGuild } from '@/components/guild';
 import { useT } from '@/components/i18n';
 import { failed, type Status, StatusText } from '@/components/status-text';
@@ -86,6 +86,7 @@ function ActionForm({
   file,
   requireReason,
   defaultTimeoutMinutes,
+  shield,
   onDone,
   onCancel,
 }: {
@@ -93,6 +94,7 @@ function ActionForm({
   file: MemberFile;
   requireReason: boolean;
   defaultTimeoutMinutes: number;
+  shield: boolean;
   onDone: (status: Status) => void;
   onCancel: () => void;
 }) {
@@ -104,6 +106,7 @@ function ActionForm({
     : [...timeoutChoices, defaultTimeoutMinutes].sort((a, b) => a - b);
   const [minutes, setMinutes] = useState(action === 'timeout' ? defaultTimeoutMinutes : 0);
   const [error, setError] = useState<string | null>(null);
+  const [share, setShare] = useState(false);
   const [tried, setTried] = useState(false);
   const [pending, start] = useTransition();
   const needsReason =
@@ -126,6 +129,7 @@ function ActionForm({
             userId: file.userId,
             reason,
             durationSeconds: timed && minutes > 0 ? minutes * 60 : null,
+            shield: action === 'ban' && share,
           });
           if (!result.ok) {
             setError(result.error);
@@ -165,6 +169,9 @@ function ActionForm({
           </div>
         ) : null}
       </div>
+      {shield && action === 'ban' ? (
+        <Checkbox checked={share} onChange={setShare} label={t('Share with Maxwell Shield')} />
+      ) : null}
       <div className="mx-inline" style={{ justifyContent: 'flex-end' }}>
         <StatusText status={error ? failed(error) : null} />
         <button type="button" className="mx-btn mx-btn-ghost" onClick={onCancel}>
@@ -296,6 +303,7 @@ function FilePanel({
   self,
   requireReason,
   defaultTimeoutMinutes,
+  shield,
 }: {
   file: MemberFile;
   now: string;
@@ -303,6 +311,7 @@ function FilePanel({
   self: string;
   requireReason: boolean;
   defaultTimeoutMinutes: number;
+  shield: boolean;
 }) {
   const t = useT();
   const { guildId, timezone } = useGuild();
@@ -415,6 +424,7 @@ function FilePanel({
           file={file}
           requireReason={requireReason}
           defaultTimeoutMinutes={defaultTimeoutMinutes}
+          shield={shield}
           onCancel={() => setAction(null)}
           onDone={(next) => {
             setAction(null);
@@ -527,6 +537,7 @@ export function MembersView({
   self,
   requireReason,
   defaultTimeoutMinutes,
+  shield,
   now,
 }: {
   view: MemberView;
@@ -539,6 +550,7 @@ export function MembersView({
   self: string;
   requireReason: boolean;
   defaultTimeoutMinutes: number;
+  shield: boolean;
   now: string;
 }) {
   const t = useT();
@@ -654,6 +666,7 @@ export function MembersView({
           self={self}
           requireReason={requireReason}
           defaultTimeoutMinutes={defaultTimeoutMinutes}
+          shield={shield}
         />
       ) : alone ? null : (
         <section className="mx-panel mx-s8" aria-label={t('Member file')}>

@@ -40,6 +40,7 @@ const resolution = z.object({
   durationSeconds: z.number().int().positive().max(63_072_000).nullable(),
   reason: z.string().trim().max(1_500),
   deleteMessage: z.boolean(),
+  shield: z.boolean().default(false),
   note: z.string().trim().max(1_500),
 });
 
@@ -58,6 +59,7 @@ export async function resolveItem(
       data.action === 'timeout' || data.action === 'ban' ? data.durationSeconds : null,
     reason: data.reason || null,
     deleteMessage: data.status === 'resolved' && data.deleteMessage,
+    shield: data.status === 'resolved' && data.action === 'ban' && data.shield,
     note: data.note || null,
   });
 }

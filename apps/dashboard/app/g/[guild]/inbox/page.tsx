@@ -1,5 +1,7 @@
 import { type InboxKind, inboxKinds, moderationConfig } from '@maxwell/core/modules/moderation';
+import { ShieldStore } from '@maxwell/core/stores/shield';
 import { ModuleShell } from '@/components/module-shell';
+import { db } from '@/lib/db';
 import { env } from '@/lib/env';
 import { titled } from '@/lib/i18n/server';
 import { loadModule } from '@/lib/module';
@@ -29,9 +31,10 @@ export default async function InboxPage({
   const kind = (inboxKinds as readonly string[]).includes(pick(raw.kind))
     ? (pick(raw.kind) as InboxKind)
     : null;
-  const [list, counts] = await Promise.all([
+  const [list, counts, shield] = await Promise.all([
     listInbox(guild, mode, kind, self),
     inboxCounts(guild, self),
+    new ShieldStore(db().sql).participates(guild),
   ]);
   const wanted = Number(pick(raw.item));
   const selected = Number.isSafeInteger(wanted) && wanted > 0 ? wanted : (list[0]?.number ?? null);
@@ -49,6 +52,7 @@ export default async function InboxPage({
         detail={detail}
         self={self}
         appealUrl={appealUrl}
+        shield={shield}
         now={new Date().toISOString()}
       />
     </ModuleShell>

@@ -156,11 +156,13 @@ function ListRow({
 function ResolveForm({
   detail,
   choice,
+  shield,
   onDone,
   onCancel,
 }: {
   detail: InboxDetail;
   choice: Choice;
+  shield: boolean;
   onDone: (status: Status) => void;
   onCancel: () => void;
 }) {
@@ -177,6 +179,7 @@ function ResolveForm({
   const [reason, setReason] = useState(detail.kind === 'report' ? (detail.body ?? '') : '');
   const [note, setNote] = useState('');
   const [remove, setRemove] = useState(detail.kind === 'report' && action !== null);
+  const [share, setShare] = useState(false);
   const [tried, setTried] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -223,6 +226,7 @@ function ResolveForm({
             durationSeconds: timed && minutes > 0 ? minutes * 60 : null,
             reason,
             deleteMessage: remove,
+            shield: action === 'ban' && share,
             note,
           });
           if (!result.ok) {
@@ -275,6 +279,9 @@ function ResolveForm({
           onChange={(event) => setNote(event.target.value)}
         />
       </label>
+      {shield && action === 'ban' && detail.kind !== 'gate' ? (
+        <Checkbox checked={share} onChange={setShare} label={t('Share with Maxwell Shield')} />
+      ) : null}
       {detail.kind === 'report' && detail.messageUrl && status === 'resolved' ? (
         <Checkbox checked={remove} onChange={setRemove} label={t('Delete the reported message')} />
       ) : null}
@@ -367,7 +374,17 @@ function Choices({ detail, onPick }: { detail: InboxDetail; onPick: (choice: Cho
   );
 }
 
-function DetailPanel({ detail, self, now }: { detail: InboxDetail; self: string; now: string }) {
+function DetailPanel({
+  detail,
+  self,
+  now,
+  shield,
+}: {
+  detail: InboxDetail;
+  self: string;
+  now: string;
+  shield: boolean;
+}) {
   const t = useT();
   const { guildId } = useGuild();
   const readOnly = useReadOnly();
@@ -548,6 +565,7 @@ function DetailPanel({ detail, self, now }: { detail: InboxDetail; self: string;
               key={choice}
               detail={detail}
               choice={choice}
+              shield={shield}
               onDone={(next) => {
                 setStatus(next);
                 setChoice(null);
@@ -653,6 +671,7 @@ export function InboxView({
   detail,
   self,
   appealUrl,
+  shield,
   now,
 }: {
   mode: Mode;
@@ -662,6 +681,7 @@ export function InboxView({
   detail: InboxDetail | null;
   self: string;
   appealUrl: string;
+  shield: boolean;
   now: string;
 }) {
   const t = useT();
@@ -720,7 +740,9 @@ export function InboxView({
           )}
         </div>
       </section>
-      {detail ? <DetailPanel key={detail.number} detail={detail} self={self} now={now} /> : null}
+      {detail ? (
+        <DetailPanel key={detail.number} detail={detail} self={self} now={now} shield={shield} />
+      ) : null}
       <SettingsPanel appealUrl={appealUrl} />
     </Grid>
   );

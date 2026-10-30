@@ -1,5 +1,6 @@
 import { moderationConfig } from '@maxwell/core/modules/moderation';
 import type { MemberView } from '@maxwell/core/stores/moderation';
+import { ShieldStore } from '@maxwell/core/stores/shield';
 import { PageHeader } from '@/components/module-shell';
 import { levelOf, requirePage } from '@/lib/access';
 import { db } from '@/lib/db';
@@ -31,7 +32,11 @@ export default async function MembersPage({
     ? (pick(raw.view) as MemberView)
     : 'flagged';
   const q = pick(raw.q).trim().slice(0, 64);
-  const [list, t] = await Promise.all([listMembers(guild, view, q, config), getT()]);
+  const [list, t, shield] = await Promise.all([
+    listMembers(guild, view, q, config),
+    getT(),
+    new ShieldStore(db().sql).participates(guild),
+  ]);
   const wanted = /^\d{1,21}$/.test(pick(raw.member)) ? pick(raw.member) : null;
   const selectedId = wanted ?? list[0]?.userId ?? null;
   const file = selectedId
@@ -63,6 +68,7 @@ export default async function MembersPage({
         self={access.user.id}
         requireReason={config.requireReason}
         defaultTimeoutMinutes={config.defaultTimeoutMinutes}
+        shield={shield}
         now={new Date().toISOString()}
       />
     </>
