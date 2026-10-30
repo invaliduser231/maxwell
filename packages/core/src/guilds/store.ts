@@ -44,6 +44,13 @@ export class GuildStore {
     return row?.fresh ?? false;
   }
 
+  async active(guildId: string): Promise<boolean> {
+    const [row] = await this.sql`
+      select 1 from guilds where id = ${guildId} and left_at is null
+    `;
+    return Boolean(row);
+  }
+
   async left(guildId: string): Promise<void> {
     await this.sql`update guilds set left_at = now() where id = ${guildId}`;
     this.#prefixes.delete(guildId);
