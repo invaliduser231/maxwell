@@ -1,6 +1,7 @@
 import 'server-only';
 import { automodConfig } from '@maxwell/core/modules/automod';
 import { SecurityStore } from '@maxwell/core/stores/security';
+import { ShieldStore } from '@maxwell/core/stores/shield';
 import { db } from '@/lib/db';
 import { botRoleIds, guildRoles, PERMISSION } from '@/lib/fluxer';
 import { people, personOf } from '@/lib/people';
@@ -51,6 +52,15 @@ export interface SecurityView {
   counts: { checked: number; flagged: number; passed: number; failed: number; pending: number };
   checks: CheckRow[];
   events: EventRow[];
+  shield: ShieldRow[];
+}
+
+export interface ShieldRow {
+  userId: string;
+  name: string;
+  avatar: string | null;
+  source: string;
+  expiresAt: number;
 }
 
 function dangerous(bits: string): boolean {
@@ -65,7 +75,7 @@ export async function securityView(guildId: string): Promise<SecurityView> {
   const { sql, modules } = db();
   const store = new SecurityStore(sql);
   const now = Date.now();
-  const [raid, counts, checks, events, automod, roles, mine] = await Promise.all([
+  const [raid, counts, checks, events, automod, roles, mine, shared] = await Promise.all([
     store.activeRaid(guildId),
     store.counts(guildId, new Date(now - 86_400_000)),
     store.recentChecks(guildId, 25),
@@ -73,6 +83,7 @@ export async function securityView(guildId: string): Promise<SecurityView> {
     modules.state(guildId, 'automod'),
     guildRoles(guildId).catch(() => []),
     botRoleIds(guildId),
+    new ShieldStore(sql).list(guildId, 50),
   ]);
   const gate = automodConfig.safeParse(automod.config);
   const raidConfig = gate.success ? gate.data.raid : automodConfig.parse({}).raid;
@@ -99,6 +110,7 @@ export async function securityView(guildId: string): Promise<SecurityView> {
   const names = await people([
     ...checks.map((check) => check.userId),
     ...events.flatMap((event) => [event.userId, event.actorId]),
+    ...shared.map((report) => report.userId),
   ]);
 
   return {
@@ -139,5 +151,15 @@ export async function securityView(guildId: string): Promise<SecurityView> {
       detail: event.detail,
       at: event.createdAt.getTime(),
     })),
+    shield: shared.map((report) => {
+      const person = personOf(names, report.userId);
+      return {
+        userId: report.userId,
+        name: person.name,
+        avatar: person.avatar,
+        source: report.source,
+        expiresAt: report.expiresAt.getTime(),
+      };
+    }),
   };
 }

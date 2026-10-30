@@ -17,10 +17,20 @@ import { useT } from '@/components/i18n';
 import { useDraft } from '@/components/module-shell';
 import { type Status, StatusText } from '@/components/status-text';
 import { TwoStep } from '@/components/two-step';
-import { Callout, Empty, Field, Fields, Grid, Panel, PanelBody, Stat } from '@/components/ui';
+import {
+  Avatar,
+  Callout,
+  Empty,
+  Field,
+  Fields,
+  Grid,
+  Panel,
+  PanelBody,
+  Stat,
+} from '@/components/ui';
 import { runAction } from '@/lib/actions';
 import type { Translator } from '@/lib/i18n';
-import { ago, clock } from '@/lib/time';
+import { ago, clock, date } from '@/lib/time';
 import type { CheckRow, EventRow, SecurityView } from './data';
 
 type Verification = SecurityConfig['verification'];
@@ -39,6 +49,7 @@ const weightKeys: { key: WeightKey; label: string }[] = [
   { key: 'priorKick', label: 'Kicked here before' },
   { key: 'priorBan', label: 'Banned here before' },
   { key: 'newInviter', label: 'Invited by a brand new member' },
+  { key: 'shield', label: 'Reported in other communities' },
   { key: 'established', label: 'Old account with a picture' },
 ];
 
@@ -75,12 +86,22 @@ export function reasonText(t: Translator, reason: CheckRow['reasons'][number]): 
       return t.raw('banned here before');
     case 'raid':
       return t.raw('joined during raid mode');
+    case 'shield':
+      return t.raw('reported in {n} other communities', { n: reason.count ?? 2 });
     default: {
       const found = weightKeys.find((entry) => entry.key === reason.key);
       return found ? t.raw(found.label).toLowerCase() : reason.key;
     }
   }
 }
+
+const shieldSourceLabels: Record<string, string> = {
+  raid: 'Raid',
+  nuke: 'Nuke',
+  severe: 'Very high risk',
+  honeypot: 'Honeypot',
+  manual: 'Shared by a moderator',
+};
 
 const statusLabels: Record<string, string> = {
   clear: 'Passed',
@@ -123,6 +144,7 @@ export function SecurityForm({ view }: { view: SecurityView }) {
   const raid = value.raid;
   const nuke = value.nuke;
   const honeypot = value.honeypot;
+  const shield = value.shield;
 
   const patchVerification = (next: Partial<Verification>) =>
     update((previous) => ({ ...previous, verification: { ...previous.verification, ...next } }));
@@ -558,6 +580,54 @@ export function SecurityForm({ view }: { view: SecurityView }) {
             </button>
           </div>
         )}
+      </Panel>
+
+      <Panel title={t.raw('Maxwell Shield')} span={6} id="sec-shield">
+        <ToggleRow
+          title={t.raw('Take part in Maxwell Shield')}
+          checked={shield.enabled}
+          onChange={(enabled) =>
+            update((previous) => ({ ...previous, shield: { ...previous.shield, enabled } }))
+          }
+        />
+        <PanelBody>
+          <span className="mx-sub">
+            {t.raw(
+              'Bans for raids, nukes, honeypots and very high risk go into a shared list with other communities that take part. Once two of them report someone, that raises the risk score here. Entries expire after 90 days.',
+            )}
+          </span>
+          <span className="mx-sub mx-mono">m!security shield @member</span>
+        </PanelBody>
+        {view.shield.length > 0 ? (
+          <>
+            <div className="mx-panel-head">
+              <h3>{t.raw('Shared from here')}</h3>
+              <span className="mx-sub">{t.count(view.shield.length)}</span>
+            </div>
+            {view.shield.map((row) => (
+              <div key={row.userId} className="mx-row">
+                <Avatar src={row.avatar} name={row.name} size={26} />
+                <div className="mx-row-main">
+                  <span className="mx-row-title mx-ellipsis">{row.name}</span>
+                  <span className="mx-sub">
+                    {t.raw(shieldSourceLabels[row.source] ?? 'Shared')},{' '}
+                    {t.raw('until {date}', { date: date(t, row.expiresAt, timezone) })}
+                  </span>
+                </div>
+                {readOnly ? null : (
+                  <button
+                    type="button"
+                    className="mx-btn mx-btn-ghost"
+                    disabled={busy}
+                    onClick={() => act('shield.remove', { userId: row.userId })}
+                  >
+                    {t.raw('Remove')}
+                  </button>
+                )}
+              </div>
+            ))}
+          </>
+        ) : null}
       </Panel>
 
       <Panel title={t.raw('Alerts')} span={6} id="sec-alerts">

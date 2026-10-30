@@ -121,4 +121,17 @@ export const security = {
   'Let in': 'Reinlassen',
   Incidents: 'Vorfälle',
   'No raids, nukes or trapped bots yet.': 'Noch keine Raids, Nukes oder gefangenen Bots.',
+  'Maxwell Shield': 'Maxwell Shield',
+  'Take part in Maxwell Shield': 'Bei Maxwell Shield mitmachen',
+  'Bans for raids, nukes, honeypots and very high risk go into a shared list with other communities that take part. Once two of them report someone, that raises the risk score here. Entries expire after 90 days.':
+    'Banns wegen Raids, Nukes, Honeypots und sehr hohem Risiko landen in einer gemeinsamen Liste mit anderen teilnehmenden Communities. Haben zwei davon jemanden gemeldet, steigt hier der Risikowert. Einträge verfallen nach 90 Tagen.',
+  'Shared from here': 'Von hier geteilt',
+  'Very high risk': 'Sehr hohes Risiko',
+  'Shared by a moderator': 'Von der Moderation geteilt',
+  'Reported in other communities': 'In anderen Communities gemeldet',
+  'reported in {n} other communities': 'in {n} anderen Communities gemeldet',
+  Raid: 'Raid',
+  Nuke: 'Nuke',
+  Shared: 'Geteilt',
+  'until {date}': 'bis {date}',
 } as const;
