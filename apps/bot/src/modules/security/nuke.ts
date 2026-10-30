@@ -276,6 +276,7 @@ export class NukeWatch {
       try {
         if (mode === 'ban') await platform.ban(guildId, actorId, { reason });
         else await platform.kick(guildId, actorId, reason);
+        if (mode === 'ban') await this.guard.share(guildId, actorId, 'nuke');
         result.removed = mode;
         result.failed = false;
       } catch (error) {

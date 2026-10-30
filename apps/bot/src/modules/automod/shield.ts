@@ -1,5 +1,6 @@
 import { type Actor, cancel, maxwell } from '@maxwell/core';
 import type { AutomodStore, HoldReason, Incident } from '@maxwell/core/stores/automod';
+import { ShieldStore } from '@maxwell/core/stores/shield';
 import { formatDuration } from '../../commands/duration.js';
 import { mention } from '../../commands/mentions.js';
 import type { ChannelChange, MemberJoin, MemberUpdate } from '../../platform/types.js';
@@ -312,6 +313,10 @@ export class RaidShield {
       }
     }
     await this.store.resolveHeld(guildId, done, 'banned', by.id);
+    const shield = new ShieldStore(this.ctx.services.sql);
+    for (const userId of done) {
+      await shield.report(guildId, userId, 'raid', by.id).catch(() => false);
+    }
     const remaining = (await this.store.held(guildId)).length;
     await this.#feed.gateClosed(guildId, remaining, 'banned', by.id);
     if (done.length > 0) {

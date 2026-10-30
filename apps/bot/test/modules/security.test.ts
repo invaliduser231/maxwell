@@ -60,6 +60,7 @@ function input(overrides: Partial<RiskInput> = {}): RiskInput {
     kicks: 0,
     bans: 0,
     inviterAgeHours: null,
+    shield: 0,
     raid: false,
     ...overrides,
   };
@@ -138,6 +139,15 @@ describe('risk score', () => {
     );
     expect(keys).not.toContain('established');
     expect(result.score).toBe(3 + 4 + 2 + 2 + 4 + 2);
+  });
+
+  it('counts Shield reports only from two other communities on', () => {
+    const one = scoreMember(input({ shield: 1 }), settings.weights, settings.spamWords);
+    expect(one.reasons.map((reason) => reason.key)).not.toContain('shield');
+    const two = scoreMember(input({ shield: 2 }), settings.weights, settings.spamWords);
+    expect(two.reasons).toContainEqual({ key: 'shield', count: 2 });
+    expect(two.score).toBe(settings.weights.shield);
+    expect(storedReasons([{ key: 'shield', count: 3 }])).toEqual([{ key: 'shield', count: 3 }]);
   });
 
   it('lets severe scores go straight to the configured action', () => {

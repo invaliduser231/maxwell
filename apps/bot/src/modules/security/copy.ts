@@ -36,6 +36,8 @@ const en = {
         return `kicked here before (${reason.count})`;
       case 'priorBan':
         return `banned here before (${reason.count})`;
+      case 'shield':
+        return `reported in ${reason.count} other communities`;
       case 'newInviter':
         return 'invited by a brand new member';
       case 'established':
@@ -187,11 +189,19 @@ const en = {
     calm: 'Turns raid mode off.',
     pass: 'Lets a member through the check.',
     honeypot: 'Creates a trap channel for spam bots.',
+    shield: 'Shares a ban with Maxwell Shield for 90 days.',
+    unshield: 'Takes a member back out of Maxwell Shield.',
   },
   replies: {
     passed: (userId: string) => `${mention.user(userId)} is through.`,
     notPending: (userId: string) => `${mention.user(userId)} is not waiting for a check.`,
     honeypotMade: (channelId: string) => `Trap set in ${mention.channel(channelId)}.`,
+    shieldOff: 'Maxwell Shield is off here. It can be turned on in the dashboard under Security.',
+    notBanned: (userId: string) => `${mention.user(userId)} is not banned here.`,
+    shared: (userId: string) =>
+      `${mention.user(userId)} is shared with Maxwell Shield for 90 days.`,
+    unshared: (userId: string) => `${mention.user(userId)} is out of Maxwell Shield.`,
+    notShared: (userId: string) => `${mention.user(userId)} was not shared from here.`,
   },
 };
 
@@ -221,4 +231,5 @@ export const audit = {
   raidEnded: 'Raid mode off',
   passed: (name: string) => `Let ${name} through the security check`,
   honeypot: 'Created a honeypot channel',
+  shieldRemoved: 'Took a member out of Maxwell Shield',
 };

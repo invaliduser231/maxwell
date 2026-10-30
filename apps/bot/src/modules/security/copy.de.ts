@@ -35,6 +35,8 @@ const de: SecurityCopy = {
         return `hier schon gekickt (${reason.count})`;
       case 'priorBan':
         return `hier schon gebannt (${reason.count})`;
+      case 'shield':
+        return `in ${reason.count} anderen Communities gemeldet`;
       case 'newInviter':
         return 'von einem ganz neuen Mitglied eingeladen';
       case 'established':
@@ -193,11 +195,19 @@ const de: SecurityCopy = {
     calm: 'Schaltet den Raid-Modus aus.',
     pass: 'Lässt ein Mitglied durch die Prüfung.',
     honeypot: 'Legt einen Fallen-Kanal für Spam-Bots an.',
+    shield: 'Teilt einen Bann für 90 Tage mit Maxwell Shield.',
+    unshield: 'Nimmt ein Mitglied wieder aus Maxwell Shield heraus.',
   },
   replies: {
     passed: (userId: string) => `${mention.user(userId)} ist durch.`,
     notPending: (userId: string) => `${mention.user(userId)} wartet auf keine Prüfung.`,
     honeypotMade: (channelId: string) => `Falle steht in ${mention.channel(channelId)}.`,
+    shieldOff: 'Maxwell Shield ist hier aus. Einschalten geht im Dashboard unter Sicherheit.',
+    notBanned: (userId: string) => `${mention.user(userId)} ist hier nicht gebannt.`,
+    shared: (userId: string) =>
+      `${mention.user(userId)} ist für 90 Tage mit Maxwell Shield geteilt.`,
+    unshared: (userId: string) => `${mention.user(userId)} ist aus Maxwell Shield heraus.`,
+    notShared: (userId: string) => `${mention.user(userId)} wurde von hier nicht geteilt.`,
   },
 };
 

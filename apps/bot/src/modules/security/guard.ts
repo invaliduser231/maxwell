@@ -1,6 +1,7 @@
 import { automodConfig } from '@maxwell/core/modules/automod';
-import type { SecurityConfig, securityConfig } from '@maxwell/core/modules/security';
+import type { SecurityConfig, ShieldSource, securityConfig } from '@maxwell/core/modules/security';
 import type { AutomodStore } from '@maxwell/core/stores/automod';
+import { ShieldStore } from '@maxwell/core/stores/shield';
 import { mention } from '../../commands/mentions.js';
 import type { Embed } from '../../platform/types.js';
 import type { ModuleContext } from '../../runtime/module.js';
@@ -18,6 +19,20 @@ export class Guard {
     readonly ctx: Ctx,
     private readonly automod: AutomodStore,
   ) {}
+
+  async share(
+    guildId: string,
+    userId: string,
+    source: ShieldSource,
+    by: string | null = null,
+  ): Promise<boolean> {
+    return new ShieldStore(this.ctx.services.sql)
+      .report(guildId, userId, source, by)
+      .catch((error) => {
+        this.ctx.services.log.warn({ err: error, guild: guildId }, 'shield report failed');
+        return false;
+      });
+  }
 
   async gate(guildId: string): Promise<{ roleId: string | null; channelId: string | null }> {
     const config = await this.ctx.services.settings.config(guildId, 'automod', automodConfig);

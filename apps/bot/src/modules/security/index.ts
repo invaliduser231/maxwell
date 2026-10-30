@@ -1,11 +1,13 @@
 import type { Actor } from '@maxwell/core';
-import definition from '@maxwell/core/modules/security';
+import definition, { shieldSources } from '@maxwell/core/modules/security';
 import { AutomodStore } from '@maxwell/core/stores/automod';
 import { BackupStore } from '@maxwell/core/stores/backups';
 import { SecurityStore } from '@maxwell/core/stores/security';
+import { ShieldStore } from '@maxwell/core/stores/shield';
 import { defineBotModule } from '../../runtime/module.js';
 import { looksLikeAnswer } from './captcha.js';
 import { securityCommands } from './commands.js';
+import { audit } from './copy.js';
 import { Guard } from './guard.js';
 import { Honeypot } from './honeypot.js';
 import { NukeWatch } from './nuke.js';
@@ -43,13 +45,28 @@ export default defineBotModule({
     const honeypot = new Honeypot(ctx, store, guard);
 
     ctx.privacy({
-      export: (guildId, userId) => store.memberData(guildId, userId),
+      export: async (guildId, userId) => {
+        const [data, report] = await Promise.all([
+          store.memberData(guildId, userId),
+          new ShieldStore(services.sql).get(guildId, userId),
+        ]);
+        if (!report) return data;
+        const shield = {
+          source: report.source,
+          sharedAt: report.createdAt.toISOString(),
+          expiresAt: report.expiresAt.toISOString(),
+        };
+        return { ...(data ?? {}), shield };
+      },
       forget: (guildId, userId) => store.forgetMember(guildId, userId),
     });
 
     ctx.on('memberJoin', async (join) => {
       await raid.onJoin(join);
       await verifier.onJoin(join);
+    });
+    ctx.on('banRemove', async ({ guildId, user }) => {
+      await new ShieldStore(services.sql).withdraw(guildId, user.id);
     });
     ctx.on('memberLeave', ({ guildId, userId }) => verifier.onLeave(guildId, userId), {
       always: true,
@@ -148,10 +165,31 @@ export default defineBotModule({
       const now = Date.now();
       try {
         const removed = await store.purge(new Date(now - RETENTION_DAYS * DAY));
-        if (removed > 0) log.info({ removed }, 'security history purged');
+        const shield = new ShieldStore(services.sql);
+        const expired = (await shield.purge(now)) + (await shield.dropInactive());
+        if (removed + expired > 0) log.info({ removed, expired }, 'security history purged');
       } finally {
         await ctx.schedule('purge', purgeAt(now + DAY));
       }
+    });
+
+    ctx.job('shield.remove', async (job) => {
+      const userId = text(job.payload.userId);
+      if (!job.guildId || !userId) return;
+      const shield = new ShieldStore(services.sql);
+      const report = await shield.get(job.guildId, userId);
+      if (!report || !(await shield.withdraw(job.guildId, userId))) return;
+      await ctx.record(job.guildId, actor(job.payload.by), 'shield.remove', audit.shieldRemoved, {
+        before: { userId, source: report.source },
+        undo: { kind: 'shield.remove', payload: { userId, source: report.source } },
+      });
+    });
+
+    ctx.undo('shield.remove', async (entry, payload, by) => {
+      const userId = text(payload.userId);
+      const source = shieldSources.find((entry) => entry === payload.source);
+      if (!userId || !source) return;
+      await new ShieldStore(services.sql).report(entry.guildId, userId, source, by.id);
     });
 
     ctx.undo('raid', async (entry, _payload, by) => {

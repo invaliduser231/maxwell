@@ -1,4 +1,6 @@
+import { ModerationStore } from '@maxwell/core/stores/moderation';
 import type { SecurityStore } from '@maxwell/core/stores/security';
+import { ShieldStore } from '@maxwell/core/stores/shield';
 import type { Command } from '../../commands/types.js';
 import { lines, timestamp } from '../../ui/format.js';
 import { palette } from '../../ui/palette.js';
@@ -141,6 +143,55 @@ export function securityCommands(
     },
   };
 
+  const share: Command = {
+    name: 'shield',
+    description: copy.commands.shield,
+    guildOnly: true,
+    permissions: ['BanMembers'],
+    args: [{ name: 'member', type: 'user' }],
+    examples: ['security shield @raider'],
+    async run(cmd) {
+      const userId = cmd.args.string('member');
+      if (!userId) return;
+      const config = await ctx.config(cmd.guildId);
+      if (!config.shield.enabled) {
+        await cmd.reply({ content: copy.replies.shieldOff, deleteAfter: 15_000 });
+        return;
+      }
+      const ban = await new ModerationStore(cmd.services.sql).openCase(cmd.guildId, userId, 'ban');
+      if (!ban) {
+        await cmd.reply({ content: copy.replies.notBanned(userId), deleteAfter: 15_000 });
+        return;
+      }
+      await new ShieldStore(cmd.services.sql).report(
+        cmd.guildId,
+        userId,
+        'manual',
+        cmd.message.author.id,
+      );
+      await cmd.reply(cmd.services.voice.done(copy.replies.shared(userId), cmd.seed));
+    },
+  };
+
+  const unshare: Command = {
+    name: 'unshield',
+    description: copy.commands.unshield,
+    guildOnly: true,
+    permissions: ['BanMembers'],
+    args: [{ name: 'member', type: 'user' }],
+    examples: ['security unshield @member'],
+    async run(cmd) {
+      const userId = cmd.args.string('member');
+      if (!userId) return;
+      const removed = await new ShieldStore(cmd.services.sql).withdraw(cmd.guildId, userId);
+      await cmd.reply(
+        removed
+          ? cmd.services.voice.done(copy.replies.unshared(userId), cmd.seed)
+          : { content: copy.replies.notShared(userId), deleteAfter: 15_000 },
+      );
+    },
+  };
+
   return [
     verify,
     {
@@ -149,7 +200,7 @@ export function securityCommands(
       guildOnly: true,
       permissions: status.permissions,
       run: status.run,
-      subcommands: [status, raidOn, calm, pass, trap],
+      subcommands: [status, raidOn, calm, pass, trap, share, unshare],
     },
   ];
 }

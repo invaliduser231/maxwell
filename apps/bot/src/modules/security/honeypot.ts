@@ -74,8 +74,10 @@ export class Honeypot {
       await this.guard.hold(guildId, userId, 'honeypot');
     } else if (action === 'ban') {
       await this.guard.punish(guildId, userId, 'ban', reason, CLEAN_SECONDS);
+      await this.guard.share(guildId, userId, 'honeypot');
     } else {
       await this.guard.punish(guildId, userId, 'softban', reason);
+      await this.guard.share(guildId, userId, 'honeypot');
     }
     const config = await this.ctx.config(guildId);
     await this.store.event({

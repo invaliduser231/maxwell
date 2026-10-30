@@ -1,6 +1,7 @@
 import type { Job } from '@maxwell/core';
 import type { SecurityConfig } from '@maxwell/core/modules/security';
 import type { CheckStatus, SecurityCheck, SecurityStore } from '@maxwell/core/stores/security';
+import { ShieldStore } from '@maxwell/core/stores/shield';
 import { mention } from '../../commands/mentions.js';
 import { inGuild } from '../../i18n/language.js';
 import type { Embed, MemberJoin, MemberUpdate } from '../../platform/types.js';
@@ -90,7 +91,10 @@ export class Verifier {
     private readonly now: () => number = Date.now,
   ) {
     this.feed = new InboxFeed(ctx.services);
+    this.shield = new ShieldStore(ctx.services.sql);
   }
+
+  readonly shield: ShieldStore;
 
   readonly feed: InboxFeed;
 
@@ -123,10 +127,11 @@ export class Verifier {
     if (!settings.enabled && !config.logChannelId) return;
 
     const wave = waveAround(recent.slice(0, -1), sample);
-    const [history, raid, member] = await Promise.all([
+    const [history, raid, member, shield] = await Promise.all([
       this.store.history(guildId, user.id).catch(() => ({ kicks: 0, bans: 0, leftAt: null })),
       this.raid.active(guildId),
       this.ctx.services.platform.member(guildId, user.id).catch(() => null),
+      config.shield.enabled ? this.shield.elsewhere(user.id, guildId).catch(() => 0) : 0,
     ]);
     const result = scoreMember(
       {
@@ -142,6 +147,7 @@ export class Verifier {
         kicks: history.kicks,
         bans: history.bans,
         inviterAgeHours: null,
+        shield,
         raid,
       },
       settings.weights,
@@ -202,6 +208,7 @@ export class Verifier {
         expiresAt: null,
       });
       await this.guard.punish(guildId, user.id, action, reasons.severe(result.score));
+      if (action === 'ban') await this.guard.share(guildId, user.id, 'severe');
       await this.store.event({
         guildId,
         kind: 'severe',

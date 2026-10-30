@@ -1,4 +1,4 @@
-import type { RiskWeights } from '@maxwell/core/modules/security';
+import { type RiskWeights, SHIELD_MIN_COMMUNITIES } from '@maxwell/core/modules/security';
 
 export type RiskReason =
   | { key: 'age'; hours: number }
@@ -13,6 +13,7 @@ export type RiskReason =
   | { key: 'priorKick'; count: number }
   | { key: 'priorBan'; count: number }
   | { key: 'newInviter' }
+  | { key: 'shield'; count: number }
   | { key: 'established' }
   | { key: 'raid' };
 
@@ -29,6 +30,7 @@ const reasonKeys = new Set([
   'priorKick',
   'priorBan',
   'newInviter',
+  'shield',
   'established',
   'raid',
 ]);
@@ -55,6 +57,7 @@ export interface RiskInput {
   kicks: number;
   bans: number;
   inviterAgeHours: number | null;
+  shield: number;
   raid: boolean;
 }
 
@@ -167,6 +170,10 @@ export function scoreMember(
   if (input.kicks > 0) add(weights.priorKick, { key: 'priorKick', count: input.kicks });
   if (input.inviterAgeHours !== null && input.inviterAgeHours < NEW_INVITER_HOURS) {
     add(weights.newInviter, { key: 'newInviter' });
+  }
+
+  if (input.shield >= SHIELD_MIN_COMMUNITIES) {
+    add(weights.shield, { key: 'shield', count: input.shield });
   }
 
   if (input.hasAvatar && hours >= ESTABLISHED_DAYS * 24 && reasons.length === 0) {
