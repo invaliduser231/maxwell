@@ -887,7 +887,7 @@ export function AutomodForm({
                   <button
                     type="button"
                     className="mx-btn mx-btn-primary"
-                    disabled={running !== null}
+                    disabled={running !== null || !saved.keepHistory}
                     onClick={dryRun}
                   >
                     {running === selected
@@ -897,6 +897,9 @@ export function AutomodForm({
                         : t('Dry run on the last 7 days')}
                   </button>
                   <StatusText status={dryStatus} />
+                  {saved.keepHistory ? null : (
+                    <span className="mx-sub">{t('Needs message history, see Options.')}</span>
+                  )}
                 </div>
               )}
             </PanelBody>

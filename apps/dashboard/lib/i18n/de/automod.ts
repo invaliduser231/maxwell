@@ -120,4 +120,5 @@ export const automod = {
   'That did not work. Try again.': 'Das hat nicht geklappt. Versuch es nochmal.',
   'Unknown dry run.': 'Unbekannter Probelauf.',
   'That dry run is gone.': 'Diesen Probelauf gibt es nicht mehr.',
+  'Needs message history, see Options.': 'Braucht den Nachrichtenverlauf, siehe Optionen.',
 } as const;

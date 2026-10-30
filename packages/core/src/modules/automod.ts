@@ -135,7 +135,7 @@ export const automodConfig = z.object({
   exemptRoleIds: ids(),
   ignoreBots: z.boolean().default(true),
   notifyMembers: z.boolean().default(true),
-  keepHistory: z.boolean().default(true),
+  keepHistory: z.boolean().default(false),
   rules: automodRules,
   raid: raidShield,
 });
