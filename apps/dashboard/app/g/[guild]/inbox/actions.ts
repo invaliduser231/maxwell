@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import { type Result, runAction } from '@/lib/actions';
 import { editor, viewer } from '@/lib/guard';
-import { type InboxDetail, inboxDetail } from './data';
+import { type InboxDetail, inboxCounts, inboxDetail } from './data';
 
 const MODULE = 'moderation';
 const number = z.number().int().positive().max(2_147_483_647);
@@ -14,6 +14,13 @@ export async function loadItem(guildId: string, n: number): Promise<Result<Inbox
   if (!number.safeParse(n).success) return { ok: false, error: 'Unknown item.' };
   const detail = await inboxDetail(guildId, n);
   return detail ? { ok: true, data: detail } : { ok: false, error: 'That item is gone.' };
+}
+
+export async function openCount(guildId: string): Promise<Result<number>> {
+  const check = await viewer(guildId, MODULE);
+  if ('error' in check) return { ok: false, error: check.error };
+  const counts = await inboxCounts(guildId, check.access.user.id);
+  return { ok: true, data: counts.open + counts.claimed };
 }
 
 export async function claimItem(guildId: string, n: number, claim: boolean): Promise<Result> {

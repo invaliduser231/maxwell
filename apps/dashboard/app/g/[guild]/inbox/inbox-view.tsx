@@ -14,6 +14,7 @@ import { failed, type Status, StatusText } from '@/components/status-text';
 import { Avatar, Empty, Field, Grid, Panel, PanelBody } from '@/components/ui';
 import type { Key } from '@/lib/i18n';
 import { ago, duration } from '@/lib/time';
+import { reasonText } from '../security/security-form';
 import { claimItem, resolveItem } from './actions';
 import type { InboxDetail, InboxRow, InboxView as Mode } from './data';
 
@@ -23,6 +24,8 @@ const kindTitles: Record<InboxKind, Key> = {
   report: 'Report #{number}',
   appeal: 'Appeal #{number}',
   review: 'Review #{number}',
+  gate: 'Gate #{number}',
+  check: 'Verification #{number}',
 };
 
 const kindOptions: { value: InboxKind | 'all'; label: Key }[] = [
@@ -30,6 +33,8 @@ const kindOptions: { value: InboxKind | 'all'; label: Key }[] = [
   { value: 'report', label: 'Reports' },
   { value: 'appeal', label: 'Appeals' },
   { value: 'review', label: 'Reviews' },
+  { value: 'gate', label: 'Gate' },
+  { value: 'check', label: 'Verifications' },
 ];
 
 const statusColors: Record<InboxRow['status'], string> = {
@@ -55,7 +60,17 @@ const outcomeWords: Record<string, Key> = {
   approved: 'Approved',
   declined: 'Declined',
   deleted: 'Message deleted',
+  let_in: 'Let in',
+  left: 'Left the server',
+  passed: 'Passed the captcha',
+  released: 'Let in',
   none: 'No action',
+};
+
+const checkStates: Record<string, Key> = {
+  undelivered: 'The captcha could not be sent.',
+  failed: 'Failed the captcha.',
+  expired: 'Did not solve the captcha in time.',
 };
 
 const timeoutChoices = [10, 60, 360, 1_440, 10_080, 40_320];
@@ -119,9 +134,13 @@ function ListRow({
       onClick={onPick}
       aria-current={selected ? 'true' : undefined}
     >
-      <Avatar src={row.subject?.avatar} name={row.subject?.name ?? '?'} size={30} />
+      <Avatar src={row.subject?.avatar} name={row.subject?.name ?? t('Gate')} size={30} />
       <span className="mx-row-main">
-        <span className="mx-row-title mx-ellipsis">{row.subject?.name ?? t('Unknown member')}</span>
+        <span className="mx-row-title mx-ellipsis">
+          {row.kind === 'gate'
+            ? t('Members at the gate')
+            : (row.subject?.name ?? t('Unknown member'))}
+        </span>
         <span className="mx-sub mx-ellipsis">{parts.join(', ')}</span>
         {row.preview ? (
           <span className="mx-sub mx-ellipsis" style={{ color: 'var(--mx-text-2)' }}>
@@ -166,19 +185,27 @@ function ResolveForm({
   const name = detail.subject?.name ?? t('this member');
 
   const label =
-    detail.kind === 'appeal'
+    detail.kind === 'gate'
       ? choice === 'dismiss'
-        ? t('Decline appeal')
-        : t('Accept and unban {name}', { name })
-      : detail.kind === 'review'
-        ? choice === 'dismiss'
-          ? t('Decline')
-          : t('Approve')
-        : action
-          ? `${t(actionWords[action])} ${name}`
-          : choice === 'dismiss'
-            ? t('Dismiss')
-            : t('Close without action');
+        ? t('Dismiss')
+        : action === 'ban'
+          ? t('Ban everyone waiting')
+          : t('Let everyone in')
+      : detail.kind === 'check' && !action && choice !== 'dismiss'
+        ? t('Let {name} in', { name })
+        : detail.kind === 'appeal'
+          ? choice === 'dismiss'
+            ? t('Decline appeal')
+            : t('Accept and unban {name}', { name })
+          : detail.kind === 'review'
+            ? choice === 'dismiss'
+              ? t('Decline')
+              : t('Approve')
+            : action
+              ? `${t(actionWords[action])} ${name}`
+              : choice === 'dismiss'
+                ? t('Dismiss')
+                : t('Close without action');
 
   return (
     <form
@@ -206,7 +233,7 @@ function ResolveForm({
         });
       }}
     >
-      {action ? (
+      {action && detail.kind !== 'gate' ? (
         <div className="mx-fields">
           <label className="mx-field" style={timed ? undefined : { gridColumn: '1 / -1' }}>
             <span className="mx-label">{t('Reason')}</span>
@@ -270,6 +297,27 @@ function ResolveForm({
 
 function Choices({ detail, onPick }: { detail: InboxDetail; onPick: (choice: Choice) => void }) {
   const t = useT();
+  if (detail.kind === 'gate' || detail.kind === 'check') {
+    const gate = detail.kind === 'gate';
+    return (
+      <>
+        <button type="button" className="mx-btn mx-btn-primary" onClick={() => onPick('close')}>
+          {gate ? t('Let everyone in') : t('Let in')}
+        </button>
+        {gate ? null : (
+          <button type="button" className="mx-btn mx-btn-danger" onClick={() => onPick('kick')}>
+            {t('Kick')}
+          </button>
+        )}
+        <button type="button" className="mx-btn mx-btn-danger" onClick={() => onPick('ban')}>
+          {gate ? t('Ban everyone waiting') : t('Ban')}
+        </button>
+        <button type="button" className="mx-btn mx-btn-ghost" onClick={() => onPick('dismiss')}>
+          {t('Dismiss')}
+        </button>
+      </>
+    );
+  }
   if (detail.kind === 'appeal') {
     return (
       <>
@@ -345,9 +393,13 @@ function DetailPanel({ detail, self, now }: { detail: InboxDetail; self: string;
       </div>
       <div className="mx-panel-body">
         <div className="mx-inline" style={{ gap: 12 }}>
-          <Avatar src={detail.subject?.avatar} name={detail.subject?.name ?? '?'} size={40} />
+          <Avatar src={detail.subject?.avatar} name={detail.subject?.name ?? t('Gate')} size={40} />
           <div className="mx-stack" style={{ gap: 2, flex: 1, minWidth: 0 }}>
-            <span className="mx-row-title">{detail.subject?.name ?? t('Unknown member')}</span>
+            <span className="mx-row-title">
+              {detail.kind === 'gate'
+                ? t('Members at the gate')
+                : (detail.subject?.name ?? t('Unknown member'))}
+            </span>
             <span className="mx-sub">{ago(t, detail.createdAt, now)}</span>
           </div>
           {detail.subject ? (
@@ -357,8 +409,42 @@ function DetailPanel({ detail, self, now }: { detail: InboxDetail; self: string;
             >
               {t('Member file')}
             </Link>
+          ) : detail.kind === 'gate' ? (
+            <Link className="mx-btn mx-btn-ghost" href={`/g/${guildId}/automod`}>
+              {t('Open AutoMod')}
+            </Link>
           ) : null}
         </div>
+
+        {detail.held !== null ? (
+          <p style={{ margin: 0 }}>
+            {t.plural(
+              detail.held,
+              '{n} member waiting at the gate',
+              '{n} members waiting at the gate',
+            )}
+          </p>
+        ) : null}
+
+        {detail.check ? (
+          <div className="mx-stack" style={{ gap: 6 }}>
+            {detail.check.state && checkStates[detail.check.state] ? (
+              <p style={{ margin: 0 }}>{t(checkStates[detail.check.state] as Key)}</p>
+            ) : null}
+            <span className="mx-label">
+              {t('Risk score {score}', { score: detail.check.score })}
+            </span>
+            {detail.check.reasons.length > 0 ? (
+              <div className="mx-chips">
+                {detail.check.reasons.map((reason) => (
+                  <span key={reason.key} className="mx-chip">
+                    {reasonText(t, reason)}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {detail.excerpt ? (
           <div className="mx-stack" style={{ gap: 6 }}>

@@ -2,8 +2,10 @@ import 'server-only';
 import type { InboxKind, InboxStatus } from '@maxwell/core/modules/moderation';
 import { type InboxItem, InboxStore } from '@maxwell/core/stores/inbox';
 import { ModerationStore } from '@maxwell/core/stores/moderation';
+import { SecurityStore } from '@maxwell/core/stores/security';
 import { db } from '@/lib/db';
 import { type Person, people, personOf } from '@/lib/people';
+import type { CheckRow } from '../security/data';
 
 export type InboxView = 'active' | 'mine' | 'closed';
 
@@ -45,6 +47,8 @@ export interface InboxDetail extends InboxRow {
   resolvedBy: InboxPerson | null;
   resolvedAt: string | null;
   cases: InboxCase[];
+  held: number | null;
+  check: { state: string | null; score: number; reasons: CheckRow['reasons'] } | null;
 }
 
 const PREVIEW = 120;
@@ -60,6 +64,7 @@ function view(known: ReadonlyMap<string, Person>, id: string | null): InboxPerso
 }
 
 function preview(item: InboxItem): string | null {
+  if (item.kind === 'gate' || item.kind === 'check') return null;
   const text = (item.excerpt ?? item.body ?? '').replace(/\s+/g, ' ').trim();
   if (!text) return null;
   return text.length > PREVIEW ? `${text.slice(0, PREVIEW - 1).trimEnd()}…` : text;
@@ -106,9 +111,14 @@ export async function inboxDetail(guildId: string, number: number): Promise<Inbo
   ]);
   const known = await people([item.subjectId, item.assigneeId, item.resolvedBy, ...item.reporters]);
   const suggested = typeof flag?.meta.suggested === 'string' ? flag.meta.suggested : null;
+  const check =
+    item.kind === 'check' && item.refId
+      ? await new SecurityStore(db().sql).check(guildId, item.refId).catch(() => null)
+      : null;
+  const held = item.kind === 'gate' ? Number(item.body) : Number.NaN;
   return {
     ...row(known, item),
-    body: item.body,
+    body: item.kind === 'gate' || item.kind === 'check' ? null : item.body,
     excerpt: item.excerpt,
     messageUrl:
       item.channelId && item.messageId
@@ -132,6 +142,15 @@ export async function inboxDetail(guildId: string, number: number): Promise<Inbo
         voided: entry.voidedAt !== null,
         createdAt: entry.createdAt.toISOString(),
       })),
+    held: Number.isFinite(held) ? held : null,
+    check:
+      item.kind === 'check'
+        ? {
+            state: item.body,
+            score: check?.score ?? 0,
+            reasons: (check?.reasons ?? []) as CheckRow['reasons'],
+          }
+        : null,
   };
 }
 
