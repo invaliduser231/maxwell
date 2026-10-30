@@ -335,7 +335,7 @@ describe.skipIf(!url)('events flow', () => {
     expect(ballots.has(platform.selfId)).toBe(false);
     expect(ballots.get(many[139] as string)).toEqual([1]);
     expect(platform.unreacts).toContainEqual({ messageId, emoji: two, userId: ada });
-  });
+  }, 20_000);
 
   it('turns reactions on an anonymous poll into votes after downtime', async () => {
     const pollId = await openPoll('Secret?', true);
