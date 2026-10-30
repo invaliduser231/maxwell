@@ -1,11 +1,14 @@
 import definition from '@maxwell/core/modules/insights';
+import { InboxStore } from '@maxwell/core/stores/inbox';
 import { InsightsStore } from '@maxwell/core/stores/insights';
 import { defineBotModule } from '../../runtime/module.js';
 import { InsightsCollector } from './collector.js';
+import { WeeklyDigest } from './digest.js';
 import { nextSlot } from './recurring.js';
 
 const FLUSH = 60_000;
 const PRUNE = 24 * 60 * 60 * 1000;
+const DIGEST = 60 * 60 * 1000;
 
 export default defineBotModule({
   definition,
@@ -13,9 +16,11 @@ export default defineBotModule({
     const { sql, log } = ctx.services;
     const store = new InsightsStore(sql);
     const collector = new InsightsCollector(ctx, store);
+    const digest = new WeeklyDigest(ctx, store, new InboxStore(sql), () => collector.flush());
 
     const scheduleFlush = () => ctx.schedule('flush', nextSlot('insights.flush', FLUSH));
     const schedulePrune = () => ctx.schedule('prune', nextSlot('insights.prune', PRUNE));
+    const scheduleDigest = () => ctx.schedule('digest', nextSlot('insights.digest', DIGEST));
 
     ctx.on('message', (message) => collector.onMessage(message));
     ctx.on('memberJoin', (join) => collector.onJoin(join.guildId));
@@ -26,7 +31,7 @@ export default defineBotModule({
       'ready',
       async () => {
         collector.sessions.clear();
-        await Promise.all([scheduleFlush(), schedulePrune()]);
+        await Promise.all([scheduleFlush(), schedulePrune(), scheduleDigest()]);
       },
       { always: true },
     );
@@ -49,6 +54,17 @@ export default defineBotModule({
       await schedulePrune();
       const removed = await store.prune();
       if (removed) log.info({ removed }, 'insights pruned');
+    });
+
+    ctx.job('digest', async () => {
+      await scheduleDigest();
+      const posted = await digest.tick();
+      if (posted) log.info({ posted }, 'weekly digests posted');
+    });
+
+    ctx.job('digest.test', async (job) => {
+      if (!job.guildId || !(await ctx.enabled(job.guildId))) return;
+      await digest.test(job.guildId);
     });
 
     ctx.onShutdown(async () => {
