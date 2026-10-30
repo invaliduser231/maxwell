@@ -9,6 +9,7 @@ import {
 } from '@maxwell/core/stores/inbox';
 import type { CaseRow } from '@maxwell/core/stores/moderation';
 import { SecurityStore } from '@maxwell/core/stores/security';
+import { ShieldStore } from '@maxwell/core/stores/shield';
 import { z } from 'zod';
 import { mention } from '../../commands/mentions.js';
 import type { Embed, EmbedField, IncomingMessage, ReactionEvent } from '../../platform/types.js';
@@ -40,6 +41,7 @@ export const resolvePayload = z.object({
   durationSeconds: z.number().int().positive().max(63_072_000).nullable().default(null),
   reason: z.string().max(MAX_TEXT).nullable().default(null),
   deleteMessage: z.boolean().default(false),
+  shield: z.boolean().default(false),
   note: z.string().max(MAX_TEXT).nullable().default(null),
   by: snowflake,
 });
@@ -373,6 +375,14 @@ export class ModInbox {
         });
         caseNumber = result.row.number;
         outcome = input.action;
+        if (input.shield && input.action === 'ban') {
+          await new ShieldStore(this.services.sql).report(
+            item.guildId,
+            item.subjectId,
+            'manual',
+            input.by,
+          );
+        }
       } catch (error) {
         return this.#refused(item, error);
       }

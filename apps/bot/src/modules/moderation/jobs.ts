@@ -1,6 +1,7 @@
 import { cancel } from '@maxwell/core';
 import { generalConfig } from '@maxwell/core/modules/general';
 import type { OverwriteChange } from '@maxwell/core/stores/moderation';
+import { ShieldStore } from '@maxwell/core/stores/shield';
 import { z } from 'zod';
 import { statusOf } from './access.js';
 import type { AppliedOverwrite, ChannelTools } from './channels.js';
@@ -23,6 +24,7 @@ export const actionPayload = z.object({
   durationSeconds: z.number().int().positive().max(63_072_000).nullable().default(null),
   source: z.enum(['dashboard', 'automod', 'security']).default('dashboard'),
   deleteMessageSeconds: z.number().int().min(0).max(604_800).nullable().default(null),
+  shield: z.boolean().default(false),
 });
 
 export const reviewPayload = z.object({
@@ -141,7 +143,7 @@ export function registerJobs(moderation: ModerationService, tools: ChannelTools)
       previousUntil = member?.timeoutUntil ?? null;
     }
     try {
-      await moderation.act({
+      const result = await moderation.act({
         guildId,
         action: input.action,
         userId: input.userId,
@@ -152,6 +154,9 @@ export function registerJobs(moderation: ModerationService, tools: ChannelTools)
         source: input.source,
         previousUntil,
       });
+      if (input.shield && result.row.action === 'ban') {
+        await new ShieldStore(sql).report(guildId, input.userId, 'manual', input.moderatorId);
+      }
     } catch (error) {
       if (error instanceof ActionError && error.status !== null && error.status < 500) {
         log.warn(

@@ -1,6 +1,8 @@
 import { connect, migrate, type Sql } from '@maxwell/core';
 import definition, { moderationConfig } from '@maxwell/core/modules/moderation';
+import security from '@maxwell/core/modules/security';
 import { ModerationStore } from '@maxwell/core/stores/moderation';
+import { ShieldStore } from '@maxwell/core/stores/shield';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createLogger } from '../../src/log.js';
 import { InboxFeed } from '../../src/modules/moderation/feed.js';
@@ -64,6 +66,7 @@ describe.skipIf(!url)('moderation inbox flows', () => {
     sql = connect(url as string);
     await migrate(sql, createLogger('silent', false), [
       { module: 'moderation', migrations: definition.migrations },
+      { module: 'security', migrations: security.migrations },
     ]);
     let next = 0;
     const platform = {
@@ -127,6 +130,9 @@ describe.skipIf(!url)('moderation inbox flows', () => {
     await sql`delete from moderation_cases where guild_id = ${guild}`;
     await sql`delete from moderation_counters where guild_id = ${guild}`;
     await sql`delete from jobs where guild_id = ${guild}`;
+    await sql`delete from security_shield_reports where guild_id = ${guild}`;
+    await sql`delete from guild_modules where guild_id = ${guild}`;
+    await sql`delete from guilds where id = ${guild}`;
     await sql.end();
   });
 
@@ -171,6 +177,7 @@ describe.skipIf(!url)('moderation inbox flows', () => {
       durationSeconds: 3_600,
       reason: 'scam link',
       deleteMessage: true,
+      shield: false,
       note: 'second time',
       by: mod,
     });
@@ -209,6 +216,7 @@ describe.skipIf(!url)('moderation inbox flows', () => {
       durationSeconds: null,
       reason: null,
       deleteMessage: false,
+      shield: false,
       note: null,
       by: mod,
     });
@@ -268,6 +276,7 @@ describe.skipIf(!url)('moderation inbox flows', () => {
       durationSeconds: null,
       reason: null,
       deleteMessage: false,
+      shield: false,
       note: null,
       by: mod,
     });
@@ -299,6 +308,7 @@ describe.skipIf(!url)('moderation inbox flows', () => {
       durationSeconds: null,
       reason: null,
       deleteMessage: false,
+      shield: false,
       note: null,
       by: mod,
     });
@@ -322,6 +332,7 @@ describe.skipIf(!url)('moderation inbox flows', () => {
       durationSeconds: null,
       reason: null,
       deleteMessage: false,
+      shield: false,
       note: null,
       by: mod,
     });
@@ -331,5 +342,38 @@ describe.skipIf(!url)('moderation inbox flows', () => {
     await feed.check(guild, tom, '9002', 'failed');
     await feed.checksClosedFor(guild, tom, 'left', null);
     expect(await inbox.store.list(guild, { kind: 'check' })).toHaveLength(0);
+  });
+  it('shares a ban from a report with Maxwell Shield when asked', async () => {
+    await sql`insert into guilds (id) values (${guild}) on conflict do nothing`;
+    await sql`
+      insert into guild_modules (guild_id, module, enabled, config)
+      values (${guild}, 'security', true, ${sql.json({ shield: { enabled: true } })})
+      on conflict (guild_id, module) do update set config = excluded.config, enabled = true
+    `;
+    const target = '410000000000000021';
+    const report = await inbox.store.report({
+      guildId: guild,
+      subjectId: target,
+      reporterId: lena,
+      channelId: null,
+      messageId: null,
+      excerpt: null,
+      body: 'raid account',
+    });
+    const resolved = await inbox.resolve(guild, {
+      number: report.item.number,
+      status: 'resolved',
+      action: 'ban',
+      durationSeconds: null,
+      reason: 'raid',
+      deleteMessage: false,
+      shield: true,
+      note: null,
+      by: mod,
+    });
+    expect(resolved?.outcome).toBe('ban');
+    const shared = await new ShieldStore(sql).get(guild, target);
+    expect(shared?.source).toBe('manual');
+    expect(shared?.reportedBy).toBe(mod);
   });
 });
