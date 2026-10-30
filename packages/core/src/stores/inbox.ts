@@ -15,6 +15,7 @@ export interface InboxItem {
   excerpt: string | null;
   body: string | null;
   caseNumber: number | null;
+  refId: string | null;
   assigneeId: string | null;
   outcome: string | null;
   outcomeCase: number | null;
@@ -103,6 +104,7 @@ const columns = (sql: Sql) => sql`
   id::text, guild_id::text as "guildId", number, kind, status, subject_id::text as "subjectId",
   reporters::text[] as reporters, channel_id::text as "channelId",
   message_id::text as "messageId", excerpt, body, case_number as "caseNumber",
+  ref_id::text as "refId",
   assignee_id::text as "assigneeId", outcome, outcome_case as "outcomeCase", note,
   resolved_by::text as "resolvedBy", resolved_at as "resolvedAt",
   notice_channel_id::text as "noticeChannelId", notice_message_id::text as "noticeMessageId",
@@ -205,6 +207,86 @@ export class InboxStore {
         body,
       });
     });
+  }
+
+  async openGate(guildId: string, body: string): Promise<{ item: InboxItem; created: boolean }> {
+    return this.sql.begin(async (tx) => {
+      await tx`select pg_advisory_xact_lock(hashtext(${`moderation.inbox:${guildId}`}))`;
+      const [open] = await tx<InboxItem[]>`
+        update moderation_inbox set body = ${body}, updated_at = now()
+        where guild_id = ${guildId} and kind = 'gate' and status in ('open', 'claimed')
+        returning ${columns(this.sql)}
+      `;
+      if (open) return { item: open, created: false };
+      const item = await this.#insert(tx, guildId, { kind: 'gate', subject_id: null, body });
+      return { item, created: true };
+    });
+  }
+
+  async closeGate(guildId: string, outcome: string, by: string | null): Promise<InboxItem | null> {
+    const [row] = await this.sql<InboxItem[]>`
+      update moderation_inbox
+      set status = 'resolved', outcome = ${outcome}, resolved_by = ${by}, resolved_at = now(),
+        updated_at = now()
+      where guild_id = ${guildId} and kind = 'gate' and status in ('open', 'claimed')
+      returning ${columns(this.sql)}
+    `;
+    return row ?? null;
+  }
+
+  async openCheck(
+    guildId: string,
+    userId: string,
+    checkId: string,
+    body: string,
+  ): Promise<InboxItem | null> {
+    return this.sql.begin(async (tx) => {
+      await tx`select pg_advisory_xact_lock(hashtext(${`moderation.inbox:${guildId}`}))`;
+      const [existing] = await tx`
+        select 1 from moderation_inbox
+        where guild_id = ${guildId} and kind = 'check' and ref_id = ${checkId}
+      `;
+      if (existing) return null;
+      return this.#insert(tx, guildId, {
+        kind: 'check',
+        subject_id: userId,
+        ref_id: checkId,
+        body,
+      });
+    });
+  }
+
+  async closeCheck(
+    guildId: string,
+    checkId: string,
+    outcome: string,
+    by: string | null,
+  ): Promise<InboxItem | null> {
+    const [row] = await this.sql<InboxItem[]>`
+      update moderation_inbox
+      set status = 'resolved', outcome = ${outcome}, resolved_by = ${by}, resolved_at = now(),
+        updated_at = now()
+      where guild_id = ${guildId} and kind = 'check' and ref_id = ${checkId}
+        and status in ('open', 'claimed')
+      returning ${columns(this.sql)}
+    `;
+    return row ?? null;
+  }
+
+  async closeChecksFor(
+    guildId: string,
+    userId: string,
+    outcome: string,
+    by: string | null,
+  ): Promise<InboxItem[]> {
+    return this.sql<InboxItem[]>`
+      update moderation_inbox
+      set status = 'resolved', outcome = ${outcome}, resolved_by = ${by}, resolved_at = now(),
+        updated_at = now()
+      where guild_id = ${guildId} and kind = 'check' and subject_id = ${userId}
+        and status in ('open', 'claimed')
+      returning ${columns(this.sql)}
+    `;
   }
 
   async get(guildId: string, number: number): Promise<InboxItem | null> {
@@ -381,25 +463,26 @@ export class InboxStore {
     guildId: string,
     values: {
       kind: InboxKind;
-      subject_id: string;
+      subject_id: string | null;
       reporters?: string[];
       channel_id?: string | null;
       message_id?: string | null;
       excerpt?: string | null;
       body?: string | null;
       case_number?: number | null;
+      ref_id?: string | null;
     },
   ): Promise<InboxItem> {
     const [row] = await tx<InboxItem[]>`
       insert into moderation_inbox (
         guild_id, number, kind, subject_id, reporters, channel_id, message_id, excerpt, body,
-        case_number
+        case_number, ref_id
       ) values (
         ${guildId},
         (select coalesce(max(number), 0) + 1 from moderation_inbox where guild_id = ${guildId}),
         ${values.kind}, ${values.subject_id}, ${values.reporters ?? []}::bigint[],
         ${values.channel_id ?? null}, ${values.message_id ?? null}, ${values.excerpt ?? null},
-        ${values.body ?? null}, ${values.case_number ?? null}
+        ${values.body ?? null}, ${values.case_number ?? null}, ${values.ref_id ?? null}
       )
       returning ${columns(this.sql)}
     `;

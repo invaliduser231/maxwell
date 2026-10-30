@@ -149,3 +149,49 @@ function resolvedInput() {
     note: null,
   };
 }
+
+describe.skipIf(!url)('InboxStore sources', () => {
+  let sql: Sql;
+  let store: InboxStore;
+  const guild = String(
+    BigInt(Date.now()) * 1_000_000n + BigInt(Math.floor(Math.random() * 1_000_000)),
+  );
+  const member = '340000000000000011';
+
+  beforeAll(async () => {
+    sql = connect(url as string);
+    await migrate(sql, createLogger('silent', false), [
+      { module: 'moderation', migrations: definition.migrations },
+    ]);
+    store = new InboxStore(sql);
+  });
+
+  afterAll(async () => {
+    await sql`delete from moderation_inbox where guild_id = ${guild}`;
+    await sql.end();
+  });
+
+  it('keeps one open gate item per community and updates it', async () => {
+    const first = await store.openGate(guild, '3 members held');
+    expect(first.created).toBe(true);
+    expect(first.item.subjectId).toBeNull();
+    const second = await store.openGate(guild, '7 members held');
+    expect(second.created).toBe(false);
+    expect(second.item.number).toBe(first.item.number);
+    expect(second.item.body).toBe('7 members held');
+
+    const closed = await store.closeGate(guild, 'let_in', null);
+    expect(closed?.status).toBe('resolved');
+    expect(await store.closeGate(guild, 'let_in', null)).toBeNull();
+    expect((await store.openGate(guild, '1 member held')).created).toBe(true);
+  });
+
+  it('opens one item per security check and closes it by reference', async () => {
+    const item = await store.openCheck(guild, member, '77', 'Risk score 80');
+    expect(item?.refId).toBe('77');
+    expect(await store.openCheck(guild, member, '77', 'Risk score 80')).toBeNull();
+    const closed = await store.closeCheck(guild, '77', 'passed', null);
+    expect(closed?.outcome).toBe('passed');
+    expect(await store.closeCheck(guild, '77', 'passed', null)).toBeNull();
+  });
+});

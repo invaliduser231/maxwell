@@ -28,7 +28,7 @@ export const escalationStep = z.object({
 
 export type EscalationStep = z.output<typeof escalationStep>;
 
-export const inboxKinds = ['report', 'appeal', 'review'] as const;
+export const inboxKinds = ['report', 'appeal', 'review', 'gate', 'check'] as const;
 
 export type InboxKind = (typeof inboxKinds)[number];
 
@@ -210,6 +210,19 @@ export default defineModule({
         create index moderation_inbox_subject on moderation_inbox (guild_id, subject_id);
         create unique index moderation_inbox_review on moderation_inbox (guild_id, case_number)
           where kind = 'review';
+      `,
+    },
+    {
+      id: '7-inbox-sources',
+      up: `
+        alter table moderation_inbox drop constraint moderation_inbox_kind_check;
+        alter table moderation_inbox add constraint moderation_inbox_kind_check
+          check (kind in ('report', 'appeal', 'review', 'gate', 'check'));
+        alter table moderation_inbox add column ref_id bigint;
+        create unique index moderation_inbox_gate on moderation_inbox (guild_id)
+          where kind = 'gate' and status in ('open', 'claimed');
+        create unique index moderation_inbox_check on moderation_inbox (guild_id, ref_id)
+          where kind = 'check';
       `,
     },
   ],
