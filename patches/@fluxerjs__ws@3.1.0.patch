@@ -1,0 +1,84 @@
+diff --git a/dist/index.js b/dist/index.js
+index 0cd9ad3134f93bda5cd45edad56336bff7b55d59..7dbd1b17a07cc4298c714978af48b7fb4f862d23 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -524,12 +524,13 @@ var WebSocketShard = class extends import_node_events.EventEmitter {
+     this.emit("error", asError(err));
+     if (this.phase === Phase.Destroyed || !this.ws) return;
+     this.phase = Phase.Idle;
++    const socket = this.ws;
++    this.ws = null;
++    this.stopHeartbeat();
+     try {
+-      this.ws.close(1e3);
++      socket.close(1e3);
+     } catch {
+     }
+-    this.ws = null;
+-    this.stopHeartbeat();
+     this.debug("Connection error; will retry\u2026");
+     this.scheduleReconnect();
+   }
+diff --git a/dist/index.mjs b/dist/index.mjs
+index 3d613258e043157739a2016825143f6b28198692..18b3653c19a940afb3732851a83119b80f27f74e 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -477,12 +477,13 @@ var WebSocketShard = class extends EventEmitter {
+     this.emit("error", asError(err));
+     if (this.phase === Phase.Destroyed || !this.ws) return;
+     this.phase = Phase.Idle;
++    const socket = this.ws;
++    this.ws = null;
++    this.stopHeartbeat();
+     try {
+-      this.ws.close(1e3);
++      socket.close(1e3);
+     } catch {
+     }
+-    this.ws = null;
+-    this.stopHeartbeat();
+     this.debug("Connection error; will retry\u2026");
+     this.scheduleReconnect();
+   }
+diff --git a/dist/worker/ShardWorker.js b/dist/worker/ShardWorker.js
+index 53e0566949d1947f973725ada96320bf6c2e56ee..1f7e2fb0deab4fe01b9a91d53ebb0b2db76c9283 100644
+--- a/dist/worker/ShardWorker.js
++++ b/dist/worker/ShardWorker.js
+@@ -384,12 +384,13 @@ var WebSocketShard = class extends import_node_events.EventEmitter {
+     this.emit("error", asError(err));
+     if (this.phase === Phase.Destroyed || !this.ws) return;
+     this.phase = Phase.Idle;
++    const socket = this.ws;
++    this.ws = null;
++    this.stopHeartbeat();
+     try {
+-      this.ws.close(1e3);
++      socket.close(1e3);
+     } catch {
+     }
+-    this.ws = null;
+-    this.stopHeartbeat();
+     this.debug("Connection error; will retry\u2026");
+     this.scheduleReconnect();
+   }
+diff --git a/dist/worker/ShardWorker.mjs b/dist/worker/ShardWorker.mjs
+index 82ca4b978c0ea387d3c433e835f920b77a7c8aab..697bb4f1686279a2c0b3421e32978efff4bc4a6e 100644
+--- a/dist/worker/ShardWorker.mjs
++++ b/dist/worker/ShardWorker.mjs
+@@ -367,12 +367,13 @@ var WebSocketShard = class extends EventEmitter {
+     this.emit("error", asError(err));
+     if (this.phase === Phase.Destroyed || !this.ws) return;
+     this.phase = Phase.Idle;
++    const socket = this.ws;
++    this.ws = null;
++    this.stopHeartbeat();
+     try {
+-      this.ws.close(1e3);
++      socket.close(1e3);
+     } catch {
+     }
+-    this.ws = null;
+-    this.stopHeartbeat();
+     this.debug("Connection error; will retry\u2026");
+     this.scheduleReconnect();
+   }

@@ -162,6 +162,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@fluxerjs/ws@3.1.0': efe7ebf9357d25454447c4ef97733d2e6c77e27f488541c531caa963eff7282e
+
 importers:
 
   .:
@@ -1769,7 +1772,7 @@ snapshots:
       '@fluxerjs/rest': 3.1.0
       '@fluxerjs/types': 3.3.0
       '@fluxerjs/util': 3.1.0
-      '@fluxerjs/ws': 3.1.0
+      '@fluxerjs/ws': 3.1.0(patch_hash=efe7ebf9357d25454447c4ef97733d2e6c77e27f488541c531caa963eff7282e)
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -1793,7 +1796,7 @@ snapshots:
     dependencies:
       '@fluxerjs/types': 3.1.0
 
-  '@fluxerjs/ws@3.1.0':
+  '@fluxerjs/ws@3.1.0(patch_hash=efe7ebf9357d25454447c4ef97733d2e6c77e27f488541c531caa963eff7282e)':
     dependencies:
       '@fluxerjs/types': 3.1.0
       '@fluxerjs/util': 3.1.0
