@@ -24,6 +24,7 @@ import { members } from './de/members';
 import { moderation } from './de/moderation';
 import { overview } from './de/overview';
 import { pages } from './de/pages';
+import { publicPage } from './de/public';
 import { roles } from './de/roles';
 import { scheduler } from './de/scheduler';
 import { security } from './de/security';
@@ -57,6 +58,7 @@ export const messages = {
   ...forms,
   ...games,
   ...general,
+  ...publicPage,
   ...giveaways,
   ...insights,
   ...invites,

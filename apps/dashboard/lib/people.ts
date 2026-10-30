@@ -65,7 +65,7 @@ async function lookup(id: string): Promise<Person> {
   return person;
 }
 
-export async function people(
+export async function profiles(
   ids: Iterable<string | null | undefined>,
   limit = 80,
 ): Promise<Map<string, Person>> {
@@ -84,12 +84,19 @@ export async function people(
     const batch = await Promise.all(missing.slice(start, start + BATCH).map(lookup));
     for (const person of batch) found.set(person.id, person);
   }
-  const t = await getT();
+  return new Map(unique.map((id) => [id, personOf(found, id)]));
+}
+
+export async function people(
+  ids: Iterable<string | null | undefined>,
+  limit = 80,
+): Promise<Map<string, Person>> {
+  const [found, t] = await Promise.all([profiles(ids, limit), getT()]);
   return new Map(
-    unique.map((id) => {
-      const person = personOf(found, id);
-      return [id, person.known ? person : { ...person, name: t(FORMER_MEMBER) }];
-    }),
+    [...found].map(([id, person]) => [
+      id,
+      person.known ? person : { ...person, name: t(FORMER_MEMBER) },
+    ]),
   );
 }
 
