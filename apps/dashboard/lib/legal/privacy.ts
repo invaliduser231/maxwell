@@ -102,6 +102,8 @@ Communities can take part in Maxwell Shield. If a community takes part, Maxwell 
 - **Members** see what Maxwell posts in channels, such as level cards, leaderboards and the starboard.
 - **We** can see all data where needed for operation and troubleshooting. The bot owner account can open the dashboard of every community Maxwell is in.
 
+**Public community page:** admins can turn on a public web page for their community. It is off by default. When it is on, anyone can see the name, icon and member count of the community, the description and invite the admins set, upcoming events, and the display name, avatar, level and XP of the top members on the leaderboard. Members can leave the public leaderboard with **m!rank hide** and come back with **m!rank show**. Leaderboards inside the community still show them.
+
 ## 7. Requests to other services
 
 Maxwell fetches data from other services when admins set it up:
