@@ -18,7 +18,7 @@ import { EmbedPreview, MessagePreview } from '@/components/message-preview';
 import { useDraft, useReadOnly } from '@/components/module-shell';
 import { type Status, StatusText } from '@/components/status-text';
 import { DangerRow } from '@/components/two-step';
-import { Avatar, Empty, Field, Fields, Grid, Panel, PanelBody, Row } from '@/components/ui';
+import { Avatar, Column, Empty, Field, Fields, Grid, Panel, PanelBody, Row } from '@/components/ui';
 import { runAction } from '@/lib/actions';
 import type { Key } from '@/lib/i18n';
 import { shortDate } from '@/lib/time';
@@ -854,6 +854,7 @@ export function EconomyForm({
     history.every((day) => day.supply === 0) &&
     richest.length === 0 &&
     ledger.rows.length === 0;
+  const stocked = value.shop.length > 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -893,42 +894,53 @@ export function EconomyForm({
         ]}
       />
       <Grid>
-        <CurrencyPanel span={idle && value.shop.length > 0 ? 12 : 7} />
-        {idle ? null : (
-          <SupplyPanel
-            history={history}
-            overview={overview}
-            symbol={symbol}
-            name={value.currency.name}
-          />
+        <Column span={idle && stocked ? 12 : 7}>
+          <CurrencyPanel span={idle && stocked ? 12 : 7} />
+          {idle || stocked ? null : (
+            <ShopPanels sold={sold} packs={packs} prefix={prefix} emptySpan={7} />
+          )}
+        </Column>
+        {idle ? (
+          stocked ? null : (
+            <ShopPanels sold={sold} packs={packs} prefix={prefix} emptySpan={5} />
+          )
+        ) : (
+          <Column span={5}>
+            <SupplyPanel
+              history={history}
+              overview={overview}
+              symbol={symbol}
+              name={value.currency.name}
+            />
+            {richest.length === 0 ? null : (
+              <Panel
+                title={t('Richest members')}
+                span={5}
+                id="richest"
+                actions={
+                  <span className="mx-sub">
+                    {t('Top {count} hold {share}%', { count: richest.length, share })}
+                  </span>
+                }
+              >
+                {richest.map((holder, i) => (
+                  <div key={holder.userId} className="mx-row">
+                    <span className="mx-mono mx-muted" style={{ width: 22 }}>
+                      {i + 1}
+                    </span>
+                    <Avatar src={holder.avatar} name={holder.name} size={24} />
+                    <span className="mx-row-main">
+                      <span className="mx-row-title">{holder.name}</span>
+                    </span>
+                    <span className="mx-mono">{`${t.count(holder.balance)} ${symbol}`}</span>
+                  </div>
+                ))}
+              </Panel>
+            )}
+            <LedgerPanel initial={ledger} span={5} />
+          </Column>
         )}
-        <ShopPanels sold={sold} packs={packs} prefix={prefix} emptySpan={idle ? 5 : 7} />
-        {richest.length === 0 ? null : (
-          <Panel
-            title={t('Richest members')}
-            span={5}
-            id="richest"
-            actions={
-              <span className="mx-sub">
-                {t('Top {count} hold {share}%', { count: richest.length, share })}
-              </span>
-            }
-          >
-            {richest.map((holder, i) => (
-              <div key={holder.userId} className="mx-row">
-                <span className="mx-mono mx-muted" style={{ width: 22 }}>
-                  {i + 1}
-                </span>
-                <Avatar src={holder.avatar} name={holder.name} size={24} />
-                <span className="mx-row-main">
-                  <span className="mx-row-title">{holder.name}</span>
-                </span>
-                <span className="mx-mono">{`${t.count(holder.balance)} ${symbol}`}</span>
-              </div>
-            ))}
-          </Panel>
-        )}
-        {idle ? null : <LedgerPanel initial={ledger} span={5} />}
+        {stocked ? <ShopPanels sold={sold} packs={packs} prefix={prefix} emptySpan={7} /> : null}
         {idle ? null : (
           <Panel title={t('Reset')} span={12} id="reset">
             <DangerRow
