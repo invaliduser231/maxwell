@@ -13,11 +13,13 @@ import type {
 import { describe, expect, it, vi } from 'vitest';
 import { withLanguage } from '../../src/i18n/language.js';
 import {
+  decoysFor,
   layout,
   looksLikeAnswer,
   matches,
   readTargets,
   renderCaptcha,
+  targetColors,
 } from '../../src/modules/security/captcha.js';
 import { copy } from '../../src/modules/security/copy.js';
 import { Guard } from '../../src/modules/security/guard.js';
@@ -214,6 +216,11 @@ describe('risk score', () => {
 });
 
 describe('captcha', () => {
+  it('uses decoy colours that stay apart from the target for colour blind members', () => {
+    expect(decoysFor('yellow')).toEqual([targetColors.blue, '#8E8C99']);
+    expect(decoysFor('blue')).toEqual([targetColors.yellow, '#8E8C99']);
+  });
+
   it('hides the code between decoys and reads it back in order', () => {
     let i = 0;
     const sequence = [0, 2, 1, 4, 3];

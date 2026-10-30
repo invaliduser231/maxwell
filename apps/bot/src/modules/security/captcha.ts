@@ -9,7 +9,12 @@ export const targetColors = {
 
 export type TargetColor = keyof typeof targetColors;
 
-const decoys = ['#E5484D', '#46A758', '#8E8C99', '#B76EF0', '#F26B3A'];
+const neutral = '#8E8C99';
+
+export function decoysFor(color: TargetColor): string[] {
+  const other = color === 'blue' ? targetColors.yellow : targetColors.blue;
+  return [other, neutral];
+}
 
 export interface Captcha {
   code: string;
@@ -71,6 +76,8 @@ export async function renderCaptcha(random: Random = secure): Promise<Captcha> {
   const code = makeCode(5, random);
   const color: TargetColor = random(2) === 0 ? 'blue' : 'yellow';
   const glyphs = layout(code, 4 + random(3), random);
+  const decoys = decoysFor(color);
+  const decoy = () => decoys[random(decoys.length)] ?? neutral;
 
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext('2d');
@@ -78,7 +85,7 @@ export async function renderCaptcha(random: Random = secure): Promise<Captcha> {
   ctx.fillRect(0, 0, W, H);
 
   for (let i = 0; i < 140; i++) {
-    ctx.fillStyle = decoys[random(decoys.length)] ?? '#8E8C99';
+    ctx.fillStyle = decoy();
     ctx.globalAlpha = 0.25 + random(30) / 100;
     ctx.beginPath();
     ctx.arc(random(W), random(H), 1 + random(3), 0, Math.PI * 2);
@@ -97,16 +104,13 @@ export async function renderCaptcha(random: Random = secure): Promise<Captcha> {
     ctx.transform(1, 0, (random(21) - 10) / 50, 1, 0, 0);
     ctx.font = `${size}px "${fonts.display}"`;
     ctx.textAlign = 'center';
-    ctx.fillStyle = glyph.target
-      ? targetColors[color]
-      : (decoys[random(decoys.length)] ?? '#8E8C99');
+    ctx.fillStyle = glyph.target ? targetColors[color] : decoy();
     ctx.fillText(glyph.char, 0, 0);
     ctx.restore();
   });
 
   for (let i = 0; i < 5; i++) {
-    ctx.strokeStyle =
-      i % 2 === 0 ? (decoys[random(decoys.length)] ?? '#8E8C99') : targetColors[color];
+    ctx.strokeStyle = i % 2 === 0 ? decoy() : targetColors[color];
     ctx.globalAlpha = 0.45;
     ctx.lineWidth = 2 + random(2);
     ctx.beginPath();
