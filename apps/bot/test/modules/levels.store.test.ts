@@ -27,6 +27,7 @@ describe.skipIf(!url)('LevelStore', () => {
   afterAll(async () => {
     await sql`delete from levels_members where guild_id = ${guild}`;
     await sql`delete from levels_snapshots where guild_id = ${guild}`;
+    await sql`delete from levels_public_hidden where guild_id = ${guild}`;
     await sql`delete from guild_modules where guild_id = ${guild}`;
     await sql`delete from guild_assets where guild_id = ${guild}`;
     await sql`delete from guilds where id = ${guild}`;
@@ -120,6 +121,42 @@ describe.skipIf(!url)('LevelStore', () => {
     `;
     expect([...((await store.asset(guild, 'shop:sunset')) ?? [])]).toEqual([1, 2, 3]);
     expect(await store.asset(guild, 'shop:none')).toBeNull();
+  });
+
+  it('skips hidden members on the public leaderboard only', async () => {
+    const top = await store.leaderboard(guild, 10);
+    const [first, second] = top;
+    if (!first || !second) throw new Error('board too small');
+    expect(await store.setPublicHidden(guild, first.userId, true)).toBe(true);
+    expect(await store.setPublicHidden(guild, first.userId, true)).toBe(false);
+    expect(await store.publicHidden(guild, first.userId)).toBe(true);
+
+    const board = await store.publicLeaderboard(guild, 10);
+    expect(board.map((row) => row.userId)).not.toContain(first.userId);
+    expect(board[0]).toEqual({ userId: second.userId, xp: second.xp, rank: 1 });
+    expect(board).toHaveLength(top.length - 1);
+    expect(await store.leaderboard(guild, 10)).toEqual(top);
+    expect((await store.standing(guild, first.userId))?.rank).toBe(1);
+    expect(await store.memberData(guild, first.userId)).toMatchObject({ hiddenPublic: true });
+
+    expect(await store.setPublicHidden(guild, first.userId, false)).toBe(true);
+    expect(await store.setPublicHidden(guild, first.userId, false)).toBe(false);
+    expect((await store.publicLeaderboard(guild, 10))[0]?.userId).toBe(first.userId);
+    expect((await store.publicLeaderboard(guild, 1)).length).toBe(1);
+  });
+
+  it('keeps the choice without XP and forgets it with the member', async () => {
+    const quiet = '310000000000000097';
+    await store.setPublicHidden(guild, quiet, true);
+    expect(await store.memberData(guild, quiet)).toEqual({
+      xp: 0,
+      rank: null,
+      lastXpAt: null,
+      hiddenPublic: true,
+    });
+    await store.forget(guild, quiet);
+    expect(await store.publicHidden(guild, quiet)).toBe(false);
+    expect(await store.memberData(guild, quiet)).toBeNull();
   });
 
   it('exports and forgets one member, snapshots included', async () => {

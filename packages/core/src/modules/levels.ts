@@ -150,5 +150,16 @@ export default defineModule({
         );
       `,
     },
+    {
+      id: '3-public-hidden',
+      up: `
+        create table levels_public_hidden (
+          guild_id bigint not null,
+          user_id bigint not null,
+          created_at timestamptz not null default now(),
+          primary key (guild_id, user_id)
+        );
+      `,
+    },
   ],
 });

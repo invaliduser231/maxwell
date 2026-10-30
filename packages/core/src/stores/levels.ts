@@ -100,6 +100,42 @@ export class LevelStore {
     return rows.map((row, i) => ({ ...row, rank: offset + i + 1 }));
   }
 
+  async publicLeaderboard(guildId: string, limit = 10): Promise<Standing[]> {
+    const rows = await this.sql<{ userId: string; xp: number }[]>`
+      select m.user_id::text as "userId", m.xp::float8 as xp
+      from levels_members m
+      where m.guild_id = ${guildId} and m.xp > 0
+        and not exists (
+          select 1 from levels_public_hidden h
+          where h.guild_id = m.guild_id and h.user_id = m.user_id
+        )
+      order by m.xp desc, m.user_id
+      limit ${Math.min(Math.max(limit, 1), 100)}
+    `;
+    return rows.map((row, i) => ({ ...row, rank: i + 1 }));
+  }
+
+  async publicHidden(guildId: string, userId: string): Promise<boolean> {
+    const [row] = await this.sql`
+      select 1 from levels_public_hidden where guild_id = ${guildId} and user_id = ${userId}
+    `;
+    return Boolean(row);
+  }
+
+  async setPublicHidden(guildId: string, userId: string, hidden: boolean): Promise<boolean> {
+    const rows = hidden
+      ? await this.sql`
+          insert into levels_public_hidden (guild_id, user_id) values (${guildId}, ${userId})
+          on conflict do nothing
+          returning 1
+        `
+      : await this.sql`
+          delete from levels_public_hidden where guild_id = ${guildId} and user_id = ${userId}
+          returning 1
+        `;
+    return rows.length > 0;
+  }
+
   async set(guildId: string, userId: string, xp: number): Promise<number> {
     const [row] = await this.sql<{ before: number | null }[]>`
       with prev as (
@@ -261,19 +297,33 @@ export class LevelStore {
   async memberData(
     guildId: string,
     userId: string,
-  ): Promise<{ xp: number; rank: number | null; lastXpAt: Date | null } | null> {
+  ): Promise<{
+    xp: number;
+    rank: number | null;
+    lastXpAt: Date | null;
+    hiddenPublic: boolean;
+  } | null> {
     const [row] = await this.sql<{ xp: number; lastXpAt: Date | null }[]>`
       select xp::float8 as xp, last_xp_at as "lastXpAt" from levels_members
       where guild_id = ${guildId} and user_id = ${userId}
     `;
-    if (!row) return null;
-    const standing = await this.standing(guildId, userId);
-    return { xp: row.xp, rank: standing?.rank ?? null, lastXpAt: row.lastXpAt };
+    const hiddenPublic = await this.publicHidden(guildId, userId);
+    if (!row && !hiddenPublic) return null;
+    const standing = row ? await this.standing(guildId, userId) : null;
+    return {
+      xp: row?.xp ?? 0,
+      rank: standing?.rank ?? null,
+      lastXpAt: row?.lastXpAt ?? null,
+      hiddenPublic,
+    };
   }
 
   async forget(guildId: string, userId: string): Promise<void> {
     await this.sql.begin(async (tx) => {
       await tx`delete from levels_members where guild_id = ${guildId} and user_id = ${userId}`;
+      await tx`
+        delete from levels_public_hidden where guild_id = ${guildId} and user_id = ${userId}
+      `;
       await tx`
         delete from levels_snapshot_rows r
         using levels_snapshots s
