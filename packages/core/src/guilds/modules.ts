@@ -66,12 +66,13 @@ export class ModuleStore {
     patch: Record<string, unknown>,
     actor: Actor,
     summary?: string,
+    options: { mergeWithin?: number } = {},
   ): Promise<void> {
     const before = (await this.state(guildId, key)).config;
     const after = { ...before, ...patch };
     await this.write(guildId, key, after);
     const name = moduleByKey(key)?.name ?? key;
-    await this.audit?.record({
+    const entry = {
       guildId,
       actor,
       module: key,
@@ -80,7 +81,9 @@ export class ModuleStore {
       before: pick(before, Object.keys(patch)),
       after: patch,
       undo: { kind: 'module.config', payload: { module: key, config: before } },
-    });
+    };
+    if (options.mergeWithin) await this.audit?.merge(entry, options.mergeWithin);
+    else await this.audit?.record(entry);
   }
 
   async replace(guildId: string, key: string, config: Record<string, unknown>): Promise<void> {

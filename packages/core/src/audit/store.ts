@@ -56,6 +56,10 @@ function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (match) => `\\${match}`);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 export const UNDO_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function canUndo(entry: AuditEntry, now = Date.now()): boolean {
@@ -85,6 +89,59 @@ export class AuditStore {
       returning id
     `;
     return row?.id ?? '';
+  }
+
+  async merge(input: AuditInput, windowMs: number): Promise<string | null> {
+    const [last] = await this.sql<
+      {
+        id: string;
+        actorId: string | null;
+        action: string;
+        before: unknown;
+        after: unknown;
+        fresh: boolean;
+      }[]
+    >`
+      select id, actor_id as "actorId", action, before, after,
+        undone_at is null and created_at > now() - make_interval(secs => ${windowMs / 1000}) as fresh
+      from audit_entries
+      where guild_id = ${input.guildId} and module = ${input.module}
+      order by id desc
+      limit 1
+    `;
+    if (
+      !last?.fresh ||
+      last.action !== input.action ||
+      last.actorId !== input.actor.id ||
+      !isRecord(last.before) ||
+      !isRecord(last.after) ||
+      !isRecord(input.before) ||
+      !isRecord(input.after)
+    ) {
+      return this.record(input);
+    }
+    const before = { ...input.before, ...last.before };
+    const after = { ...last.after, ...input.after };
+    for (const key of Object.keys(after)) {
+      if (JSON.stringify(before[key] ?? null) === JSON.stringify(after[key] ?? null)) {
+        delete before[key];
+        delete after[key];
+      }
+    }
+    if (Object.keys(after).length === 0) {
+      await this
+        .sql`delete from audit_entries where guild_id = ${input.guildId} and id = ${last.id}`;
+      return null;
+    }
+    await this.sql`
+      update audit_entries
+      set summary = ${input.summary},
+        before = ${this.sql.json(before as never)},
+        after = ${this.sql.json(after as never)},
+        created_at = now()
+      where guild_id = ${input.guildId} and id = ${last.id}
+    `;
+    return last.id;
   }
 
   async get(guildId: string, id: string): Promise<AuditEntry | null> {

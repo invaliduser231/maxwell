@@ -75,6 +75,35 @@ describe.skipIf(!url)('stores', () => {
     });
   });
 
+  it('merges quick saves by the same person into one entry', async () => {
+    const minute = 60_000;
+    const max = { id: '300000000000000002' };
+    await modules.update(guild, 'starboard', { threshold: 4 }, lena, undefined, {
+      mergeWithin: minute,
+    });
+    await modules.update(guild, 'starboard', { threshold: 5, selfStar: true }, lena, undefined, {
+      mergeWithin: minute,
+    });
+    let entries = await audit.list(guild, { module: 'starboard' });
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.before).toEqual({ threshold: null, selfStar: null });
+    expect(entries[0]?.after).toEqual({ threshold: 5, selfStar: true });
+    expect(entries[0]?.undo?.payload).toEqual({ module: 'starboard', config: {} });
+
+    await modules.update(guild, 'starboard', { threshold: 6 }, max, undefined, {
+      mergeWithin: minute,
+    });
+    entries = await audit.list(guild, { module: 'starboard' });
+    expect(entries).toHaveLength(2);
+
+    await modules.update(guild, 'starboard', { threshold: 5 }, max, undefined, {
+      mergeWithin: minute,
+    });
+    entries = await audit.list(guild, { module: 'starboard' });
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.actorId).toBe(lena.id);
+  });
+
   it('turns modules on and off with an audit entry', async () => {
     await modules.setEnabled(guild, 'levels', true, lena);
     expect(await modules.isEnabled(guild, 'levels')).toBe(true);
