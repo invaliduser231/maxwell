@@ -21,7 +21,7 @@ function rows(input: unknown): unknown[] | null {
   if (Array.isArray(input)) return input;
   if (input && typeof input === 'object') {
     const record = input as Record<string, unknown>;
-    for (const key of ['players', 'members', 'users', 'entries', 'data']) {
+    for (const key of ['members', 'users', 'entries', 'data']) {
       if (Array.isArray(record[key]) || typeof record[key] === 'string') return rows(record[key]);
     }
   }

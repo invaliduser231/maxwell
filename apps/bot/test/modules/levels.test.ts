@@ -21,7 +21,7 @@ import {
 const base = levelsConfig.parse({});
 
 describe('level curve', () => {
-  it('matches the MEE6 curve by default', () => {
+  it('uses the standard curve by default', () => {
     expect(xpForNext(0)).toBe(100);
     expect(xpForNext(1)).toBe(155);
     expect(xpForNext(10)).toBe(1_100);
@@ -178,10 +178,10 @@ describe('cooldown map', () => {
 });
 
 describe('import', () => {
-  it('reads MEE6 players with xp or level', () => {
+  it('reads members with xp or level', () => {
     const parsed = parseImport(
       {
-        players: [
+        members: [
           { id: '100000000000000001', xp: 5_000, level: 9 },
           { id: '100000000000000002', level: 2 },
           { id: 'nope', xp: 5 },
