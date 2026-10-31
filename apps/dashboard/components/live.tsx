@@ -17,7 +17,7 @@ type Listener = (modules: string[]) => void;
 const Context = createContext<((listener: Listener) => () => void) | null>(null);
 
 const REFRESH_GAP_MS = 1_500;
-const EVERYWHERE = new Set(['general', 'prefix']);
+const EVERYWHERE = new Set(['general', 'prefix', 'structure']);
 
 function pageModules(pathname: string, guildId: string): Set<string> | 'all' | null {
   const base = `/g/${guildId}`;

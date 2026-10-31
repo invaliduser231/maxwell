@@ -1,5 +1,5 @@
 import 'server-only';
-import { CONFIG_CHANNEL, LIVE_CHANNEL, parseLive } from '@maxwell/core';
+import { CONFIG_CHANNEL, LIVE_CHANNEL, parseLive, STRUCTURE_MODULE } from '@maxwell/core';
 import { db } from './db';
 import { forgetBotCache } from './fluxer';
 
@@ -29,7 +29,11 @@ class Hub {
   #start(): void {
     if (this.#started) return;
     const { sql } = db();
-    const onPayload = (payload: string) => this.#receive(payload);
+    const onPayload = (payload: string) => {
+      const parsed = parseLive(payload);
+      if (parsed?.module === STRUCTURE_MODULE) forgetBotCache(parsed.guildId);
+      this.#receive(payload);
+    };
     const onConfig = (payload: string) => {
       const parsed = parseLive(payload);
       if (parsed) forgetBotCache(parsed.guildId);
