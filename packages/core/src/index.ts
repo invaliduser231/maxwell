@@ -1,5 +1,6 @@
 export * from './audit/store.js';
 export * from './dashboard/access.js';
+export * from './db/instance.js';
 export * from './db/migrate.js';
 export * from './db/migrations.js';
 export * from './db/sql.js';
