@@ -1,6 +1,7 @@
 import 'server-only';
 import { CONFIG_CHANNEL, LIVE_CHANNEL, parseLive } from '@maxwell/core';
 import { db } from './db';
+import { forgetBotCache } from './fluxer';
 
 type Listener = (modules: string[]) => void;
 
@@ -29,9 +30,14 @@ class Hub {
     if (this.#started) return;
     const { sql } = db();
     const onPayload = (payload: string) => this.#receive(payload);
+    const onConfig = (payload: string) => {
+      const parsed = parseLive(payload);
+      if (parsed) forgetBotCache(parsed.guildId);
+      this.#receive(payload);
+    };
     this.#started = Promise.all([
       sql.listen(LIVE_CHANNEL, onPayload),
-      sql.listen(CONFIG_CHANNEL, onPayload),
+      sql.listen(CONFIG_CHANNEL, onConfig),
     ])
       .then(() => undefined)
       .catch(() => {
