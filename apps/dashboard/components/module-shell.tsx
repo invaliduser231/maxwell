@@ -17,7 +17,7 @@ import { allPages, type PageInfo, POLE_COLOR, type Pole, pageByKey } from '@/lib
 import { useGuild } from './guild';
 import { useT } from './i18n';
 import { fingerprint, useRemote } from './live';
-import { failed, type Status, StatusText, sorted } from './status-text';
+import { failed, type Status, StatusText } from './status-text';
 import { Callout, ModuleIcon } from './ui';
 import { VoteLock } from './vote-lock';
 
