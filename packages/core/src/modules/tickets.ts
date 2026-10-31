@@ -44,6 +44,7 @@ export const ticketsConfig = z.object({
   panels: z.array(ticketPanel).max(10).default([]),
   logChannelId: z.string().nullable().default(null),
   transcripts: z.boolean().default(true),
+  webForm: z.boolean().default(false),
   openerCanClose: z.boolean().default(true),
   closeDelaySeconds: z.number().int().min(0).max(3600).default(10),
   deleteOnClose: z.boolean().default(true),

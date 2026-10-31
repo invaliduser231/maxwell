@@ -1,7 +1,7 @@
 import type { Sql } from '../db/sql.js';
 
 export type TicketStatus = 'open' | 'closed';
-export type TicketSource = 'panel' | 'modmail' | 'command' | 'form';
+export type TicketSource = 'panel' | 'modmail' | 'command' | 'form' | 'web';
 
 export interface Ticket {
   id: string;
