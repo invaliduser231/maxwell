@@ -220,6 +220,10 @@
   .mx-s3 {
     grid-column: span 6;
   }
+  .mx-col.mx-s4,
+  .mx-stack.mx-s4 {
+    grid-column: span 12;
+  }
 }
 @media (max-width: 720px) {
   .mx-s4,

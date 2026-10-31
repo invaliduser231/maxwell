@@ -30,6 +30,9 @@ body,
 .mx-grid {
   gap: 16px;
 }
+.mx-grid > .mx-s3 {
+  align-self: stretch;
+}
 .mx-col {
   display: flex;
   flex-direction: column;
@@ -47,14 +50,6 @@ body,
   justify-content: space-between;
   gap: 10px;
   min-width: 0;
-}
-.mx-masonry {
-  grid-auto-rows: 4px;
-  row-gap: 0;
-  grid-auto-flow: row dense;
-}
-.mx-masonry > * {
-  align-self: start;
 }
 .mx-panel {
   background: var(--mx-panel);

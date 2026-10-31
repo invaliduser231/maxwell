@@ -1,10 +1,9 @@
 import type { ReactNode } from 'react';
-import { Masonry } from './masonry';
 
 type Span = 3 | 4 | 5 | 6 | 7 | 8 | 12;
 
 export function Grid({ children }: { children: ReactNode }) {
-  return <Masonry>{children}</Masonry>;
+  return <div className="mx-grid">{children}</div>;
 }
 
 export function Panel({
