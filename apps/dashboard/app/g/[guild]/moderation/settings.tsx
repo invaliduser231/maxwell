@@ -380,6 +380,7 @@ export function SettingsTab({
             <div className="mx-field">
               <span className="mx-label">{t('Moderator roles')}</span>
               <RoleMulti
+                bots
                 value={value.modRoleIds}
                 onChange={(modRoleIds) => set({ modRoleIds: modRoleIds.slice(0, 25) })}
               />

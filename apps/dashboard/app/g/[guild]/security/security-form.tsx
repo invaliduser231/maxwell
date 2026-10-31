@@ -633,6 +633,7 @@ export function SecurityForm({ view }: { view: SecurityView }) {
             </Fields>
             <span className="mx-label">{t.raw('Trusted roles')}</span>
             <RoleMulti
+              bots
               value={nuke.trustedRoleIds}
               onChange={(trustedRoleIds) => patchNuke({ trustedRoleIds })}
             />
