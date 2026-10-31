@@ -581,13 +581,16 @@ function DetailPanel({
             <h3>{t('Earlier cases')}</h3>
           </div>
           {detail.cases.map((entry) => (
-            <Link
+            <div
               key={entry.number}
-              className="mx-row mx-pick"
-              href={`/g/${guildId}/moderation?case=${entry.number}`}
+              className="mx-row"
               style={entry.voided ? { opacity: 0.55 } : undefined}
             >
-              <span className="mx-row-main">
+              <Link
+                className="mx-pick mx-row-main"
+                href={`/g/${guildId}/moderation?case=${entry.number}`}
+                style={{ textDecoration: 'none' }}
+              >
                 <span className="mx-row-title">
                   {t('Case #{number}', { number: String(entry.number) })}
                 </span>
@@ -596,8 +599,8 @@ function DetailPanel({
                     .filter(Boolean)
                     .join(', ')}
                 </span>
-              </span>
-            </Link>
+              </Link>
+            </div>
           ))}
         </>
       ) : null}
