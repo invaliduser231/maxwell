@@ -1,6 +1,7 @@
 import type { Sql } from '../db/sql.js';
 
 export const LIVE_CHANNEL = 'maxwell_live';
+export const STRUCTURE_MODULE = 'structure';
 
 export interface LiveTable {
   table: string;
@@ -122,4 +123,8 @@ export function parseLive(payload: string): { guildId: string; module: string } 
   const module = payload.slice(index + 1);
   if (!/^\d{1,21}$/.test(guildId) || !module) return null;
   return { guildId, module };
+}
+
+export async function notifyLive(sql: Sql, guildId: string, module: string): Promise<void> {
+  await sql`select pg_notify(${LIVE_CHANNEL}, ${`${guildId}:${module}`})`;
 }
