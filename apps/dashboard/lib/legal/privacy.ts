@@ -77,6 +77,7 @@ Maxwell receives messages and events from the communities it is in, such as mess
 - **Scheduler:** reminders with their text until they are delivered or removed.
 - **Insights:** message counts per channel and hour and per member and day, joins and leaves, voice time per channel and moderation actions per moderator. Deleted after 365 days by default (admins can choose 30 to 730). If admins pick a channel for the weekly digest, Maxwell posts these numbers there once a week as totals for the whole community, without naming members.
 - **Backups:** the structure of the community (roles, channels, permissions) and who made a snapshot. Daily snapshots are deleted after 14 days by default (1 to 90).
+- **Templates:** a published template contains only the structure (roles, channels, permissions) and, if the admins choose, the name of the community.
 - **Cards:** background pictures that admins upload or link. Maxwell downloads linked pictures once and stores them as JPEG. Avatars are drawn onto cards and kept in memory only.
 - **Custom commands, voice rooms and feeds:** who last used a command, owners and members of voice rooms while the room exists. Feeds store no personal data.
 

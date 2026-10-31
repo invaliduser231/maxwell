@@ -43,6 +43,7 @@ You may not use Maxwell for:
 8. **Misusing Maxwell Shield:** sharing bans that are not about raids, spam or attacks, for example because of a personal dispute.
 9. **Circumventing safeguards:** getting around cooldowns, vote checks or security features of Maxwell or Fluxer, exploiting security vulnerabilities. Please report vulnerabilities to [rainer@schnittert.com](mailto:rainer@schnittert.com).
 10. **Violating Fluxer's terms** or Fluxer's rules for bots.
+11. **Templates** with illegal or hateful names or descriptions.
 
 ## 6. Measures
 
