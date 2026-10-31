@@ -289,6 +289,28 @@ describe('Menus', () => {
     expect(calls).toEqual([]);
   });
 
+  it('handles a reaction that arrives twice only once', async () => {
+    const { menus, calls, reaction } = setup('normal', []);
+    await Promise.all([
+      menus.onReaction(reaction('\u{1F534}'), true),
+      menus.onReaction(reaction('\u{1F534}'), true),
+    ]);
+    await menus.onReaction(reaction('\u{1F534}'), true);
+    expect(calls).toEqual([`add ${red}`]);
+  });
+
+  it('takes a swapped emoji again after its echo was skipped', async () => {
+    const roles = [blue];
+    const { menus, calls, reaction } = setup('unique', roles);
+    await menus.onReaction(reaction('blue:300000000000000001'), true);
+    await menus.onReaction(reaction('\u{1F534}'), true);
+    roles.splice(0, roles.length, red);
+    await menus.onReaction(reaction('blue:300000000000000001'), false);
+    calls.length = 0;
+    await menus.onReaction(reaction('blue:300000000000000001'), true);
+    expect(calls).toEqual([`remove ${red}`, 'unreact \u{1F534}', `add ${blue}`]);
+  });
+
   it('schedules the end of a temporary role', async () => {
     const { menus, calls, reaction, schedule, store } = setup('temporary', []);
     await menus.onReaction(reaction('green:300000000000000002'), true);

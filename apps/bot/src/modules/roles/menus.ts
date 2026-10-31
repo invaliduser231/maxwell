@@ -1,6 +1,7 @@
 import type { Actor, Job } from '@maxwell/core';
 import type { RoleMenu, rolesConfig } from '@maxwell/core/modules/roles';
 import type { MenuMessage, RolesStore } from '@maxwell/core/stores/roles';
+import { Lanes } from '../../commands/lanes.js';
 import { mention } from '../../commands/mentions.js';
 import type { Embed, ReactionEvent } from '../../platform/types.js';
 import type { ModuleContext } from '../../runtime/module.js';
@@ -33,6 +34,8 @@ export function menuEmbed(menu: RoleMenu): Embed {
 export class Menus {
   readonly #links = new Recent<MenuMessage | null>(20_000, 10 * 60_000);
   readonly #ignored = new Recent<true>(5_000, 10_000);
+  readonly #seen = new Recent<boolean>(20_000, 60_000);
+  readonly #lanes = new Lanes();
 
   constructor(
     private readonly ctx: Ctx,
@@ -47,9 +50,23 @@ export class Menus {
     return row;
   }
 
-  async onReaction(reaction: ReactionEvent, added: boolean): Promise<void> {
+  onReaction(reaction: ReactionEvent, added: boolean): Promise<void> {
     const guildId = reaction.guildId;
-    if (!guildId || reaction.bot) return;
+    if (!guildId || reaction.bot) return Promise.resolve();
+    return this.#lanes.run(
+      `${guildId}:${reaction.userId}`,
+      () => this.#handle(guildId, reaction, added),
+      (error) => this.ctx.services.log.warn({ err: error, guild: guildId }, 'menu reaction failed'),
+    );
+  }
+
+  #skipEcho(messageId: string, userId: string, emoji: string): void {
+    const key = `${messageId}:${userId}:${emojiKey(emoji)}`;
+    this.#ignored.set(key, true);
+    this.#seen.set(key, false);
+  }
+
+  async #handle(guildId: string, reaction: ReactionEvent, added: boolean): Promise<void> {
     const link = await this.#link(reaction.messageId);
     if (!link || link.guildId !== guildId) return;
 
@@ -58,6 +75,8 @@ export class Menus {
       this.#ignored.delete(skipKey);
       return;
     }
+    if (this.#seen.get(skipKey) === added) return;
+    this.#seen.set(skipKey, added);
 
     const config = await this.ctx.config(guildId);
     const menu = config.menus.find((candidate) => candidate.id === link.menuId);
@@ -79,7 +98,7 @@ export class Menus {
       }
     }
     for (const emoji of plan.unreact) {
-      this.#ignored.set(`${reaction.messageId}:${reaction.userId}:${emojiKey(emoji)}`, true);
+      this.#skipEcho(reaction.messageId, reaction.userId, emoji);
       await platform
         .unreact(reaction.channelId, reaction.messageId, emoji, reaction.userId)
         .catch(() => {});
@@ -125,7 +144,7 @@ export class Menus {
       if (!entry || !emoji) continue;
       const published = await this.store.menuMessage(guildId, menu.id);
       if (!published) continue;
-      this.#ignored.set(`${published.messageId}:${userId}:${emojiKey(emoji)}`, true);
+      this.#skipEcho(published.messageId, userId, emoji);
       await platform
         .unreact(published.channelId, published.messageId, emoji, userId)
         .catch((error) => log.debug({ err: error, guild: guildId }, 'temporary unreact failed'));
