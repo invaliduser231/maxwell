@@ -21,9 +21,7 @@ export default async function Templates({
 
       <section className="mx-land-wrap mx-tpl-hero">
         <h1 className="mx-tpl-title">{t('Templates')}</h1>
-        <p className="mx-tpl-lead">
-          {t('Server setups that other communities have shared.')}
-        </p>
+        <p className="mx-tpl-lead">{t('Server setups that other communities have shared.')}</p>
       </section>
 
       <section className="mx-land-band">
