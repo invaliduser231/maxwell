@@ -898,8 +898,19 @@ export function AutomodForm({
                         : t('Dry run on the last 7 days')}
                   </button>
                   <StatusText status={dryStatus} />
-                  {saved.keepHistory ? null : (
-                    <span className="mx-sub">{t('Needs message history, see Options.')}</span>
+                  {saved.keepHistory || value.keepHistory ? null : (
+                    <>
+                      <span className="mx-sub">
+                        {t('Maxwell only keeps messages for this when you allow it.')}
+                      </span>
+                      <button
+                        type="button"
+                        className="mx-btn"
+                        onClick={() => update((previous) => ({ ...previous, keepHistory: true }))}
+                      >
+                        {t('Keep 7 days of messages')}
+                      </button>
+                    </>
                   )}
                 </div>
               )}
