@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from 'react';
 import { useGuild } from './guild';
+import { useT } from './i18n';
 import { Avatar, roleColor } from './ui';
 
 const EMOJI = 'https://fluxerusercontent.com/emojis';
@@ -32,13 +33,59 @@ export function MaxwellAvatar({ size = 36 }: { size?: number }) {
 }
 
 const INLINE =
-  /`([^`\n]+)`|<@!?(\d{1,21})>|<@&(\d{1,21})>|<#(\d{1,21})>|<(a?):([\w~-]{1,32}):(\d{1,21})>|\{([a-z][\w.]*)\}|\*\*([\s\S]+?)\*\*|__([\s\S]+?)__|~~([\s\S]+?)~~|\*([^*\n]+?)\*|(?<!\w)_([^_\n]+?)_(?!\w)/gi;
+  /`([^`\n]+)`|<@!?(\d{1,21})>|<@&(\d{1,21})>|<#(\d{1,21})>|<(a?):([\w~-]{1,32}):(\d{1,21})>|<t:(-?\d{1,13})(?::([tdfr]))?>|\[([^\]\n]+)\]\(<?(https?:\/\/[^\s)>]+)>?\)|<?(https?:\/\/[^\s<>]*[^\s<>.,:;"')\]!?])>?|\|\|([\s\S]+?)\|\||\{([a-z][\w.]*)\}|\*\*([\s\S]+?)\*\*|__([\s\S]+?)__|~~([\s\S]+?)~~|\*([^*\n]+?)\*|(?<!\w)_([^_\n]+?)_(?!\w)/gi;
+
+const FENCE = /```(?:([\w+#.-]{1,20})?\n)?([\s\S]*?)```/g;
+const HEADING = /^(#{1,3}) (.+)$/;
 
 interface Context {
   vars?: Vars;
   names?: MentionNames;
+  locale: string;
+  timezone: string;
   channel: (id: string) => string;
   role: (id: string) => { name: string; color: string };
+}
+
+const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
+  ['year', 31_536_000],
+  ['month', 2_592_000],
+  ['week', 604_800],
+  ['day', 86_400],
+  ['hour', 3_600],
+  ['minute', 60],
+  ['second', 1],
+];
+
+const STYLES: Record<string, Intl.DateTimeFormatOptions> = {
+  t: { timeStyle: 'short' },
+  T: { timeStyle: 'medium' },
+  d: { dateStyle: 'short' },
+  D: { dateStyle: 'long' },
+  f: { dateStyle: 'long', timeStyle: 'short' },
+  F: { dateStyle: 'full', timeStyle: 'short' },
+};
+
+function relative(seconds: number, locale: string): string {
+  const diff = seconds - Date.now() / 1000;
+  const [unit, size] = UNITS.find(([, step]) => Math.abs(diff) >= step) ?? ['second', 1];
+  return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(
+    Math.round(diff / size),
+    unit,
+  );
+}
+
+function timestamp(seconds: number, style: string, context: Context): string {
+  if (style === 'R' || style === 'r') return relative(seconds, context.locale);
+  const options = STYLES[style] ?? STYLES.f;
+  try {
+    return new Intl.DateTimeFormat(context.locale, {
+      ...options,
+      timeZone: context.timezone,
+    }).format(seconds * 1000);
+  } catch {
+    return new Intl.DateTimeFormat(context.locale, options).format(seconds * 1000);
+  }
 }
 
 function inline(text: string, context: Context, key: string): ReactNode[] {
@@ -57,6 +104,12 @@ function inline(text: string, context: Context, key: string): ReactNode[] {
       animated,
       emojiName,
       emojiId,
+      time,
+      timeStyle,
+      linkText,
+      linkUrl,
+      url,
+      spoiler,
       placeholder,
       bold,
       underline,
@@ -101,6 +154,43 @@ function inline(text: string, context: Context, key: string): ReactNode[] {
           height={20}
         />,
       );
+    } else if (time !== undefined) {
+      const seconds = Number(time);
+      out.push(
+        <time
+          key={id}
+          className="mx-md-time"
+          dateTime={new Date(seconds * 1000).toISOString()}
+          title={timestamp(seconds, 'F', context)}
+          suppressHydrationWarning
+        >
+          {timestamp(seconds, timeStyle ?? 'f', context)}
+        </time>,
+      );
+    } else if (linkUrl !== undefined || url !== undefined) {
+      const href = linkUrl ?? url ?? '';
+      out.push(
+        <a key={id} className="mx-md-link" href={href} target="_blank" rel="noopener noreferrer">
+          {linkText !== undefined ? inline(linkText, context, id) : href}
+        </a>,
+      );
+    } else if (spoiler !== undefined) {
+      out.push(
+        <span
+          key={id}
+          className="mx-md-spoiler"
+          role="button"
+          tabIndex={0}
+          onClick={(event) => event.currentTarget.setAttribute('data-open', '')}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.currentTarget.setAttribute('data-open', '');
+            }
+          }}
+        >
+          {inline(spoiler, context, id)}
+        </span>,
+      );
     } else if (placeholder !== undefined) {
       const value = context.vars?.[placeholder.toLowerCase()];
       if (!context.vars) {
@@ -135,6 +225,62 @@ function inline(text: string, context: Context, key: string): ReactNode[] {
   return out;
 }
 
+function blocks(text: string, context: Context, key: string, nodes: ReactNode[]) {
+  const rows = text.split('\n');
+  let quote: string[] = [];
+  const block = (node: ReactNode) => {
+    if (nodes[nodes.length - 1] === '\n') nodes.pop();
+    nodes.push(node);
+  };
+  const flush = (at: number) => {
+    if (quote.length === 0) return;
+    const id = `${key}.q${at}`;
+    const inner: ReactNode[] = [];
+    blocks(quote.join('\n'), context, id, inner);
+    block(
+      <span key={id} className="mx-md-quote">
+        {inner}
+      </span>,
+    );
+    quote = [];
+  };
+  for (let index = 0; index < rows.length; index++) {
+    const line = rows[index] ?? '';
+    const id = `${key}.${index}`;
+    if (line.startsWith('>>> ')) {
+      flush(index);
+      quote = [line.slice(4), ...rows.slice(index + 1)];
+      flush(index);
+      return;
+    }
+    if (line === '>' || line.startsWith('> ')) {
+      quote.push(line.slice(2));
+      continue;
+    }
+    flush(index);
+    const heading = HEADING.exec(line);
+    if (heading) {
+      block(
+        <span key={id} className={`mx-md-h${heading[1]?.length ?? 1}`}>
+          {inline(heading[2] ?? '', context, id)}
+        </span>,
+      );
+      continue;
+    }
+    if (line.startsWith('-# ')) {
+      block(
+        <span key={id} className="mx-md-subtext">
+          {inline(line.slice(3), context, id)}
+        </span>,
+      );
+      continue;
+    }
+    nodes.push(...inline(line, context, id));
+    if (index < rows.length - 1) nodes.push('\n');
+  }
+  flush(rows.length);
+}
+
 export function Markdown({
   text,
   vars,
@@ -146,10 +292,13 @@ export function Markdown({
   names?: MentionNames;
   as?: 'div' | 'span';
 }) {
-  const { channels, roles } = useGuild();
+  const { channels, roles, timezone } = useGuild();
+  const t = useT();
   const context: Context = {
     vars,
     names,
+    locale: t.locale,
+    timezone,
     channel: (id) => {
       const found = channels.find((entry) => entry.id === id);
       return found ? `#${found.name}` : '#deleted-channel';
@@ -162,22 +311,20 @@ export function Markdown({
       };
     },
   };
-  const lines = text.split('\n');
   const nodes: ReactNode[] = [];
-  lines.forEach((line, index) => {
-    const key = String(index);
-    const last = index === lines.length - 1;
-    if (line.startsWith('-# ')) {
-      nodes.push(
-        <span key={key} className="mx-md-subtext">
-          {inline(line.slice(3), context, key)}
-        </span>,
-      );
-      return;
-    }
-    nodes.push(...inline(line, context, key));
-    if (!last) nodes.push('\n');
-  });
+  let last = 0;
+  for (const match of text.matchAll(FENCE)) {
+    const at = match.index ?? 0;
+    if (at > last) blocks(text.slice(last, at).replace(/\n$/, ''), context, `b${last}`, nodes);
+    nodes.push(
+      <code key={`f${at}`} className="mx-md-block">
+        {(match[2] ?? '').replace(/\n$/, '')}
+      </code>,
+    );
+    last = at + match[0].length;
+    if (text[last] === '\n') last++;
+  }
+  if (last < text.length || last === 0) blocks(text.slice(last), context, `b${last}`, nodes);
   return <Tag className="mx-md">{nodes}</Tag>;
 }
 

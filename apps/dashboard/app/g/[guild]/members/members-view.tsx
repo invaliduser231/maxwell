@@ -6,6 +6,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { Checkbox, Seg, Select } from '@/components/controls';
 import { useGuild } from '@/components/guild';
 import { useT } from '@/components/i18n';
+import { Markdown } from '@/components/message-preview';
 import { failed, type Status, StatusText } from '@/components/status-text';
 import { Avatar, Callout, Empty, Grid, type Mood } from '@/components/ui';
 import type { Key } from '@/lib/i18n';
@@ -278,15 +279,14 @@ function Timeline({
             </span>
             {item.quote ? (
               <span
-                className="mx-mono mx-inset"
+                className="mx-inset"
                 style={{
                   marginTop: 4,
                   padding: '7px 10px',
                   color: 'var(--mx-text-2)',
-                  overflowWrap: 'anywhere',
                 }}
               >
-                {item.quote}
+                <Markdown text={item.quote} as="span" />
               </span>
             ) : null}
           </div>

@@ -9,6 +9,7 @@ import { EmojiPicker } from '@/components/emoji-picker';
 import { useGuild } from '@/components/guild';
 import { useT } from '@/components/i18n';
 import { useLive } from '@/components/live';
+import { Markdown } from '@/components/message-preview';
 import { useDraft, useReadOnly } from '@/components/module-shell';
 import { failed, type Status, StatusText } from '@/components/status-text';
 import { Avatar, Empty, Field, Grid, Panel, PanelBody } from '@/components/ui';
@@ -475,7 +476,7 @@ function DetailPanel({
                 overflowWrap: 'anywhere',
               }}
             >
-              {detail.excerpt}
+              <Markdown text={detail.excerpt} />
             </blockquote>
             {detail.messageUrl ? (
               <a className="mx-sub" href={detail.messageUrl} target="_blank" rel="noreferrer">
@@ -488,9 +489,7 @@ function DetailPanel({
         {detail.body ? (
           <div className="mx-stack" style={{ gap: 6 }}>
             <span className="mx-label">{t(bodyLabel)}</span>
-            <p style={{ margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
-              {detail.body}
-            </p>
+            <Markdown text={detail.body} />
           </div>
         ) : null}
 

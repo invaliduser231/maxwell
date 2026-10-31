@@ -7,7 +7,7 @@ import { ChannelSelect, Seg, Switch, TextInput } from '@/components/controls';
 import { EmojiPicker } from '@/components/emoji-picker';
 import { useChannelName, useGuild } from '@/components/guild';
 import { useT } from '@/components/i18n';
-import { EmbedPreview, MessagePreview } from '@/components/message-preview';
+import { EmbedPreview, Markdown, MessagePreview } from '@/components/message-preview';
 import { useDraft } from '@/components/module-shell';
 import { failed, StatusText } from '@/components/status-text';
 import { Empty, Field, Grid, Panel, PanelBody } from '@/components/ui';
@@ -98,7 +98,7 @@ function SuggestionRow({ item, now }: { item: Item; now: number }) {
       </div>
       <div className="mx-row-main" style={{ gap: 4, minWidth: 200 }}>
         <span className="mx-row-title" style={{ overflowWrap: 'anywhere' }}>
-          {current.content}
+          <Markdown text={current.content} as="span" />
         </span>
         <span className="mx-sub">
           {t('#{number} by {name}, {when}', {
