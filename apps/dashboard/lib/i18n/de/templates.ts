@@ -1,7 +1,7 @@
 export const templates = {
   Templates: 'Vorlagen',
-  'Roles, channels and permissions from other communities, ready to copy into yours.':
-    'Rollen, Kanäle und Berechtigungen aus anderen Communities, zum Übernehmen in deine.',
+  'Server setups that other communities have shared.':
+    'Server-Aufbauten, die andere Communities geteilt haben.',
   Sort: 'Sortieren',
   'Most used': 'Meistgenutzt',
   'No templates yet.': 'Noch keine Vorlagen.',

@@ -22,7 +22,7 @@ export default async function Templates({
       <section className="mx-land-wrap mx-tpl-hero">
         <h1 className="mx-tpl-title">{t('Templates')}</h1>
         <p className="mx-tpl-lead">
-          {t('Roles, channels and permissions from other communities, ready to copy into yours.')}
+          {t('Server setups that other communities have shared.')}
         </p>
       </section>
 
