@@ -5,6 +5,7 @@ import type {
   SnapshotData,
   SnapshotModule,
   SnapshotRole,
+  TemplateData,
 } from '../modules/backups.js';
 
 export type SnapshotKind = 'daily' | 'manual';
@@ -40,6 +41,26 @@ export interface ImportRow {
   createdAt: Date;
   appliedAt: Date | null;
 }
+
+export const TEMPLATES_PER_GUILD = 5;
+
+export interface TemplateMeta {
+  id: string;
+  guildId: string;
+  title: string;
+  description: string;
+  guildName: string | null;
+  roleCount: number;
+  channelCount: number;
+  uses: number;
+  createdAt: Date;
+}
+
+export interface Template extends TemplateMeta {
+  data: TemplateData;
+}
+
+export type TemplateSort = 'popular' | 'new';
 
 export class BackupStore {
   constructor(private readonly sql: Sql) {}
@@ -346,5 +367,85 @@ export class BackupStore {
       returning 1
     `;
     return snapshots.length + imports.length;
+  }
+  async publishTemplate(
+    guildId: string,
+    input: { title: string; description: string; guildName: string | null; data: TemplateData },
+  ): Promise<TemplateMeta | null> {
+    return this.sql.begin(async (tx) => {
+      await tx`select pg_advisory_xact_lock(hashtext(${`backups-templates:${guildId}`}))`;
+      const [taken] = await tx<{ count: number }[]>`
+        select count(*)::int as count from backups_templates where guild_id = ${guildId}
+      `;
+      if ((taken?.count ?? 0) >= TEMPLATES_PER_GUILD) return null;
+      const [row] = await tx<TemplateMeta[]>`
+        insert into backups_templates (
+          guild_id, title, description, guild_name, role_count, channel_count, data
+        )
+        values (
+          ${guildId}, ${input.title}, ${input.description}, ${input.guildName},
+          ${input.data.roles.length}, ${input.data.channels.length}, ${tx.json(input.data as never)}
+        )
+        returning id, guild_id as "guildId", title, description, guild_name as "guildName",
+          role_count as "roleCount", channel_count as "channelCount", uses, created_at as "createdAt"
+      `;
+      return row ?? null;
+    });
+  }
+
+  async templates(options: { sort?: TemplateSort; limit?: number } = {}): Promise<TemplateMeta[]> {
+    const limit = Math.min(Math.max(options.limit ?? 60, 1), 200);
+    const order = options.sort === 'new' ? this.sql`t.id desc` : this.sql`t.uses desc, t.id desc`;
+    return this.sql<TemplateMeta[]>`
+      select t.id, t.guild_id as "guildId", t.title, t.description, t.guild_name as "guildName",
+        t.role_count as "roleCount", t.channel_count as "channelCount", t.uses,
+        t.created_at as "createdAt"
+      from backups_templates t
+      where not exists (
+        select 1 from guilds g where g.id = t.guild_id and g.left_at is not null
+      )
+      order by ${order}
+      limit ${limit}
+    `;
+  }
+
+  async template(id: string): Promise<Template | null> {
+    if (!/^\d{1,18}$/.test(id)) return null;
+    const [row] = await this.sql<Template[]>`
+      select t.id, t.guild_id as "guildId", t.title, t.description, t.guild_name as "guildName",
+        t.role_count as "roleCount", t.channel_count as "channelCount", t.uses,
+        t.created_at as "createdAt", t.data
+      from backups_templates t
+      where t.id = ${id} and not exists (
+        select 1 from guilds g where g.id = t.guild_id and g.left_at is not null
+      )
+    `;
+    return row ?? null;
+  }
+
+  async guildTemplates(guildId: string): Promise<TemplateMeta[]> {
+    return this.sql<TemplateMeta[]>`
+      select id, guild_id as "guildId", title, description, guild_name as "guildName",
+        role_count as "roleCount", channel_count as "channelCount", uses, created_at as "createdAt"
+      from backups_templates
+      where guild_id = ${guildId}
+      order by id desc
+    `;
+  }
+
+  async removeTemplate(id: string, guildId?: string): Promise<TemplateMeta | null> {
+    if (!/^\d{1,18}$/.test(id)) return null;
+    const [row] = await this.sql<TemplateMeta[]>`
+      delete from backups_templates
+      where id = ${id} ${guildId ? this.sql`and guild_id = ${guildId}` : this.sql``}
+      returning id, guild_id as "guildId", title, description, guild_name as "guildName",
+        role_count as "roleCount", channel_count as "channelCount", uses, created_at as "createdAt"
+    `;
+    return row ?? null;
+  }
+
+  async countTemplateUse(id: string): Promise<void> {
+    if (!/^\d{1,18}$/.test(id)) return;
+    await this.sql`update backups_templates set uses = uses + 1 where id = ${id}`;
   }
 }

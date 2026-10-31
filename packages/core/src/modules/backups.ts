@@ -372,6 +372,173 @@ export function diffSnapshots(before: SnapshotData, after: SnapshotData): Snapsh
   };
 }
 
+export const TEMPLATE_TITLE_MAX = 60;
+export const TEMPLATE_DESCRIPTION_MAX = 300;
+export const TEMPLATE_ROLE_LIMIT = 250;
+export const TEMPLATE_CHANNEL_LIMIT = 500;
+export const TEMPLATE_EVERYONE = 'everyone';
+export const TEMPLATE_CATEGORY = 4;
+
+const templateChannelTypes = new Set([0, 2, 4, 5, 15]);
+
+export interface TemplateRole {
+  key: string;
+  name: string;
+  color: number;
+  permissions: string;
+  hoist: boolean;
+  mentionable: boolean;
+}
+
+export interface TemplateOverwrite {
+  target: string;
+  allow: string;
+  deny: string;
+}
+
+export interface TemplateChannel {
+  key: string;
+  name: string;
+  type: number;
+  parentKey: string | null;
+  topic: string | null;
+  userLimit: number | null;
+  nsfw: boolean;
+  rateLimitPerUser: number;
+  overwrites: TemplateOverwrite[];
+}
+
+export interface TemplateData {
+  version: 1;
+  everyone: string | null;
+  roles: TemplateRole[];
+  channels: TemplateChannel[];
+}
+
+function templateBits(value: unknown): string {
+  if (typeof value !== 'string' || !/^\d{1,20}$/.test(value)) return '0';
+  return BigInt(value) >= 1n << 64n ? '0' : BigInt(value).toString();
+}
+
+function templateName(value: unknown, fallback: string): string {
+  const text = typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '';
+  return text.slice(0, 100) || fallback;
+}
+
+export function cleanTemplateTopic(
+  topic: string | null | undefined,
+  roles: ReadonlyMap<string, string>,
+  channels: ReadonlyMap<string, string>,
+): string | null {
+  if (typeof topic !== 'string') return null;
+  const text = topic
+    .replace(/<(@[!&]?|#)(\d{1,21})>/g, (_, kind: string, id: string) => {
+      if (kind === '@&') {
+        const name = roles.get(id);
+        return name ? `@${name}` : '';
+      }
+      if (kind === '#') {
+        const name = channels.get(id);
+        return name ? `#${name}` : '';
+      }
+      return '';
+    })
+    .replace(/\d{15,21}/g, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+  return text ? text.slice(0, 1024) : null;
+}
+
+export function sanitizeTemplate(
+  guildId: string,
+  data: SnapshotData,
+  options: { skipRoles?: ReadonlySet<string> } = {},
+): TemplateData {
+  const skip = options.skipRoles ?? new Set<string>();
+  const everyone = data.roles.find((role) => role.id === guildId) ?? null;
+  const sourceRoles = data.roles
+    .map((role, index) => ({ role, index }))
+    .filter(({ role }) => role.id !== guildId && !skip.has(role.id))
+    .sort((a, b) => b.role.position - a.role.position || a.index - b.index)
+    .slice(0, TEMPLATE_ROLE_LIMIT)
+    .map(({ role }) => role);
+  const roleKeys = new Map(sourceRoles.map((role, index) => [role.id, `r${index + 1}`]));
+  const roles: TemplateRole[] = sourceRoles.map((role) => ({
+    key: roleKeys.get(role.id) ?? '',
+    name: templateName(role.name, 'role'),
+    color: Number.isSafeInteger(role.color) && role.color > 0 ? role.color & 0xffffff : 0,
+    permissions: templateBits(role.permissions),
+    hoist: role.hoist === true,
+    mentionable: role.mentionable === true,
+  }));
+
+  const typed = data.channels
+    .map((channel, index) => ({ channel, index }))
+    .filter(({ channel }) => templateChannelTypes.has(channel.type))
+    .sort((a, b) => a.channel.position - b.channel.position || a.index - b.index)
+    .map(({ channel }) => channel);
+  const ordered = [
+    ...typed.filter((channel) => channel.type === TEMPLATE_CATEGORY),
+    ...typed.filter((channel) => channel.type !== TEMPLATE_CATEGORY),
+  ].slice(0, TEMPLATE_CHANNEL_LIMIT);
+  const channelKeys = new Map(ordered.map((channel, index) => [channel.id, `c${index + 1}`]));
+  const categories = new Set(
+    ordered.filter((channel) => channel.type === TEMPLATE_CATEGORY).map((channel) => channel.id),
+  );
+  const roleNames = new Map(
+    [...(everyone ? [everyone] : []), ...sourceRoles].map((role) => [role.id, role.name]),
+  );
+  const channelNames = new Map(ordered.map((channel) => [channel.id, channel.name]));
+
+  const channels: TemplateChannel[] = ordered.map((channel) => {
+    const overwrites: TemplateOverwrite[] = [];
+    for (const overwrite of channel.overwrites ?? []) {
+      if (overwrite.type !== 'role') continue;
+      const target = overwrite.id === guildId ? TEMPLATE_EVERYONE : roleKeys.get(overwrite.id);
+      if (!target) continue;
+      overwrites.push({
+        target,
+        allow: templateBits(overwrite.allow),
+        deny: templateBits(overwrite.deny),
+      });
+    }
+    const voice = channel.type === 2;
+    return {
+      key: channelKeys.get(channel.id) ?? '',
+      name: templateName(channel.name, 'channel'),
+      type: channel.type,
+      parentKey:
+        channel.type !== TEMPLATE_CATEGORY && channel.parentId && categories.has(channel.parentId)
+          ? (channelKeys.get(channel.parentId) ?? null)
+          : null,
+      topic: voice ? null : cleanTemplateTopic(channel.topic, roleNames, channelNames),
+      userLimit:
+        voice && typeof channel.userLimit === 'number' && channel.userLimit > 0
+          ? Math.min(Math.floor(channel.userLimit), 99)
+          : null,
+      nsfw: channel.nsfw === true,
+      rateLimitPerUser:
+        typeof channel.rateLimitPerUser === 'number' && channel.rateLimitPerUser > 0
+          ? Math.min(Math.floor(channel.rateLimitPerUser), 21_600)
+          : 0,
+      overwrites,
+    };
+  });
+
+  return {
+    version: 1,
+    everyone: everyone ? templateBits(everyone.permissions) : null,
+    roles,
+    channels,
+  };
+}
+
+export function isTemplateData(value: unknown): value is TemplateData {
+  if (!value || typeof value !== 'object') return false;
+  const data = value as Partial<TemplateData>;
+  return data.version === 1 && Array.isArray(data.roles) && Array.isArray(data.channels);
+}
+
 export default defineModule({
   key: 'backups',
   name: 'Backups',
@@ -432,6 +599,26 @@ export default defineModule({
         where ranked.id = s.id;
         alter table backups_snapshots alter column number set not null;
         create unique index backups_snapshots_number on backups_snapshots (guild_id, number);
+      `,
+    },
+    {
+      id: '4-templates',
+      up: `
+        create table backups_templates (
+          id bigint generated always as identity primary key,
+          guild_id bigint not null,
+          title text not null,
+          description text not null default '',
+          guild_name text,
+          role_count integer not null default 0,
+          channel_count integer not null default 0,
+          uses integer not null default 0,
+          data jsonb not null,
+          created_at timestamptz not null default now()
+        );
+
+        create index backups_templates_guild on backups_templates (guild_id);
+        create index backups_templates_popular on backups_templates (uses desc, id desc);
       `,
     },
   ],
