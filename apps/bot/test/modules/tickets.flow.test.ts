@@ -404,6 +404,7 @@ describe.skipIf(!url)('tickets flow', () => {
         },
       ],
       logChannelId: logChannel,
+      webForm: true,
       closeDelaySeconds: 0,
       cannedReplies: [{ name: 'hi', content: 'Hello {user}, {staff} here.' }],
       modmail: { enabled: true, teamRoleIds: [teamRole] },
@@ -816,5 +817,31 @@ describe.skipIf(!url)('tickets flow', () => {
     const closed = await store.get(ticketId);
     expect(closed?.status).toBe('closed');
     expect(closed?.closedBy).toBe(staff.id);
+  });
+  it('opens a ticket from the web form for members only', async () => {
+    jobs.push({
+      kind: 'tickets.web.open',
+      guildId: guild,
+      payload: {
+        userId: helper.id,
+        panelId: 'support',
+        subject: 'Order',
+        body: 'My order is missing.',
+      },
+    });
+    jobs.push({
+      kind: 'tickets.web.open',
+      guildId: guild,
+      payload: { userId: snowflake(99), panelId: 'support', subject: 'Spam', body: 'Hello.' },
+    });
+    await runJobs('web.open');
+    const [ticket] = await store.openFor(guild, helper.id, 'support');
+    expect(ticket?.source).toBe('web');
+    expect(ticket?.subject).toBe('Order');
+    const intro = platform.sent.find(
+      (entry) => entry.channelId === ticket?.channelId && entry.out.content?.includes('My order'),
+    );
+    expect(intro?.out.content).toContain('Sent from the web form.');
+    expect(await store.openFor(guild, snowflake(99))).toHaveLength(0);
   });
 });

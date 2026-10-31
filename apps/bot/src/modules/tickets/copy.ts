@@ -117,6 +117,7 @@ const en = {
   logChannel: (channelId: string) => `**Channel** ${mention.channel(channelId)}`,
   footerTicket: (number: number, userId: string) => `Ticket ${number} / User ${userId}`,
   footerUser: (userId: string) => `User ${userId}`,
+  fromWeb: 'Sent from the web form.',
 };
 
 export type TicketsCopy = typeof en;

@@ -2,10 +2,11 @@ import { type Actor, maxwell } from '@maxwell/core';
 import definition from '@maxwell/core/modules/tickets';
 import { inGuild } from '../../i18n/language.js';
 import { defineBotModule } from '../../runtime/module.js';
+import { lines, subtext } from '../../ui/format.js';
 import { formInboxFor } from '../forms/inbox.js';
 import { verifyInboxFor } from '../security/verification.js';
 import { ticketCommands } from './commands.js';
-import { MODULE } from './config.js';
+import { MODULE, panelTarget } from './config.js';
 import { ticketsCopy as copy, ticketsAudit } from './copy.js';
 import { Modmail } from './modmail.js';
 import { Panels } from './panels.js';
@@ -124,6 +125,32 @@ export default defineBotModule({
       const notice = copy.added(userId);
       const messageId = await platform.send(ticket.channelId, notice).catch(() => null);
       if (messageId) await service.recordOwn(ticket, messageId, notice);
+    });
+
+    ctx.job('web.open', async (job) => {
+      const guildId = job.guildId;
+      const userId = text(job.payload.userId);
+      const panelId = text(job.payload.panelId);
+      if (!guildId || !userId || !panelId) return;
+      const config = await ctx.config(guildId);
+      const panel = config.panels.find((entry) => entry.id === panelId);
+      if (!config.webForm || !panel) return;
+      const { platform, log } = ctx.services;
+      if (!(await platform.isMember(guildId, userId).catch(() => false))) return;
+      const opener = await platform.user(userId);
+      if (!opener) return;
+      const body = text(job.payload.body);
+      const result = await inGuild(guildId, () =>
+        service.open({
+          guildId,
+          target: panelTarget(panel),
+          opener,
+          source: 'web',
+          subject: text(job.payload.subject),
+          intro: body ? lines(body, '', subtext(copy.fromWeb)) : null,
+        }),
+      );
+      if (!result.ok) log.info({ guild: guildId, reason: result.reason }, 'web ticket not opened');
     });
 
     ctx.job('reply', async (job) => {

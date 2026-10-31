@@ -123,6 +123,7 @@ const de: TicketsCopy = {
   logChannel: (channelId: string) => `**Kanal** ${mention.channel(channelId)}`,
   footerTicket: (number: number, userId: string) => `Ticket ${number} / Nutzer ${userId}`,
   footerUser: (userId: string) => `Nutzer ${userId}`,
+  fromWeb: 'Über das Webformular gesendet.',
 };
 
 export default de;
