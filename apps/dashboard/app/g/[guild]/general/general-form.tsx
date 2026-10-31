@@ -9,7 +9,7 @@ import { useRemote } from '@/components/live';
 import { useDraft } from '@/components/module-shell';
 import { failed, outcome, type Status, StatusText, sorted } from '@/components/status-text';
 import { DangerRow } from '@/components/two-step';
-import { CloseIcon, Field, Fields, Grid, Panel, PanelBody, Row } from '@/components/ui';
+import { CloseIcon, Column, Field, Fields, Grid, Panel, PanelBody, Row } from '@/components/ui';
 import type { BotProfile } from '@/lib/fluxer';
 import type { Key } from '@/lib/i18n';
 import { removeMaxwell, resetSettings, saveAvatar, savePrefix, saveProfile } from './actions';
@@ -220,123 +220,129 @@ export function GeneralForm({
 
   return (
     <Grid>
-      <Panel title={t('Basics')} span={6}>
-        <PanelBody>
-          <PrefixPanel initial={prefix} />
-          <Fields>
-            <Field label={t('Bot language')}>
-              <Select
-                value={value.language}
-                options={Object.entries(languageNames).map(([code, name]) => ({
-                  value: code as GeneralConfig['language'],
-                  label: name,
-                }))}
-                onChange={(language) => set({ language })}
-              />
-            </Field>
-            <Field label={t('Timezone')}>
-              <TimezoneSelect value={value.timezone} onChange={(timezone) => set({ timezone })} />
-            </Field>
-          </Fields>
-        </PanelBody>
-      </Panel>
-
-      <ProfilePanel profile={profile} guildName={guildName} />
-
-      <Panel title={t('Commands')} span={6}>
-        <PanelBody>
-          <div className="mx-field">
-            <span className="mx-label">{t('Turned off')}</span>
-            <div className="mx-chips">
-              {value.disabledCommands.map((name) => (
-                <span key={name} className="mx-chip">
-                  <span className="mx-mono">{name}</span>
-                  {readOnly ? null : (
-                    <button
-                      type="button"
-                      className="mx-chip-x"
-                      aria-label={t('Turn {name} back on', { name })}
-                      onClick={() =>
-                        set({
-                          disabledCommands: value.disabledCommands.filter(
-                            (entry) => entry !== name,
-                          ),
-                        })
-                      }
-                    >
-                      <CloseIcon />
-                    </button>
-                  )}
-                </span>
-              ))}
-              {readOnly && value.disabledCommands.length === 0 ? (
-                <span className="mx-sub">{t('None')}</span>
-              ) : null}
-              {readOnly || available.length === 0 ? null : (
-                <AddPicker
-                  label={t('Turn off a command')}
-                  options={available.map((name) => ({ value: name, label: name }))}
-                  onPick={(name) => set({ disabledCommands: [...value.disabledCommands, name] })}
+      <Column span={6}>
+        <Panel title={t('Basics')} span={6}>
+          <PanelBody>
+            <PrefixPanel initial={prefix} />
+            <Fields>
+              <Field label={t('Bot language')}>
+                <Select
+                  value={value.language}
+                  options={Object.entries(languageNames).map(([code, name]) => ({
+                    value: code as GeneralConfig['language'],
+                    label: name,
+                  }))}
+                  onChange={(language) => set({ language })}
                 />
-              )}
-            </div>
-          </div>
-          <div className="mx-field">
-            <span className="mx-label">{t('Where commands work')}</span>
-            <Seg
-              label={t('Where commands work')}
-              value={scoped ? 'some' : 'all'}
-              options={[
-                { value: 'all', label: t('Everywhere') },
-                { value: 'some', label: t('Some channels') },
-              ]}
-              onChange={(next) => {
-                setScoped(next === 'some');
-                if (next === 'all') set({ commandChannels: [] });
-              }}
-            />
-            {scoped ? (
-              <ChannelMulti
-                value={value.commandChannels}
-                onChange={(commandChannels) => set({ commandChannels })}
-              />
-            ) : null}
-          </div>
-        </PanelBody>
-      </Panel>
+              </Field>
+              <Field label={t('Timezone')}>
+                <TimezoneSelect value={value.timezone} onChange={(timezone) => set({ timezone })} />
+              </Field>
+            </Fields>
+          </PanelBody>
+        </Panel>
 
-      <Panel title={t('Privacy')} span={6}>
-        <PanelBody>
-          <Field label={t('Keep cases')}>
-            <Select
-              value={value.caseRetentionDays === null ? 'forever' : String(value.caseRetentionDays)}
-              options={
-                value.caseRetentionDays === null ||
-                retention.some((entry) => entry.value === String(value.caseRetentionDays))
-                  ? retentionOptions
-                  : [
-                      ...retentionOptions,
-                      {
-                        value: String(value.caseRetentionDays),
-                        label: t.plural(value.caseRetentionDays, '{n} day', '{n} days'),
-                      },
-                    ]
-              }
-              onChange={(next) =>
-                set({ caseRetentionDays: next === 'forever' ? null : Number(next) })
-              }
-            />
-          </Field>
-        </PanelBody>
-        <Row
-          title={t('Members export their data')}
-          sub={<span className="mx-mono">{`${prefix}mydata`}</span>}
-        />
-        <Row
-          title={t('Members delete their data')}
-          sub={<span className="mx-mono">{`${prefix}forgetme`}</span>}
-        />
-      </Panel>
+        <Panel title={t('Privacy')} span={6}>
+          <PanelBody>
+            <Field label={t('Keep cases')}>
+              <Select
+                value={
+                  value.caseRetentionDays === null ? 'forever' : String(value.caseRetentionDays)
+                }
+                options={
+                  value.caseRetentionDays === null ||
+                  retention.some((entry) => entry.value === String(value.caseRetentionDays))
+                    ? retentionOptions
+                    : [
+                        ...retentionOptions,
+                        {
+                          value: String(value.caseRetentionDays),
+                          label: t.plural(value.caseRetentionDays, '{n} day', '{n} days'),
+                        },
+                      ]
+                }
+                onChange={(next) =>
+                  set({ caseRetentionDays: next === 'forever' ? null : Number(next) })
+                }
+              />
+            </Field>
+          </PanelBody>
+          <Row
+            title={t('Members export their data')}
+            sub={<span className="mx-mono">{`${prefix}mydata`}</span>}
+          />
+          <Row
+            title={t('Members delete their data')}
+            sub={<span className="mx-mono">{`${prefix}forgetme`}</span>}
+          />
+        </Panel>
+      </Column>
+
+      <Column span={6}>
+        <ProfilePanel profile={profile} guildName={guildName} />
+
+        <Panel title={t('Commands')} span={6}>
+          <PanelBody>
+            <div className="mx-field">
+              <span className="mx-label">{t('Turned off')}</span>
+              <div className="mx-chips">
+                {value.disabledCommands.map((name) => (
+                  <span key={name} className="mx-chip">
+                    <span className="mx-mono">{name}</span>
+                    {readOnly ? null : (
+                      <button
+                        type="button"
+                        className="mx-chip-x"
+                        aria-label={t('Turn {name} back on', { name })}
+                        onClick={() =>
+                          set({
+                            disabledCommands: value.disabledCommands.filter(
+                              (entry) => entry !== name,
+                            ),
+                          })
+                        }
+                      >
+                        <CloseIcon />
+                      </button>
+                    )}
+                  </span>
+                ))}
+                {readOnly && value.disabledCommands.length === 0 ? (
+                  <span className="mx-sub">{t('None')}</span>
+                ) : null}
+                {readOnly || available.length === 0 ? null : (
+                  <AddPicker
+                    label={t('Turn off a command')}
+                    options={available.map((name) => ({ value: name, label: name }))}
+                    onPick={(name) => set({ disabledCommands: [...value.disabledCommands, name] })}
+                  />
+                )}
+              </div>
+            </div>
+            <div className="mx-field">
+              <span className="mx-label">{t('Where commands work')}</span>
+              <Seg
+                label={t('Where commands work')}
+                value={scoped ? 'some' : 'all'}
+                options={[
+                  { value: 'all', label: t('Everywhere') },
+                  { value: 'some', label: t('Some channels') },
+                ]}
+                onChange={(next) => {
+                  setScoped(next === 'some');
+                  if (next === 'all') set({ commandChannels: [] });
+                }}
+              />
+              {scoped ? (
+                <ChannelMulti
+                  value={value.commandChannels}
+                  onChange={(commandChannels) => set({ commandChannels })}
+                />
+              ) : null}
+            </div>
+          </PanelBody>
+        </Panel>
+      </Column>
 
       {admin ? (
         <Panel title={t('Reset')} span={12}>

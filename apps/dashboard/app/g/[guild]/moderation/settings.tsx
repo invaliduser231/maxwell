@@ -21,7 +21,17 @@ import { useT } from '@/components/i18n';
 import { MessagePreview } from '@/components/message-preview';
 import { useDraft } from '@/components/module-shell';
 import { type Status, StatusText } from '@/components/status-text';
-import { Callout, CloseIcon, Empty, Field, Fields, Grid, Panel, PanelBody } from '@/components/ui';
+import {
+  Callout,
+  CloseIcon,
+  Column,
+  Empty,
+  Field,
+  Fields,
+  Grid,
+  Panel,
+  PanelBody,
+} from '@/components/ui';
 import type { Key, Translator } from '@/lib/i18n';
 import { duration } from '@/lib/time';
 import { setCommand } from './actions';
@@ -330,122 +340,124 @@ export function SettingsTab({
 
   return (
     <Grid>
-      <Panel title={t('General')} span={6} id="general">
-        <PanelBody>
-          <Fields>
-            <Field label={t('Mod log')}>
-              <ChannelSelect
-                label={t('Mod log')}
-                value={value.logChannelId}
-                onChange={(logChannelId) => set({ logChannelId })}
-              />
-            </Field>
-            <Field label={t('Default timeout')}>
+      <Column span={6}>
+        <Panel title={t('General')} span={6} id="general">
+          <PanelBody>
+            <Fields>
+              <Field label={t('Mod log')}>
+                <ChannelSelect
+                  label={t('Mod log')}
+                  value={value.logChannelId}
+                  onChange={(logChannelId) => set({ logChannelId })}
+                />
+              </Field>
+              <Field label={t('Default timeout')}>
+                <Select
+                  label={t('Default timeout')}
+                  value={String(value.defaultTimeoutMinutes)}
+                  options={timeoutList.map((minutes) => ({
+                    value: String(minutes),
+                    label: duration(t, minutes * 60_000),
+                  }))}
+                  onChange={(next) => set({ defaultTimeoutMinutes: Number(next) })}
+                />
+              </Field>
+            </Fields>
+            <Field label={t('On ban, delete their messages from')}>
               <Select
-                label={t('Default timeout')}
-                value={String(value.defaultTimeoutMinutes)}
-                options={timeoutList.map((minutes) => ({
-                  value: String(minutes),
-                  label: duration(t, minutes * 60_000),
+                label={t('On ban, delete their messages from')}
+                value={String(value.banDeleteMessageDays)}
+                options={deleteList.map((count) => ({
+                  value: String(count),
+                  label:
+                    count === 0
+                      ? t('Keep messages')
+                      : t.plural(count, 'The last {n} day', 'The last {n} days'),
                 }))}
-                onChange={(next) => set({ defaultTimeoutMinutes: Number(next) })}
+                onChange={(next) => set({ banDeleteMessageDays: Number(next) })}
               />
             </Field>
-          </Fields>
-          <Field label={t('On ban, delete their messages from')}>
-            <Select
-              label={t('On ban, delete their messages from')}
-              value={String(value.banDeleteMessageDays)}
-              options={deleteList.map((count) => ({
-                value: String(count),
-                label:
-                  count === 0
-                    ? t('Keep messages')
-                    : t.plural(count, 'The last {n} day', 'The last {n} days'),
-              }))}
-              onChange={(next) => set({ banDeleteMessageDays: Number(next) })}
-            />
-          </Field>
-          <div className="mx-field">
-            <span className="mx-label">{t('Moderator roles')}</span>
-            <RoleMulti
-              value={value.modRoleIds}
-              onChange={(modRoleIds) => set({ modRoleIds: modRoleIds.slice(0, 25) })}
-            />
-          </div>
-          <ToggleRow
-            order
-            title={t('Reason required')}
-            checked={value.requireReason}
-            onChange={(requireReason) => set({ requireReason })}
-          />
-          <ToggleRow
-            order
-            title={t('DM the member')}
-            checked={value.dmMembers}
-            onChange={(dmMembers) => set({ dmMembers })}
-          />
-          {value.dmMembers ? (
-            <div
-              className="mx-inline"
-              role="group"
-              aria-label={t('DM on these actions')}
-              style={{ gap: 18 }}
-            >
-              {dmActions.map((action) => {
-                const on = value.dmActions.includes(action);
-                return (
-                  <Checkbox
-                    key={action}
-                    label={t(dmNames[action])}
-                    checked={on}
-                    onChange={() =>
-                      set({
-                        dmActions: on
-                          ? value.dmActions.filter((entry) => entry !== action)
-                          : dmActions.filter(
-                              (entry) => entry === action || value.dmActions.includes(entry),
-                            ),
-                      })
-                    }
-                  />
-                );
-              })}
+            <div className="mx-field">
+              <span className="mx-label">{t('Moderator roles')}</span>
+              <RoleMulti
+                value={value.modRoleIds}
+                onChange={(modRoleIds) => set({ modRoleIds: modRoleIds.slice(0, 25) })}
+              />
             </div>
-          ) : null}
-        </PanelBody>
-      </Panel>
-
-      <Panel title={t('Message to the member')} span={6} id="dm">
-        <PanelBody>
-          <div className="mx-field">
-            <textarea
-              className="mx-textarea"
-              rows={4}
-              maxLength={1_500}
-              aria-label={t('DM template')}
-              aria-invalid={leftEmpty && templateEmpty ? true : undefined}
-              value={value.dmTemplate}
-              readOnly={readOnly}
-              onBlur={() => setLeftEmpty(templateEmpty)}
-              onChange={(event) => set({ dmTemplate: event.target.value })}
+            <ToggleRow
+              order
+              title={t('Reason required')}
+              checked={value.requireReason}
+              onChange={(requireReason) => set({ requireReason })}
             />
-            {leftEmpty && templateEmpty ? (
-              <span className="mx-field-error">{t('Write a message.')}</span>
-            ) : (
-              <span className="mx-hint mx-mono">
-                {'{user} {server} {action} {reason} {duration}'}
-              </span>
-            )}
-          </div>
-          <div className="mx-preview">
-            <MessagePreview time="DM" content={value.dmTemplate} vars={dmVars} />
-          </div>
-        </PanelBody>
-      </Panel>
-
-      <EscalationPanel />
-      <CommandsPanel commands={commands} prefix={prefix} />
+            <ToggleRow
+              order
+              title={t('DM the member')}
+              checked={value.dmMembers}
+              onChange={(dmMembers) => set({ dmMembers })}
+            />
+            {value.dmMembers ? (
+              <div
+                className="mx-inline"
+                role="group"
+                aria-label={t('DM on these actions')}
+                style={{ gap: 18 }}
+              >
+                {dmActions.map((action) => {
+                  const on = value.dmActions.includes(action);
+                  return (
+                    <Checkbox
+                      key={action}
+                      label={t(dmNames[action])}
+                      checked={on}
+                      onChange={() =>
+                        set({
+                          dmActions: on
+                            ? value.dmActions.filter((entry) => entry !== action)
+                            : dmActions.filter(
+                                (entry) => entry === action || value.dmActions.includes(entry),
+                              ),
+                        })
+                      }
+                    />
+                  );
+                })}
+              </div>
+            ) : null}
+          </PanelBody>
+        </Panel>
+        <EscalationPanel />
+      </Column>
+      <Column span={6}>
+        <Panel title={t('Message to the member')} span={6} id="dm">
+          <PanelBody>
+            <div className="mx-field">
+              <textarea
+                className="mx-textarea"
+                rows={4}
+                maxLength={1_500}
+                aria-label={t('DM template')}
+                aria-invalid={leftEmpty && templateEmpty ? true : undefined}
+                value={value.dmTemplate}
+                readOnly={readOnly}
+                onBlur={() => setLeftEmpty(templateEmpty)}
+                onChange={(event) => set({ dmTemplate: event.target.value })}
+              />
+              {leftEmpty && templateEmpty ? (
+                <span className="mx-field-error">{t('Write a message.')}</span>
+              ) : (
+                <span className="mx-hint mx-mono">
+                  {'{user} {server} {action} {reason} {duration}'}
+                </span>
+              )}
+            </div>
+            <div className="mx-preview">
+              <MessagePreview time="DM" content={value.dmTemplate} vars={dmVars} />
+            </div>
+          </PanelBody>
+        </Panel>
+        <CommandsPanel commands={commands} prefix={prefix} />
+      </Column>
     </Grid>
   );
 }

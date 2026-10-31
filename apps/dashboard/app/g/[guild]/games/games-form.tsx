@@ -17,7 +17,7 @@ import { MessagePreview } from '@/components/message-preview';
 import { useDraft, useReadOnly } from '@/components/module-shell';
 import { outcome, type Status, StatusText } from '@/components/status-text';
 import { TwoStep } from '@/components/two-step';
-import { Avatar, Empty, Field, Fields, Grid, Panel, PanelBody, Row } from '@/components/ui';
+import { Avatar, Column, Empty, Field, Fields, Grid, Panel, PanelBody, Row } from '@/components/ui';
 import { runAction } from '@/lib/actions';
 import type { Key, Translator } from '@/lib/i18n';
 import { Section, Tile, Tiles } from '../economy/bits';
@@ -941,50 +941,60 @@ export function GamesForm({
 
   return (
     <Grid>
-      <Panel
-        title={t('Games')}
-        span={4}
-        id="games"
-        actions={<span className="mx-sub">{t('{count} on', { count: active })}</span>}
-      >
-        {list.map((game) => (
-          <div key={game.key} className="mx-row">
-            <button
-              type="button"
-              className="mx-pick mx-row-main"
-              aria-pressed={game.key === selected}
-              onClick={() => setSelected(game.key)}
-            >
-              <span className="mx-row-title">{t(game.name)}</span>
-              <span className="mx-sub mx-ellipsis">{where(game.key)}</span>
-            </button>
-            <Switch
-              label={
-                enabled(game.config)
-                  ? t('{name} on', { name: t(game.name) })
-                  : t('{name} off', { name: t(game.name) })
-              }
-              checked={enabled(game.config)}
-              onChange={(on) =>
-                set({
-                  [game.config]: { ...value[game.config], enabled: on },
-                } as Partial<GamesConfig>)
-              }
-            />
+      <Column span={4}>
+        <Panel
+          title={t('Games')}
+          span={4}
+          id="games"
+          actions={<span className="mx-sub">{t('{count} on', { count: active })}</span>}
+        >
+          {list.map((game) => (
+            <div key={game.key} className="mx-row">
+              <button
+                type="button"
+                className="mx-pick mx-row-main"
+                aria-pressed={game.key === selected}
+                onClick={() => setSelected(game.key)}
+              >
+                <span className="mx-row-title">{t(game.name)}</span>
+                <span className="mx-sub mx-ellipsis">{where(game.key)}</span>
+              </button>
+              <Switch
+                label={
+                  enabled(game.config)
+                    ? t('{name} on', { name: t(game.name) })
+                    : t('{name} off', { name: t(game.name) })
+                }
+                checked={enabled(game.config)}
+                onChange={(on) =>
+                  set({
+                    [game.config]: { ...value[game.config], enabled: on },
+                  } as Partial<GamesConfig>)
+                }
+              />
+            </div>
+          ))}
+          <div className="mx-panel-body" style={{ borderTop: '1px solid var(--mx-line)' }}>
+            <div className="mx-field">
+              <span
+                className="mx-label"
+                style={{ display: 'flex', justifyContent: 'space-between' }}
+              >
+                <span>{t('Command channels')}</span>
+                {value.channelIds.length === 0 ? (
+                  <span className="mx-muted">{t('Every channel')}</span>
+                ) : null}
+              </span>
+              <ChannelMulti
+                value={value.channelIds}
+                onChange={(channelIds) => set({ channelIds })}
+              />
+            </div>
           </div>
-        ))}
-        <div className="mx-panel-body" style={{ borderTop: '1px solid var(--mx-line)' }}>
-          <div className="mx-field">
-            <span className="mx-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>{t('Command channels')}</span>
-              {value.channelIds.length === 0 ? (
-                <span className="mx-muted">{t('Every channel')}</span>
-              ) : null}
-            </span>
-            <ChannelMulti value={value.channelIds} onChange={(channelIds) => set({ channelIds })} />
-          </div>
-        </div>
-      </Panel>
+        </Panel>
+        <BoardPanel board={board} />
+        <MoneyPanel economy={economy} money={money} />
+      </Column>
 
       <Panel
         title={current ? t(current.name) : t('Trivia')}
@@ -1008,9 +1018,6 @@ export function GamesForm({
         {selected === 'higherlower' ? <HiloEditor prefix={prefix} /> : null}
         {selected === 'coinflip' ? <CoinflipEditor prefix={prefix} /> : null}
       </Panel>
-
-      <BoardPanel board={board} />
-      <MoneyPanel economy={economy} money={money} />
     </Grid>
   );
 }
