@@ -20,6 +20,7 @@ import { TwoStep } from '@/components/two-step';
 import {
   Avatar,
   Callout,
+  Column,
   Empty,
   Field,
   Fields,
@@ -236,419 +237,422 @@ export function SecurityForm({ view }: { view: SecurityView }) {
       <Stat label={t.raw('Passed the captcha')} value={t.count(view.counts.passed)} quiet />
       <Stat label={t.raw('Waiting now')} value={t.count(view.counts.pending)} quiet />
 
-      <Panel title={t.raw('Captcha')} span={6} id="sec-verify">
-        <ToggleRow
-          title={t.raw('Check new members')}
-          checked={verification.enabled}
-          onChange={(enabled) => patchVerification({ enabled })}
-        />
-        <PanelBody>
-          <Fields>
-            <Field label={t.raw('Captcha from risk score')}>
-              <NumberInput
-                value={verification.threshold}
-                min={1}
-                max={100}
-                onChange={(threshold) => patchVerification({ threshold })}
-              />
-            </Field>
-            <Field label={t.raw('Tries')}>
-              <NumberInput
-                value={verification.attempts}
-                min={1}
-                max={10}
-                onChange={(attempts) => patchVerification({ attempts })}
-              />
-            </Field>
-            <Field label={t.raw('Time to answer')}>
-              <NumberInput
-                value={verification.minutes}
-                min={2}
-                max={1440}
-                suffix="min"
-                onChange={(minutes) => patchVerification({ minutes })}
-              />
-            </Field>
-            <Field label={t.raw('When it fails or runs out')}>
-              <Seg
-                label={t.raw('When it fails or runs out')}
-                value={verification.onExpire}
-                options={[
-                  { value: 'keep', label: t.raw('Keep at the gate') },
-                  { value: 'kick', label: t.raw('Kick') },
-                ]}
-                onChange={(onExpire) => patchVerification({ onExpire })}
-              />
-            </Field>
-            <Field label={t.raw('Very high score')}>
-              <Seg
-                label={t.raw('Very high score')}
-                value={verification.severeAction}
-                options={[
-                  { value: 'none', label: t.raw('Captcha too') },
-                  { value: 'kick', label: t.raw('Kick') },
-                  { value: 'ban', label: t.raw('Ban') },
-                ]}
-                onChange={(severeAction) => patchVerification({ severeAction })}
-              />
-            </Field>
-            {verification.severeAction !== 'none' ? (
-              <Field label={t.raw('Very high from score')}>
+      <Column span={6}>
+        <Panel title={t.raw('Captcha')} span={6} id="sec-verify">
+          <ToggleRow
+            title={t.raw('Check new members')}
+            checked={verification.enabled}
+            onChange={(enabled) => patchVerification({ enabled })}
+          />
+          <PanelBody>
+            <Fields>
+              <Field label={t.raw('Captcha from risk score')}>
                 <NumberInput
-                  value={verification.severeScore}
+                  value={verification.threshold}
                   min={1}
-                  max={200}
-                  onChange={(severeScore) => patchVerification({ severeScore })}
+                  max={100}
+                  onChange={(threshold) => patchVerification({ threshold })}
                 />
               </Field>
+              <Field label={t.raw('Tries')}>
+                <NumberInput
+                  value={verification.attempts}
+                  min={1}
+                  max={10}
+                  onChange={(attempts) => patchVerification({ attempts })}
+                />
+              </Field>
+              <Field label={t.raw('Time to answer')}>
+                <NumberInput
+                  value={verification.minutes}
+                  min={2}
+                  max={1440}
+                  suffix="min"
+                  onChange={(minutes) => patchVerification({ minutes })}
+                />
+              </Field>
+              <Field label={t.raw('When it fails or runs out')}>
+                <Seg
+                  label={t.raw('When it fails or runs out')}
+                  value={verification.onExpire}
+                  options={[
+                    { value: 'keep', label: t.raw('Keep at the gate') },
+                    { value: 'kick', label: t.raw('Kick') },
+                  ]}
+                  onChange={(onExpire) => patchVerification({ onExpire })}
+                />
+              </Field>
+              <Field label={t.raw('Very high score')}>
+                <Seg
+                  label={t.raw('Very high score')}
+                  value={verification.severeAction}
+                  options={[
+                    { value: 'none', label: t.raw('Captcha too') },
+                    { value: 'kick', label: t.raw('Kick') },
+                    { value: 'ban', label: t.raw('Ban') },
+                  ]}
+                  onChange={(severeAction) => patchVerification({ severeAction })}
+                />
+              </Field>
+              {verification.severeAction !== 'none' ? (
+                <Field label={t.raw('Very high from score')}>
+                  <NumberInput
+                    value={verification.severeScore}
+                    min={1}
+                    max={200}
+                    onChange={(severeScore) => patchVerification({ severeScore })}
+                  />
+                </Field>
+              ) : null}
+              <Field label={t.raw('Channel when DMs are closed')}>
+                <ChannelSelect
+                  value={verification.channelId}
+                  none={t.raw('Gate channel')}
+                  onChange={(channelId) => patchVerification({ channelId })}
+                />
+              </Field>
+            </Fields>
+          </PanelBody>
+        </Panel>
+
+        <Panel title={t.raw('Raids')} span={6} id="sec-raid">
+          <ToggleRow
+            title={t.raw('Watch for raids')}
+            checked={raid.enabled}
+            onChange={(enabled) => patchRaid({ enabled })}
+          />
+          <PanelBody>
+            <Fields>
+              <Field label={t.raw('Joins')}>
+                <NumberInput
+                  value={raid.joins}
+                  min={3}
+                  max={500}
+                  onChange={(joins) => patchRaid({ joins })}
+                />
+              </Field>
+              <Field label={t.raw('Within')}>
+                <NumberInput
+                  value={raid.perSeconds}
+                  min={5}
+                  max={600}
+                  suffix="s"
+                  onChange={(perSeconds) => patchRaid({ perSeconds })}
+                />
+              </Field>
+              <Field label={t.raw('Similar accounts')}>
+                <NumberInput
+                  value={raid.waveSize}
+                  min={2}
+                  max={100}
+                  onChange={(waveSize) => patchRaid({ waveSize })}
+                />
+              </Field>
+              <Field label={t.raw('Same message from new members')}>
+                <NumberInput
+                  value={raid.floodMembers}
+                  min={2}
+                  max={100}
+                  onChange={(floodMembers) => patchRaid({ floodMembers })}
+                />
+              </Field>
+              <Field label={t.raw('Raid mode lasts')}>
+                <NumberInput
+                  value={raid.minutes}
+                  min={1}
+                  max={1440}
+                  suffix="min"
+                  onChange={(minutes) => patchRaid({ minutes })}
+                />
+              </Field>
+              <Field label={t.raw('Slowmode during a raid')}>
+                <NumberInput
+                  value={raid.slowmodeSeconds}
+                  min={0}
+                  max={21_600}
+                  suffix="s"
+                  onChange={(slowmodeSeconds) => patchRaid({ slowmodeSeconds })}
+                />
+              </Field>
+            </Fields>
+            {raid.slowmodeSeconds > 0 ? (
+              <ChannelMulti
+                value={raid.slowmodeChannelIds}
+                onChange={(slowmodeChannelIds) => patchRaid({ slowmodeChannelIds })}
+              />
             ) : null}
-            <Field label={t.raw('Channel when DMs are closed')}>
-              <ChannelSelect
-                value={verification.channelId}
-                none={t.raw('Gate channel')}
-                onChange={(channelId) => patchVerification({ channelId })}
-              />
-            </Field>
-          </Fields>
-        </PanelBody>
-      </Panel>
-
-      <Panel title={t.raw('Risk score')} span={6} id="sec-score">
-        <PanelBody>
-          <div className="mx-stack">
-            <span className="mx-label">{t.raw('Account age')}</span>
-            <div className="mx-weights">
-              {verification.weights.ageTiers.map((tier, index) => (
-                <div key={tier.hours} className="mx-weight">
-                  <span>{ageLabel(t, tier.hours)}</span>
-                  <div style={{ width: 88 }}>
-                    <NumberInput
-                      label={ageLabel(t, tier.hours)}
-                      value={tier.points}
-                      min={0}
-                      max={30}
-                      onChange={(points) =>
-                        patchWeights({
-                          ageTiers: verification.weights.ageTiers.map((entry, position) =>
-                            position === index ? { ...entry, points } : entry,
-                          ),
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <span className="mx-label">{t.raw('Other signs')}</span>
-            <div className="mx-weights">
-              {weightKeys.map((entry) => (
-                <div key={entry.key} className="mx-weight">
-                  <span>{t.raw(entry.label)}</span>
-                  <div style={{ width: 88 }}>
-                    <NumberInput
-                      label={t.raw(entry.label)}
-                      value={verification.weights[entry.key]}
-                      min={-20}
-                      max={30}
-                      onChange={(points) => patchWeights({ [entry.key]: points })}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <span className="mx-label">{t.raw('Spam words in names')}</span>
-            <WordList
-              value={verification.spamWords}
-              onChange={(spamWords) => patchVerification({ spamWords })}
-            />
-          </div>
-        </PanelBody>
-      </Panel>
-
-      <Panel title={t.raw('Raids')} span={6} id="sec-raid">
-        <ToggleRow
-          title={t.raw('Watch for raids')}
-          checked={raid.enabled}
-          onChange={(enabled) => patchRaid({ enabled })}
-        />
-        <PanelBody>
-          <Fields>
-            <Field label={t.raw('Joins')}>
-              <NumberInput
-                value={raid.joins}
-                min={3}
-                max={500}
-                onChange={(joins) => patchRaid({ joins })}
-              />
-            </Field>
-            <Field label={t.raw('Within')}>
-              <NumberInput
-                value={raid.perSeconds}
-                min={5}
-                max={600}
-                suffix="s"
-                onChange={(perSeconds) => patchRaid({ perSeconds })}
-              />
-            </Field>
-            <Field label={t.raw('Similar accounts')}>
-              <NumberInput
-                value={raid.waveSize}
-                min={2}
-                max={100}
-                onChange={(waveSize) => patchRaid({ waveSize })}
-              />
-            </Field>
-            <Field label={t.raw('Same message from new members')}>
-              <NumberInput
-                value={raid.floodMembers}
-                min={2}
-                max={100}
-                onChange={(floodMembers) => patchRaid({ floodMembers })}
-              />
-            </Field>
-            <Field label={t.raw('Raid mode lasts')}>
-              <NumberInput
-                value={raid.minutes}
-                min={1}
-                max={1440}
-                suffix="min"
-                onChange={(minutes) => patchRaid({ minutes })}
-              />
-            </Field>
-            <Field label={t.raw('Slowmode during a raid')}>
-              <NumberInput
-                value={raid.slowmodeSeconds}
-                min={0}
-                max={21_600}
-                suffix="s"
-                onChange={(slowmodeSeconds) => patchRaid({ slowmodeSeconds })}
-              />
-            </Field>
-          </Fields>
-          {raid.slowmodeSeconds > 0 ? (
-            <ChannelMulti
-              value={raid.slowmodeChannelIds}
-              onChange={(slowmodeChannelIds) => patchRaid({ slowmodeChannelIds })}
-            />
-          ) : null}
-        </PanelBody>
-        <ToggleRow
-          title={t.raw('Pause invites during a raid')}
-          checked={raid.pauseInvites}
-          onChange={(pauseInvites) => patchRaid({ pauseInvites })}
-        />
-        {readOnly ? null : (
-          <div className="mx-panel-body" style={{ borderTop: '1px solid var(--mx-line)' }}>
-            <div className="mx-between">
-              <StatusText status={status} />
-              {view.raid ? null : (
-                <TwoStep
-                  label={t.raw('Start raid mode now')}
-                  disabled={busy}
-                  run={() => act('raid.start')}
-                />
-              )}
-            </div>
-          </div>
-        )}
-      </Panel>
-
-      <Panel title={t.raw('Nukes')} span={6} id="sec-nuke">
-        <ToggleRow
-          title={t.raw('Stop mass changes')}
-          checked={nuke.enabled}
-          onChange={(enabled) => patchNuke({ enabled })}
-        />
-        <PanelBody>
-          <Fields>
-            <Field label={t.raw('Time window')}>
-              <NumberInput
-                value={nuke.windowSeconds}
-                min={10}
-                max={3600}
-                suffix="s"
-                onChange={(windowSeconds) => patchNuke({ windowSeconds })}
-              />
-            </Field>
-            {limitKeys.map((entry) => (
-              <Field key={entry.key} label={t.raw(entry.label)}>
-                <NumberInput
-                  value={nuke.limits[entry.key]}
-                  min={1}
-                  max={200}
-                  onChange={(limit) =>
-                    patchNuke({ limits: { ...nuke.limits, [entry.key]: limit } })
-                  }
-                />
-              </Field>
-            ))}
-            <Field label={t.raw('People')}>
-              <Seg
-                label={t.raw('People')}
-                value={nuke.response}
-                options={[
-                  { value: 'strip', label: t.raw('Take roles') },
-                  { value: 'kick', label: t.raw('Kick') },
-                  { value: 'ban', label: t.raw('Ban') },
-                ]}
-                onChange={(response) => patchNuke({ response })}
-              />
-            </Field>
-            <Field label={t.raw('Bots')}>
-              <Seg
-                label={t.raw('Bots')}
-                value={nuke.botResponse}
-                options={[
-                  { value: 'strip', label: t.raw('Take roles') },
-                  { value: 'kick', label: t.raw('Kick') },
-                  { value: 'ban', label: t.raw('Ban') },
-                ]}
-                onChange={(botResponse) => patchNuke({ botResponse })}
-              />
-            </Field>
-          </Fields>
-          <span className="mx-label">{t.raw('Trusted roles')}</span>
-          <RoleMulti
-            value={nuke.trustedRoleIds}
-            onChange={(trustedRoleIds) => patchNuke({ trustedRoleIds })}
+          </PanelBody>
+          <ToggleRow
+            title={t.raw('Pause invites during a raid')}
+            checked={raid.pauseInvites}
+            onChange={(pauseInvites) => patchRaid({ pauseInvites })}
           />
-          <span className="mx-label">{t.raw('Trusted user IDs')}</span>
-          <WordList
-            mono
-            value={nuke.trustedUserIds}
-            onChange={(ids) =>
-              patchNuke({ trustedUserIds: ids.filter((id) => /^\d{1,21}$/.test(id)) })
-            }
-          />
-        </PanelBody>
-        <ToggleRow
-          title={t.raw('Restore from the last backup')}
-          sub={t.raw('Needs Backups.')}
-          checked={nuke.restore}
-          onChange={(restore) => patchNuke({ restore })}
-        />
-      </Panel>
-
-      <Panel title={t.raw('Honeypot')} span={6} id="sec-honeypot">
-        <ToggleRow
-          title={t.raw('Trap spam bots')}
-          checked={honeypot.enabled}
-          onChange={(enabled) => patchHoneypot({ enabled })}
-        />
-        <PanelBody>
-          <span className="mx-label">{t.raw('Trap channels')}</span>
-          <ChannelMulti
-            value={honeypot.channelIds}
-            onChange={(channelIds) => patchHoneypot({ channelIds: channelIds.slice(0, 5) })}
-          />
-          <Fields>
-            <Field label={t.raw('Trap role')}>
-              <RoleSelect
-                value={honeypot.roleId}
-                none={t.raw('No trap role')}
-                onChange={(roleId) => patchHoneypot({ roleId })}
-              />
-            </Field>
-            <Field label={t.raw('What happens')}>
-              <Seg
-                label={t.raw('What happens')}
-                value={honeypot.action}
-                options={[
-                  { value: 'softban', label: t.raw('Kick and clean up') },
-                  { value: 'ban', label: t.raw('Ban') },
-                  { value: 'quarantine', label: t.raw('Hold at the gate') },
-                ]}
-                onChange={(action) => patchHoneypot({ action })}
-              />
-            </Field>
-          </Fields>
-        </PanelBody>
-        <ToggleRow
-          title={t.raw('Moderators can post there')}
-          checked={honeypot.exemptMods}
-          onChange={(exemptMods) => patchHoneypot({ exemptMods })}
-        />
-        {readOnly || honeypot.channelIds.length >= 5 ? null : (
-          <div className="mx-panel-body" style={{ borderTop: '1px solid var(--mx-line)' }}>
-            <button
-              type="button"
-              className="mx-btn"
-              disabled={busy}
-              onClick={() => act('honeypot.setup')}
-            >
-              {t.raw('Create a trap channel')}
-            </button>
-          </div>
-        )}
-      </Panel>
-
-      <Panel title={t.raw('Maxwell Shield')} span={6} id="sec-shield">
-        <ToggleRow
-          title={t.raw('Take part in Maxwell Shield')}
-          checked={shield.enabled}
-          onChange={(enabled) =>
-            update((previous) => ({ ...previous, shield: { ...previous.shield, enabled } }))
-          }
-        />
-        <PanelBody>
-          <span className="mx-sub">
-            {t.raw(
-              'Bans for raids, nukes, honeypots and very high risk go into a shared list with other communities that take part. Once two of them report someone, that raises the risk score here. Entries expire after 90 days.',
-            )}
-          </span>
-          <span className="mx-sub mx-mono">m!security shield @member</span>
-        </PanelBody>
-        {view.shield.length > 0 ? (
-          <>
-            <div className="mx-panel-head">
-              <h3>{t.raw('Shared from here')}</h3>
-              <span className="mx-sub">{t.count(view.shield.length)}</span>
-            </div>
-            {view.shield.map((row) => (
-              <div key={row.userId} className="mx-row">
-                <Avatar src={row.avatar} name={row.name} size={26} />
-                <div className="mx-row-main">
-                  <span className="mx-row-title mx-ellipsis">{row.name}</span>
-                  <span className="mx-sub">
-                    {t.raw(shieldSourceLabels[row.source] ?? 'Shared')},{' '}
-                    {t.raw('until {date}', { date: date(t, row.expiresAt, timezone) })}
-                  </span>
-                </div>
-                {readOnly ? null : (
-                  <button
-                    type="button"
-                    className="mx-btn mx-btn-ghost"
+          {readOnly ? null : (
+            <div className="mx-panel-body" style={{ borderTop: '1px solid var(--mx-line)' }}>
+              <div className="mx-between">
+                <StatusText status={status} />
+                {view.raid ? null : (
+                  <TwoStep
+                    label={t.raw('Start raid mode now')}
                     disabled={busy}
-                    onClick={() => act('shield.remove', { userId: row.userId })}
-                  >
-                    {t.raw('Remove')}
-                  </button>
+                    run={() => act('raid.start')}
+                  />
                 )}
               </div>
-            ))}
-          </>
-        ) : null}
-      </Panel>
+            </div>
+          )}
+        </Panel>
 
-      <Panel title={t.raw('Alerts')} span={6} id="sec-alerts">
-        <PanelBody>
-          <Fields>
-            <Field label={t.raw('Log channel')}>
-              <ChannelSelect
-                value={value.logChannelId}
-                onChange={(logChannelId) => set({ logChannelId })}
+        <Panel title={t.raw('Honeypot')} span={6} id="sec-honeypot">
+          <ToggleRow
+            title={t.raw('Trap spam bots')}
+            checked={honeypot.enabled}
+            onChange={(enabled) => patchHoneypot({ enabled })}
+          />
+          <PanelBody>
+            <span className="mx-label">{t.raw('Trap channels')}</span>
+            <ChannelMulti
+              value={honeypot.channelIds}
+              onChange={(channelIds) => patchHoneypot({ channelIds: channelIds.slice(0, 5) })}
+            />
+            <Fields>
+              <Field label={t.raw('Trap role')}>
+                <RoleSelect
+                  value={honeypot.roleId}
+                  none={t.raw('No trap role')}
+                  onChange={(roleId) => patchHoneypot({ roleId })}
+                />
+              </Field>
+              <Field label={t.raw('What happens')}>
+                <Seg
+                  label={t.raw('What happens')}
+                  value={honeypot.action}
+                  options={[
+                    { value: 'softban', label: t.raw('Kick and clean up') },
+                    { value: 'ban', label: t.raw('Ban') },
+                    { value: 'quarantine', label: t.raw('Hold at the gate') },
+                  ]}
+                  onChange={(action) => patchHoneypot({ action })}
+                />
+              </Field>
+            </Fields>
+          </PanelBody>
+          <ToggleRow
+            title={t.raw('Moderators can post there')}
+            checked={honeypot.exemptMods}
+            onChange={(exemptMods) => patchHoneypot({ exemptMods })}
+          />
+          {readOnly || honeypot.channelIds.length >= 5 ? null : (
+            <div className="mx-panel-body" style={{ borderTop: '1px solid var(--mx-line)' }}>
+              <button
+                type="button"
+                className="mx-btn"
+                disabled={busy}
+                onClick={() => act('honeypot.setup')}
+              >
+                {t.raw('Create a trap channel')}
+              </button>
+            </div>
+          )}
+        </Panel>
+
+        <Panel title={t.raw('Maxwell Shield')} span={6} id="sec-shield">
+          <ToggleRow
+            title={t.raw('Take part in Maxwell Shield')}
+            checked={shield.enabled}
+            onChange={(enabled) =>
+              update((previous) => ({ ...previous, shield: { ...previous.shield, enabled } }))
+            }
+          />
+          <PanelBody>
+            <span className="mx-sub">
+              {t.raw(
+                'Bans for raids, nukes, honeypots and very high risk go into a shared list with other communities that take part. Once two of them report someone, that raises the risk score here. Entries expire after 90 days.',
+              )}
+            </span>
+            <span className="mx-sub mx-mono">m!security shield @member</span>
+          </PanelBody>
+          {view.shield.length > 0 ? (
+            <>
+              <div className="mx-panel-head">
+                <h3>{t.raw('Shared from here')}</h3>
+                <span className="mx-sub">{t.count(view.shield.length)}</span>
+              </div>
+              {view.shield.map((row) => (
+                <div key={row.userId} className="mx-row">
+                  <Avatar src={row.avatar} name={row.name} size={26} />
+                  <div className="mx-row-main">
+                    <span className="mx-row-title mx-ellipsis">{row.name}</span>
+                    <span className="mx-sub">
+                      {t.raw(shieldSourceLabels[row.source] ?? 'Shared')},{' '}
+                      {t.raw('until {date}', { date: date(t, row.expiresAt, timezone) })}
+                    </span>
+                  </div>
+                  {readOnly ? null : (
+                    <button
+                      type="button"
+                      className="mx-btn mx-btn-ghost"
+                      disabled={busy}
+                      onClick={() => act('shield.remove', { userId: row.userId })}
+                    >
+                      {t.raw('Remove')}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </>
+          ) : null}
+        </Panel>
+
+        <Panel title={t.raw('Alerts')} span={6} id="sec-alerts">
+          <PanelBody>
+            <Fields>
+              <Field label={t.raw('Log channel')}>
+                <ChannelSelect
+                  value={value.logChannelId}
+                  onChange={(logChannelId) => set({ logChannelId })}
+                />
+              </Field>
+              <Field label={t.raw('Ping on raids and nukes')}>
+                <RoleSelect
+                  value={value.alertRoleId}
+                  none={t.raw('Nobody')}
+                  onChange={(alertRoleId) => set({ alertRoleId })}
+                />
+              </Field>
+            </Fields>
+          </PanelBody>
+        </Panel>
+      </Column>
+      <Column span={6}>
+        <Panel title={t.raw('Risk score')} span={6} id="sec-score">
+          <PanelBody>
+            <div className="mx-stack">
+              <span className="mx-label">{t.raw('Account age')}</span>
+              <div className="mx-weights">
+                {verification.weights.ageTiers.map((tier, index) => (
+                  <div key={tier.hours} className="mx-weight">
+                    <span>{ageLabel(t, tier.hours)}</span>
+                    <div style={{ width: 88 }}>
+                      <NumberInput
+                        label={ageLabel(t, tier.hours)}
+                        value={tier.points}
+                        min={0}
+                        max={30}
+                        onChange={(points) =>
+                          patchWeights({
+                            ageTiers: verification.weights.ageTiers.map((entry, position) =>
+                              position === index ? { ...entry, points } : entry,
+                            ),
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <span className="mx-label">{t.raw('Other signs')}</span>
+              <div className="mx-weights">
+                {weightKeys.map((entry) => (
+                  <div key={entry.key} className="mx-weight">
+                    <span>{t.raw(entry.label)}</span>
+                    <div style={{ width: 88 }}>
+                      <NumberInput
+                        label={t.raw(entry.label)}
+                        value={verification.weights[entry.key]}
+                        min={-20}
+                        max={30}
+                        onChange={(points) => patchWeights({ [entry.key]: points })}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <span className="mx-label">{t.raw('Spam words in names')}</span>
+              <WordList
+                value={verification.spamWords}
+                onChange={(spamWords) => patchVerification({ spamWords })}
               />
-            </Field>
-            <Field label={t.raw('Ping on raids and nukes')}>
-              <RoleSelect
-                value={value.alertRoleId}
-                none={t.raw('Nobody')}
-                onChange={(alertRoleId) => set({ alertRoleId })}
-              />
-            </Field>
-          </Fields>
-        </PanelBody>
-      </Panel>
+            </div>
+          </PanelBody>
+        </Panel>
+
+        <Panel title={t.raw('Nukes')} span={6} id="sec-nuke">
+          <ToggleRow
+            title={t.raw('Stop mass changes')}
+            checked={nuke.enabled}
+            onChange={(enabled) => patchNuke({ enabled })}
+          />
+          <PanelBody>
+            <Fields>
+              <Field label={t.raw('Time window')}>
+                <NumberInput
+                  value={nuke.windowSeconds}
+                  min={10}
+                  max={3600}
+                  suffix="s"
+                  onChange={(windowSeconds) => patchNuke({ windowSeconds })}
+                />
+              </Field>
+              {limitKeys.map((entry) => (
+                <Field key={entry.key} label={t.raw(entry.label)}>
+                  <NumberInput
+                    value={nuke.limits[entry.key]}
+                    min={1}
+                    max={200}
+                    onChange={(limit) =>
+                      patchNuke({ limits: { ...nuke.limits, [entry.key]: limit } })
+                    }
+                  />
+                </Field>
+              ))}
+              <Field label={t.raw('People')}>
+                <Seg
+                  label={t.raw('People')}
+                  value={nuke.response}
+                  options={[
+                    { value: 'strip', label: t.raw('Take roles') },
+                    { value: 'kick', label: t.raw('Kick') },
+                    { value: 'ban', label: t.raw('Ban') },
+                  ]}
+                  onChange={(response) => patchNuke({ response })}
+                />
+              </Field>
+              <Field label={t.raw('Bots')}>
+                <Seg
+                  label={t.raw('Bots')}
+                  value={nuke.botResponse}
+                  options={[
+                    { value: 'strip', label: t.raw('Take roles') },
+                    { value: 'kick', label: t.raw('Kick') },
+                    { value: 'ban', label: t.raw('Ban') },
+                  ]}
+                  onChange={(botResponse) => patchNuke({ botResponse })}
+                />
+              </Field>
+            </Fields>
+            <span className="mx-label">{t.raw('Trusted roles')}</span>
+            <RoleMulti
+              value={nuke.trustedRoleIds}
+              onChange={(trustedRoleIds) => patchNuke({ trustedRoleIds })}
+            />
+            <span className="mx-label">{t.raw('Trusted user IDs')}</span>
+            <WordList
+              mono
+              value={nuke.trustedUserIds}
+              onChange={(ids) =>
+                patchNuke({ trustedUserIds: ids.filter((id) => /^\d{1,21}$/.test(id)) })
+              }
+            />
+          </PanelBody>
+          <ToggleRow
+            title={t.raw('Restore from the last backup')}
+            sub={t.raw('Needs Backups.')}
+            checked={nuke.restore}
+            onChange={(restore) => patchNuke({ restore })}
+          />
+        </Panel>
+      </Column>
 
       <Panel title={t.raw('Recent joins')} span={12} id="sec-checks">
         {view.checks.length === 0 ? (
