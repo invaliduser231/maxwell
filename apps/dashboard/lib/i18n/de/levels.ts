@@ -62,8 +62,8 @@ export const levels = {
   'Import levels': 'Level importieren',
   'Choose a file': 'Datei wählen',
   Import: 'Importieren',
-  'MEE6 JSON, or a CSV with id and xp or level columns':
-    'MEE6-JSON oder eine CSV mit den Spalten id und xp oder level',
+  'JSON or CSV with id and xp or level columns':
+    'JSON oder CSV mit den Spalten id und xp oder level',
   'When a member already has XP': 'Wenn ein Mitglied schon XP hat',
   'Last import: {count} members on {date}': 'Letzter Import: {count} Mitglieder am {date}',
   'Nothing imported yet': 'Noch nichts importiert',

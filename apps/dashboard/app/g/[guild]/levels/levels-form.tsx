@@ -95,7 +95,7 @@ function rowsOf(input: unknown): unknown[] | null {
   if (Array.isArray(input)) return input;
   if (input && typeof input === 'object') {
     const record = input as Record<string, unknown>;
-    for (const key of ['players', 'members', 'users', 'entries', 'data']) {
+    for (const key of ['members', 'users', 'entries', 'data']) {
       if (Array.isArray(record[key])) return record[key] as unknown[];
     }
   }
@@ -723,9 +723,7 @@ function ImportPanel({ lastImport }: { lastImport: { rows: number; at: string } 
                 {t('Import')}
               </button>
             </div>
-            <span className="mx-hint">
-              {t('MEE6 JSON, or a CSV with id and xp or level columns')}
-            </span>
+            <span className="mx-hint">{t('JSON or CSV with id and xp or level columns')}</span>
             <div className="mx-field">
               <span className="mx-label">{t('When a member already has XP')}</span>
               <Seg
