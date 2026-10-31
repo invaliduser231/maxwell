@@ -1056,3 +1056,6 @@ a.mx-popover-item:hover {
 .mx-side-nav:hover::-webkit-scrollbar-thumb {
   background: #2b2b33;
 }
+.mx-contents {
+  display: contents;
+}

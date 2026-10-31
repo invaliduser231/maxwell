@@ -22,6 +22,8 @@ function changedKeys(before: Record<string, unknown>, after: Record<string, unkn
   );
 }
 
+const MERGE_MS = 10 * 60_000;
+
 export async function saveModule(
   guildId: string,
   module: string,
@@ -47,7 +49,9 @@ export async function saveModule(
   const keys = changedKeys(base, next);
   if (keys.length > 0) {
     const patch = Object.fromEntries(keys.map((key) => [key, next[key]]));
-    await modules.update(guildId, module, patch, { id: check.access.user.id }, summary);
+    await modules.update(guildId, module, patch, { id: check.access.user.id }, summary, {
+      mergeWithin: summary ? undefined : MERGE_MS,
+    });
     updateTag(publicTag(guildId));
   }
   revalidatePath(`/g/${guildId}`, 'layout');

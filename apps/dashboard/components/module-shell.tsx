@@ -216,14 +216,27 @@ function Shell({
   const [value, setValue] = useState(initial);
   const [on, setOn] = useState(enabled);
   const [status, setStatus] = useState<Status>(null);
+  const [saving, setSaving] = useState(false);
   const [pending, start] = useTransition();
   const blocked = readOnly || locked;
-  const dirty = useMemo(() => fingerprint(value) !== fingerprint(baseline), [value, baseline]);
+  const current = useMemo(() => fingerprint(value), [value]);
+  const dirty = current !== fingerprint(baseline);
   const clearStatus = useCallback(() => setStatus(null), []);
-  const remote = useRemote(initial, dirty || pending, (next) => {
-    setBaseline(next);
-    setValue(next);
-  });
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  const flight = useRef<Promise<boolean> | null>(null);
+  const savedPrints = useRef(new Set<string>());
+  const rejected = useRef<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const remote = useRemote(
+    initial,
+    dirty || saving || pending,
+    (next) => {
+      setBaseline(next);
+      setValue(next);
+    },
+    (print) => savedPrints.current.has(print),
+  );
 
   useEffect(() => {
     if (!pending) setOn(enabled);
@@ -236,28 +249,103 @@ function Shell({
     (fn: (previous: Record<string, unknown>) => Record<string, unknown>) => {
       if (blocked) return;
       setValue((previous) => fn(previous));
-      setStatus(null);
+      setStatus((previous) => (previous?.error ? null : previous));
     },
     [blocked],
   );
 
+  const baselineRef = useRef(baseline);
+  baselineRef.current = baseline;
+
   const persist = async (): Promise<boolean> => {
-    const result = await saveModule(guildId, module, value);
-    if (result.ok) {
-      const saved = result.data ?? value;
+    if (flight.current) await flight.current;
+    const snapshot = valueRef.current;
+    const print = fingerprint(snapshot);
+    if (print === fingerprint(baselineRef.current)) return true;
+    setSaving(true);
+    const run = saveModule(guildId, module, snapshot).then((result) => {
+      if (!result.ok) {
+        rejected.current = print;
+        setStatus(failed(result.error));
+        return false;
+      }
+      const saved = result.data ?? snapshot;
+      const savedPrint = fingerprint(saved);
+      savedPrints.current.add(savedPrint);
+      if (savedPrints.current.size > 20) {
+        savedPrints.current.delete(savedPrints.current.values().next().value ?? '');
+      }
+      rejected.current = null;
+      baselineRef.current = saved;
       setBaseline(saved);
-      setValue(saved);
-      setStatus(sorted());
+      setValue((now) => (fingerprint(now) === print ? saved : now));
+      setStatus({ message: 'Saved', error: false });
       onSaved?.(saved);
       return true;
+    });
+    flight.current = run;
+    try {
+      return await run;
+    } finally {
+      if (flight.current === run) {
+        flight.current = null;
+        setSaving(false);
+      }
     }
-    setStatus(failed(result.error));
-    return false;
   };
+
+  const persistRef = useRef(persist);
+  persistRef.current = persist;
+  const saveNow = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    return persistRef.current();
+  }, []);
+
+  const auto = !blocked && dirty && !remote.stale && rejected.current !== current;
+
+  useEffect(() => {
+    if (!auto || !current) return;
+    const typing = document.activeElement?.matches(
+      'textarea, [contenteditable], input:not([type=checkbox]):not([type=radio]):not([type=range])',
+    );
+    timer.current = setTimeout(
+      () => {
+        timer.current = null;
+        void persistRef.current();
+      },
+      typing ? 1_200 : 250,
+    );
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = null;
+    };
+  }, [auto, current]);
+
+  const autoRef = useRef(auto);
+  autoRef.current = auto;
+  const area = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const node = area.current;
+    if (!node) return;
+    const leave = (event: FocusEvent) => {
+      const target = event.target;
+      if (!autoRef.current || !(target instanceof Element)) return;
+      if (target.matches('textarea, input, [contenteditable]')) void saveNow();
+    };
+    node.addEventListener('focusout', leave);
+    return () => node.removeEventListener('focusout', leave);
+  }, [saveNow]);
+  useEffect(
+    () => () => {
+      if (autoRef.current) void persistRef.current();
+    },
+    [],
+  );
 
   const save = () =>
     start(async () => {
-      await persist();
+      await saveNow();
     });
 
   const toggle = (next: boolean) =>
@@ -270,10 +358,6 @@ function Shell({
       }
     });
 
-  const persistRef = useRef(persist);
-  persistRef.current = persist;
-  const saveNow = useCallback(() => persistRef.current(), []);
-
   const context = useMemo(
     () => ({ value, update, readOnly: blocked, dirty, save: saveNow }),
     [value, update, blocked, dirty, saveNow],
@@ -281,7 +365,11 @@ function Shell({
 
   const body = (
     <Draft.Provider value={context}>
-      <ReadOnly.Provider value={blocked}>{children}</ReadOnly.Provider>
+      <ReadOnly.Provider value={blocked}>
+        <div ref={area} className="mx-contents">
+          {children}
+        </div>
+      </ReadOnly.Provider>
     </Draft.Provider>
   );
 
@@ -299,9 +387,9 @@ function Shell({
         badge={badge ?? (readOnly ? t('View only') : undefined)}
       >
         <DirtyActions
-          dirty={dirty}
-          pending={pending}
-          status={status}
+          dirty={dirty && (remote.stale || rejected.current === current)}
+          pending={pending || saving}
+          status={saving && !status?.error ? { message: 'Saving', error: false } : status}
           stale={remote.stale}
           onDiscard={() => (remote.stale ? remote.take() : setValue(baseline))}
           onSave={save}

@@ -12,6 +12,7 @@ export const common = {
   'Unsaved changes': 'Nicht gespeichert',
   Discard: 'Verwerfen',
   Saving: 'Speichert',
+  Saved: 'Gespeichert',
   Save: 'Speichern',
   'View only': 'Nur ansehen',
   'Turn on': 'Einschalten',

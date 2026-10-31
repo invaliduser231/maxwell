@@ -135,16 +135,20 @@ export function useRemote<T>(
   incoming: T,
   dirty: boolean,
   apply: (next: T) => void,
+  own?: (fingerprint: string) => boolean,
 ): { stale: boolean; take: () => void } {
   const seen = useRef(fingerprint(incoming));
   const [remote, setRemote] = useState<{ value: T } | null>(null);
   const latest = useRef(apply);
   latest.current = apply;
+  const mine = useRef(own);
+  mine.current = own;
 
   useEffect(() => {
     const next = fingerprint(incoming);
     if (next === seen.current) return;
     seen.current = next;
+    if (dirty && mine.current?.(next)) return;
     if (dirty) {
       setRemote({ value: incoming });
       return;
