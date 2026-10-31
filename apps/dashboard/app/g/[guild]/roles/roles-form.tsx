@@ -726,6 +726,7 @@ function Sticky({ kept }: { kept: Kept[] }) {
           <div className="mx-field">
             <span className="mx-label">{t('Never given back')}</span>
             <RoleMulti
+              bots
               value={sticky.ignoredRoleIds}
               onChange={(ignoredRoleIds) => setSticky({ ignoredRoleIds })}
             />

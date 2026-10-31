@@ -284,6 +284,7 @@ function FormSettings({
           <div className="mx-field">
             <span className="mx-label">{t('Who can apply')}</span>
             <RoleMulti
+              bots
               value={form.requiredRoleIds}
               onChange={(requiredRoleIds) =>
                 patch({ requiredRoleIds: requiredRoleIds.slice(0, 10) })
@@ -296,6 +297,7 @@ function FormSettings({
           <div className="mx-field">
             <span className="mx-label">{t('Who can vote')}</span>
             <RoleMulti
+              bots
               value={form.reviewerRoleIds}
               onChange={(reviewerRoleIds) =>
                 patch({ reviewerRoleIds: reviewerRoleIds.slice(0, 10) })

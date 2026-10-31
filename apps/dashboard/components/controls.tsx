@@ -395,10 +395,10 @@ export function useChannelOptions(kinds: number[] = TEXT_KINDS): ListOption[] {
     }));
 }
 
-export function useRoleOptions(): ListOption[] {
+export function useRoleOptions({ bots = false }: { bots?: boolean } = {}): ListOption[] {
   const { roles, guildId } = useGuild();
   return roles
-    .filter((role) => role.id !== guildId && !role.managed)
+    .filter((role) => role.id !== guildId && (bots || !role.managed))
     .map((role) => ({ value: role.id, label: role.name, color: roleColor(role.color) }));
 }
 
@@ -445,21 +445,31 @@ export function RoleSelect({
   none,
   label,
   placeholder,
+  bots,
 }: {
   value: string | null;
   onChange: (next: string | null) => void;
   none?: string | null;
   label?: string;
   placeholder?: string;
+  bots?: boolean;
 }) {
   const t = useT();
   const readOnly = useReadOnly();
-  const options = useRoleOptions();
+  const { roles } = useGuild();
+  const options = useRoleOptions({ bots });
   const empty = none === undefined ? t('No role') : none;
   const missing = value !== null && value !== '' && !options.some((o) => o.value === value);
+  const saved = missing ? roles.find((role) => role.id === value) : undefined;
   const all: ListOption[] = [
     ...(empty !== null ? [{ value: '', label: empty, muted: true }] : []),
-    ...(missing ? [{ value, label: t('Deleted role'), muted: true }] : []),
+    ...(missing
+      ? [
+          saved
+            ? { value, label: saved.name, color: roleColor(saved.color), muted: true }
+            : { value, label: t('Deleted role'), muted: true },
+        ]
+      : []),
     ...options,
   ];
   return (
@@ -582,14 +592,16 @@ export function RoleMulti({
   value,
   onChange,
   addLabel,
+  bots,
 }: {
   value: string[];
   onChange: (next: string[]) => void;
   addLabel?: string;
+  bots?: boolean;
 }) {
   const t = useT();
   const { roles } = useGuild();
-  const options = useRoleOptions();
+  const options = useRoleOptions({ bots });
   return (
     <ChipPicker
       items={value}

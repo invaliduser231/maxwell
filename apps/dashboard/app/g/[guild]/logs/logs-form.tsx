@@ -485,6 +485,7 @@ export function LogsForm({
             <div className="mx-field">
               <span className="mx-label">{t('Roles')}</span>
               <RoleMulti
+                bots
                 value={value.ignoredRoleIds}
                 onChange={(ignoredRoleIds) => set({ ignoredRoleIds: ignoredRoleIds.slice(0, 50) })}
               />

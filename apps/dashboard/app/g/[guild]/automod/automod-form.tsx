@@ -872,6 +872,7 @@ export function AutomodForm({
               </Labelled>
               <Labelled label={t('Ignored roles')}>
                 <RoleMulti
+                  bots
                   value={rule.exemptRoleIds}
                   onChange={(exemptRoleIds) => setRule(selected, { exemptRoleIds })}
                 />
@@ -1025,6 +1026,7 @@ export function AutomodForm({
               </Field>
               <Labelled label={t('Moderator roles')}>
                 <RoleMulti
+                  bots
                   value={value.modRoleIds}
                   onChange={(modRoleIds) => update((previous) => ({ ...previous, modRoleIds }))}
                 />
@@ -1039,6 +1041,7 @@ export function AutomodForm({
               </Labelled>
               <Labelled label={t('Roles ignored everywhere')}>
                 <RoleMulti
+                  bots
                   value={value.exemptRoleIds}
                   onChange={(exemptRoleIds) =>
                     update((previous) => ({ ...previous, exemptRoleIds }))

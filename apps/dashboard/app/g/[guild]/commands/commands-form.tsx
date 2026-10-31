@@ -620,6 +620,7 @@ function Editor({
           <div className="mx-field">
             <span className="mx-label">{t('Who can use it')}</span>
             <RoleMulti
+              bots
               value={command.allowedRoles}
               onChange={(allowedRoles) => onChange({ allowedRoles })}
             />

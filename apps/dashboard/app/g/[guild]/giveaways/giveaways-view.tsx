@@ -524,6 +524,7 @@ function NewGiveaway({
             <Fields>
               <Field label={t('Needs role')}>
                 <RoleSelect
+                  bots
                   value={form.requiredRoleId}
                   none={t('Anyone')}
                   onChange={(requiredRoleId) => setForm({ requiredRoleId })}
@@ -531,6 +532,7 @@ function NewGiveaway({
               </Field>
               <Field label={t('Not for role')}>
                 <RoleSelect
+                  bots
                   value={form.excludedRoleId}
                   none={t('Nobody excluded')}
                   onChange={(excludedRoleId) => setForm({ excludedRoleId })}
@@ -789,6 +791,7 @@ function SettingsPanel() {
           </Field>
           <Field label={t('Not for role')}>
             <RoleSelect
+              bots
               value={value.excludedRoleId}
               none={t('Nobody excluded')}
               onChange={(excludedRoleId) => set({ excludedRoleId })}

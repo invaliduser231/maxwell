@@ -342,6 +342,7 @@ function PanelSetup({
         <div className="mx-field">
           <span className="mx-label">{t('Team roles')}</span>
           <RoleMulti
+            bots
             value={panel.teamRoleIds}
             onChange={(teamRoleIds) => patch({ teamRoleIds: teamRoleIds.slice(0, 10) })}
           />
