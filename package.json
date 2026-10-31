@@ -7,6 +7,7 @@
     "node": ">=24"
   },
   "scripts": {
+    "db": "docker compose -f compose.dev.yaml up -d --wait",
     "dev": "pnpm --filter @maxwell/bot dev",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
