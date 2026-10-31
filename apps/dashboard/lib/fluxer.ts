@@ -1,5 +1,6 @@
 import 'server-only';
 import { env, oauth } from './env';
+import { type BotHolder, managedRoleIds } from './managed-roles';
 
 const MEDIA = 'https://fluxerusercontent.com';
 const STATIC = 'https://fluxerstatic.com';
@@ -249,29 +250,33 @@ const BOT_STALE = 10 * 60_000;
 const botCache = new Map<string, { at: number; value: unknown }>();
 const inflight = new Map<string, Promise<unknown>>();
 
-function fetchBot<T>(path: string): Promise<T> {
-  const running = inflight.get(path);
+function fetchBot<T>(key: string, load: () => Promise<T>): Promise<T> {
+  const running = inflight.get(key);
   if (running) return running as Promise<T>;
-  const request = call<T>(path, `Bot ${env().FLUXER_TOKEN}`)
+  const request = load()
     .then((value) => {
       if (botCache.size > 2_000) botCache.clear();
-      botCache.set(path, { at: Date.now(), value });
+      botCache.set(key, { at: Date.now(), value });
       return value;
     })
-    .finally(() => inflight.delete(path));
-  inflight.set(path, request);
+    .finally(() => inflight.delete(key));
+  inflight.set(key, request);
   return request;
 }
 
-async function bot<T>(path: string): Promise<T> {
-  const hit = botCache.get(path);
+async function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
+  const hit = botCache.get(key);
   const age = hit ? Date.now() - hit.at : Infinity;
   if (hit && age < BOT_FRESH) return hit.value as T;
   if (hit && age < BOT_STALE) {
-    fetchBot<T>(path).catch(() => botCache.delete(path));
+    fetchBot<T>(key, load).catch(() => botCache.delete(key));
     return hit.value as T;
   }
-  return fetchBot<T>(path);
+  return fetchBot<T>(key, load);
+}
+
+function bot<T>(path: string): Promise<T> {
+  return cached(path, () => call<T>(path, `Bot ${env().FLUXER_TOKEN}`));
 }
 
 export function forgetBotCache(guildId: string): void {
@@ -324,15 +329,74 @@ interface WireRole {
   permissions?: string;
 }
 
+interface WireSearchMember {
+  user_id: string;
+  username?: string;
+  global_name?: string | null;
+  role_ids?: string[];
+  joined_at?: number | null;
+}
+
+interface WireSelf {
+  roles?: string[];
+  user?: { username?: string; global_name?: string | null };
+}
+
+async function searchMembers(
+  guildId: string,
+  body: Record<string, unknown>,
+): Promise<WireSearchMember[]> {
+  const response = await fetch(api(`/guilds/${guildId}/members-search`), {
+    method: 'POST',
+    headers: {
+      authorization: `Bot ${env().FLUXER_TOKEN}`,
+      'content-type': 'application/json',
+      accept: 'application/json',
+    },
+    body: JSON.stringify(body),
+    cache: 'no-store',
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok) throw new FluxerError(response.status, await response.text().catch(() => ''));
+  const result = (await response.json()) as { members?: WireSearchMember[] };
+  return result.members ?? [];
+}
+
+async function botHolders(guildId: string): Promise<BotHolder[]> {
+  const [self, bots] = await Promise.all([
+    bot<WireSelf>(`/guilds/${guildId}/members/@me`).catch(() => null),
+    cached(`/guilds/${guildId}/members-search#bots`, () =>
+      searchMembers(guildId, { is_bot: true, limit: 100 }),
+    ).catch(() => []),
+  ]);
+  const holders: BotHolder[] = bots.map((member) => ({
+    username: member.username ?? '',
+    globalName: member.global_name ?? null,
+    roleIds: member.role_ids ?? [],
+  }));
+  if (self?.user) {
+    holders.push({
+      username: self.user.username ?? '',
+      globalName: self.user.global_name ?? null,
+      roleIds: self.roles ?? [],
+    });
+  }
+  return holders;
+}
+
 export async function guildRoles(guildId: string): Promise<GuildRole[]> {
-  const roles = await bot<WireRole[]>(`/guilds/${guildId}/roles`);
+  const [roles, bots] = await Promise.all([
+    bot<WireRole[]>(`/guilds/${guildId}/roles`),
+    botHolders(guildId),
+  ]);
+  const managed = managedRoleIds(roles, bots);
   return roles
     .map((role) => ({
       id: role.id,
       name: role.name,
       color: role.color ?? 0,
       position: role.position ?? 0,
-      managed: role.managed ?? false,
+      managed: (role.managed ?? false) || managed.has(role.id),
       permissions: role.permissions ?? '0',
     }))
     .sort((a, b) => b.position - a.position);
@@ -389,23 +453,9 @@ export async function memberSearch(
   query: string,
   limit = 10,
 ): Promise<MemberHit[]> {
-  const response = await fetch(api(`/guilds/${guildId}/members-search`), {
-    method: 'POST',
-    headers: {
-      authorization: `Bot ${env().FLUXER_TOKEN}`,
-      'content-type': 'application/json',
-      accept: 'application/json',
-    },
-    body: JSON.stringify({ query, limit }),
-    cache: 'no-store',
-    signal: AbortSignal.timeout(10_000),
-  });
-  if (!response.ok) throw new FluxerError(response.status, await response.text().catch(() => ''));
-  const body = (await response.json()) as {
-    members?: { user_id: string; joined_at?: number | null }[];
-  };
+  const members = await searchMembers(guildId, { query, limit });
   const seen = new Set<string>();
-  return (body.members ?? []).flatMap((member) => {
+  return members.flatMap((member) => {
     if (seen.has(member.user_id)) return [];
     seen.add(member.user_id);
     return [

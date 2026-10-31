@@ -97,11 +97,7 @@ export async function securityView(guildId: string): Promise<SecurityView> {
       ? []
       : roles
           .filter(
-            (role) =>
-              role.id !== guildId &&
-              !role.managed &&
-              role.position >= top &&
-              dangerous(role.permissions),
+            (role) => role.id !== guildId && role.position >= top && dangerous(role.permissions),
           )
           .filter((role) => !(mine ?? []).includes(role.id))
           .sort((a, b) => b.position - a.position)
