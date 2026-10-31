@@ -20,6 +20,7 @@ const sources: Record<string, Key> = {
   modmail: 'Modmail',
   command: 'Command',
   form: 'Form',
+  web: 'Web form',
 };
 
 function Line({ label, children }: { label: string; children: ReactNode }) {

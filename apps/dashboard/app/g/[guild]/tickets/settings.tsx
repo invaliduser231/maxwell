@@ -77,6 +77,7 @@ function SwitchRow({
 
 function Behavior() {
   const t = useT();
+  const { guildId } = useGuild();
   const { value, set } = useDraft<TicketsConfig>();
   const modmail = (patch: Partial<TicketModmail>) =>
     set({ modmail: { ...value.modmail, ...patch } });
@@ -87,6 +88,12 @@ function Behavior() {
         sub={t('DMs to Maxwell open a ticket')}
         checked={value.modmail.enabled}
         onChange={(enabled) => modmail({ enabled })}
+      />
+      <SwitchRow
+        title={t('Web form')}
+        sub={value.webForm ? `/support/${guildId}` : t('Members open tickets on a web page')}
+        checked={value.webForm}
+        onChange={(webForm) => set({ webForm })}
       />
       <SwitchRow
         title={t('Web transcripts')}
