@@ -247,8 +247,14 @@ export function canManage(guild: UserGuild, userId: string): boolean {
 
 const BOT_FRESH = 30_000;
 const BOT_STALE = 10 * 60_000;
-const botCache = new Map<string, { at: number; value: unknown }>();
-const inflight = new Map<string, Promise<unknown>>();
+const shared = globalThis as typeof globalThis & {
+  __maxwellBotCache?: Map<string, { at: number; value: unknown }>;
+  __maxwellBotInflight?: Map<string, Promise<unknown>>;
+};
+shared.__maxwellBotCache ??= new Map();
+shared.__maxwellBotInflight ??= new Map();
+const botCache = shared.__maxwellBotCache;
+const inflight = shared.__maxwellBotInflight;
 
 function fetchBot<T>(key: string, load: () => Promise<T>): Promise<T> {
   const running = inflight.get(key);
