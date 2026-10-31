@@ -1,3 +1,8 @@
+import {
+  TEMPLATE_CATEGORY,
+  TEMPLATE_EVERYONE,
+  type TemplateData,
+} from '@maxwell/core/modules/backups';
 import { z } from 'zod';
 import { ChannelKind, type Permission } from '../../platform/types.js';
 import { audit } from './copy.js';
@@ -129,6 +134,8 @@ export interface PlanChannel {
   parentKey: string | null;
   topic: string | null;
   userLimit: number | null;
+  nsfw?: boolean;
+  rateLimitPerUser?: number;
   overwrites: PlanOverwrite[];
 }
 
@@ -139,7 +146,7 @@ export interface PlanSkip {
 }
 
 export interface ImportPlan {
-  source: { code: string; name: string; description: string | null };
+  source: { code: string; name: string; description: string | null; template?: string };
   everyone: Permission[] | null;
   roles: PlanRole[];
   channels: PlanChannel[];
@@ -257,4 +264,95 @@ export function isImportPlan(value: unknown): value is ImportPlan {
   if (!value || typeof value !== 'object') return false;
   const plan = value as Partial<ImportPlan>;
   return Array.isArray(plan.roles) && Array.isArray(plan.channels) && !!plan.source;
+}
+
+const TEMPLATE_CODE = /^template:(\d{1,18})$/;
+
+export function maxwellTemplateId(input: string): string | null {
+  return TEMPLATE_CODE.exec(input.trim())?.[1] ?? null;
+}
+
+export function mapMaxwellTemplate(
+  template: { id: string; title: string; description: string; data: TemplateData },
+  room: { roles: number; channels: number } = { roles: ROLE_LIMIT, channels: CHANNEL_LIMIT },
+): ImportPlan {
+  const dropped = new Set<string>();
+  const skipped: PlanSkip[] = [];
+  const collect = (value: string) => {
+    for (const name of droppedPermissions(value)) dropped.add(name);
+    return toPlatformPermissions(value);
+  };
+
+  const roles: PlanRole[] = [];
+  for (const role of template.data.roles) {
+    if (roles.length >= room.roles) {
+      skipped.push({ kind: 'role', name: role.name, reason: audit.skippedLimit });
+      continue;
+    }
+    roles.push({
+      key: role.key,
+      name: role.name.slice(0, 100) || 'role',
+      color: role.color,
+      hoist: role.hoist,
+      mentionable: role.mentionable,
+      permissions: collect(role.permissions),
+    });
+  }
+  const roleKeys = new Set(roles.map((role) => role.key));
+
+  const known = new Set<number>(Object.values(ChannelKind));
+  const categories: PlanChannel[] = [];
+  const others: PlanChannel[] = [];
+  for (const channel of template.data.channels) {
+    const name = channel.name.slice(0, 100) || 'channel';
+    if (!known.has(channel.type)) {
+      skipped.push({ kind: 'channel', name, reason: audit.skippedType(channel.type) });
+      continue;
+    }
+    const category = channel.type === TEMPLATE_CATEGORY;
+    const voice = channel.type === ChannelKind.Voice;
+    const planned: PlanChannel = {
+      key: channel.key,
+      name,
+      type: channel.type,
+      parentKey: category ? null : channel.parentKey,
+      topic: category || voice || !channel.topic ? null : channel.topic.slice(0, 1024),
+      userLimit: voice ? channel.userLimit || null : null,
+      nsfw: category ? false : channel.nsfw,
+      rateLimitPerUser: category || voice ? 0 : channel.rateLimitPerUser,
+      overwrites: channel.overwrites.flatMap((overwrite) => {
+        const target = overwrite.target === TEMPLATE_EVERYONE ? EVERYONE : overwrite.target;
+        if (target !== EVERYONE && !roleKeys.has(target)) return [];
+        return [{ target, allow: collect(overwrite.allow), deny: collect(overwrite.deny) }];
+      }),
+    };
+    (category ? categories : others).push(planned);
+  }
+
+  const channels: PlanChannel[] = [];
+  for (const channel of [...categories, ...others]) {
+    if (channels.length >= room.channels) {
+      skipped.push({ kind: 'channel', name: channel.name, reason: audit.skippedLimit });
+      continue;
+    }
+    channels.push(channel);
+  }
+  const kept = new Set(channels.map((channel) => channel.key));
+  for (const channel of channels) {
+    if (channel.parentKey && !kept.has(channel.parentKey)) channel.parentKey = null;
+  }
+
+  return {
+    source: {
+      code: `template:${template.id}`,
+      name: template.title,
+      description: template.description || null,
+      template: template.id,
+    },
+    everyone: template.data.everyone === null ? null : collect(template.data.everyone),
+    roles,
+    channels,
+    droppedPermissions: [...dropped].sort(),
+    skipped,
+  };
 }

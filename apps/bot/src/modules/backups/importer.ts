@@ -1,4 +1,5 @@
 import type { Actor } from '@maxwell/core';
+import { isTemplateData } from '@maxwell/core/modules/backups';
 import type { BackupStore } from '@maxwell/core/stores/backups';
 import { ChannelKind, type Overwrite, type Platform } from '../../platform/types.js';
 import { audit } from './copy.js';
@@ -9,7 +10,9 @@ import {
   fetchTemplate,
   type ImportPlan,
   isImportPlan,
+  mapMaxwellTemplate,
   mapTemplate,
+  maxwellTemplateId,
   type PlanOverwrite,
   parseTemplateCode,
   ROLE_LIMIT,
@@ -38,24 +41,18 @@ export async function previewImport(
   by: Actor,
   importId?: string,
 ): Promise<string> {
-  const code = parseTemplateCode(input);
+  const templateId = maxwellTemplateId(input);
+  const code = templateId ? null : parseTemplateCode(input);
   const id =
     importId ?? (await deps.store.createImport(guildId, code ?? input.slice(0, 100), by.id));
+  if (templateId) return previewMaxwell(deps, guildId, templateId, id);
   if (!code) {
     await deps.store.failImport(guildId, id, audit.templateInvalid);
     return id;
   }
   try {
     const template = await fetchTemplate(code, deps.fetcher);
-    const [roles, channels] = await Promise.all([
-      deps.platform.roles(guildId),
-      deps.platform.channels(guildId),
-    ]);
-    const plan = mapTemplate(template, {
-      roles: Math.max(ROLE_LIMIT - roles.length, 0),
-      channels: Math.max(CHANNEL_LIMIT - channels.length, 0),
-    });
-    await deps.store.setImportPlan(guildId, id, plan);
+    await deps.store.setImportPlan(guildId, id, mapTemplate(template, await room(deps, guildId)));
   } catch (error) {
     if (error instanceof TemplateError) {
       await deps.store.failImport(guildId, id, error.message);
@@ -63,6 +60,41 @@ export async function previewImport(
     }
     deps.onError(error, 'preview');
     await deps.store.failImport(guildId, id, audit.templateUnavailable);
+  }
+  return id;
+}
+
+async function room(
+  deps: ImportDeps,
+  guildId: string,
+): Promise<{ roles: number; channels: number }> {
+  const [roles, channels] = await Promise.all([
+    deps.platform.roles(guildId),
+    deps.platform.channels(guildId),
+  ]);
+  return {
+    roles: Math.max(ROLE_LIMIT - roles.length, 0),
+    channels: Math.max(CHANNEL_LIMIT - channels.length, 0),
+  };
+}
+
+async function previewMaxwell(
+  deps: ImportDeps,
+  guildId: string,
+  templateId: string,
+  id: string,
+): Promise<string> {
+  try {
+    const template = await deps.store.template(templateId);
+    if (!template || !isTemplateData(template.data)) {
+      await deps.store.failImport(guildId, id, audit.templateGone);
+      return id;
+    }
+    const plan = mapMaxwellTemplate(template, await room(deps, guildId));
+    await deps.store.setImportPlan(guildId, id, plan);
+  } catch (error) {
+    deps.onError(error, 'preview');
+    await deps.store.failImport(guildId, id, audit.templateBroken);
   }
   return id;
 }
@@ -94,7 +126,10 @@ export async function applyImport(
     return null;
   }
   const plan: ImportPlan = row.plan;
-  const reason = audit.importReason(plan.source.name);
+  const templateId = typeof plan.source.template === 'string' ? plan.source.template : null;
+  const reason = templateId
+    ? audit.templateReason(plan.source.name)
+    : audit.importReason(plan.source.name);
   const result: ImportResult = { roles: [], channels: [], everyone: null, failed: [] };
   const roleIds = new Map<string, string>();
   const channelIds = new Map<string, string>();
@@ -152,6 +187,8 @@ export async function applyImport(
             parentId,
             topic: channel.topic ?? undefined,
             userLimit: channel.userLimit ?? undefined,
+            nsfw: channel.nsfw || undefined,
+            rateLimitPerUser: channel.rateLimitPerUser || undefined,
             overwrites: toOverwrites(guildId, channel.overwrites, roleIds),
           },
           reason,
@@ -169,9 +206,15 @@ export async function applyImport(
   }
 
   if (result.roles.length > 0 || result.channels.length > 0 || result.everyone) {
-    await deps.record(guildId, by, audit.auditImport(plan.source.name), result);
+    const summary = templateId
+      ? audit.auditImportTemplate(plan.source.name)
+      : audit.auditImport(plan.source.name);
+    await deps.record(guildId, by, summary, result);
   }
   if (crashed) await deps.store.failImport(guildId, importId, audit.importFailed);
   else await deps.store.finishImport(guildId, importId, result);
+  if (templateId && (result.roles.length > 0 || result.channels.length > 0)) {
+    await deps.store.countTemplateUse(templateId).catch((error) => deps.onError(error, 'uses'));
+  }
   return result;
 }
