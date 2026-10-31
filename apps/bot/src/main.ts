@@ -23,6 +23,7 @@ import { loadModules, moduleMigrations } from './runtime/bootstrap.js';
 import { PrivacyRegistry } from './runtime/privacy.js';
 import { Scheduler } from './runtime/scheduler.js';
 import { Settings } from './runtime/settings.js';
+import { watchStructure } from './runtime/structure.js';
 import { UndoRegistry } from './runtime/undo.js';
 import type { Services } from './services.js';
 import { parseIconSet } from './ui/icons.js';
@@ -87,6 +88,7 @@ await writeMeta(sql, 'commands', commandCatalog(services.registry)).catch((error
   log.warn({ err: error }, 'could not publish command list'),
 );
 
+const stopStructure = watchStructure(platform, sql, log);
 const dispatcher = new Dispatcher(services);
 platform.on('message', (message) => {
   dispatcher.handle(message).catch((error) => log.error({ err: error }, 'dispatch failed'));
@@ -110,6 +112,7 @@ async function shutdown(signal: string): Promise<void> {
   log.info({ signal }, 'shutting down');
   waiting.abort();
   jobs.stop();
+  stopStructure();
   await loaded.shutdown();
   health.close();
   await platform.disconnect().catch((error) => log.warn({ err: error }, 'disconnect failed'));
