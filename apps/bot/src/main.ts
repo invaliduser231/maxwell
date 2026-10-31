@@ -4,6 +4,8 @@ import {
   FluxerList,
   GuildStore,
   generalConfig,
+  holdInstanceLock,
+  type InstanceLock,
   ModuleStore,
   migrate,
   Votes,
@@ -100,14 +102,18 @@ const health = startHealthServer(config.HEALTH_PORT, {
 });
 
 let stopping = false;
+let lock: InstanceLock | null = null;
+const waiting = new AbortController();
 async function shutdown(signal: string): Promise<void> {
   if (stopping) return;
   stopping = true;
   log.info({ signal }, 'shutting down');
+  waiting.abort();
   jobs.stop();
   await loaded.shutdown();
   health.close();
   await platform.disconnect().catch((error) => log.warn({ err: error }, 'disconnect failed'));
+  await lock?.release();
   await sql.end({ timeout: 5 });
   process.exit(0);
 }
@@ -115,5 +121,17 @@ async function shutdown(signal: string): Promise<void> {
 process.on('SIGINT', () => void shutdown('SIGINT'));
 process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
-await platform.connect();
-jobs.start();
+try {
+  lock = await holdInstanceLock(sql, 'maxwell.bot', {
+    signal: waiting.signal,
+    onWait: (attempt) => {
+      if (attempt % 12 === 0) log.warn('another bot instance is running, waiting for it to stop');
+    },
+  });
+} catch (error) {
+  if (!stopping) throw error;
+}
+if (!stopping) {
+  await platform.connect();
+  jobs.start();
+}
