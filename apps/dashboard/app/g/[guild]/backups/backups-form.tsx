@@ -1,8 +1,13 @@
 'use client';
 
-import type { BackupsConfig } from '@maxwell/core/modules/backups';
-import { useState, useTransition } from 'react';
-import { Checkbox, Select, ToggleRow } from '@/components/controls';
+import {
+  type BackupsConfig,
+  TEMPLATE_DESCRIPTION_MAX,
+  TEMPLATE_TITLE_MAX,
+} from '@maxwell/core/modules/backups';
+import Link from 'next/link';
+import { useEffect, useRef, useState, useTransition } from 'react';
+import { Checkbox, Select, TextArea, TextInput, ToggleRow } from '@/components/controls';
 import { useGuild } from '@/components/guild';
 import { useT } from '@/components/i18n';
 import { useDraft } from '@/components/module-shell';
@@ -12,14 +17,17 @@ import { Empty, Field, Grid, Panel, PanelBody } from '@/components/ui';
 import { usePoll } from '@/components/use-poll';
 import { runAction } from '@/lib/actions';
 import type { Key, Translator } from '@/lib/i18n';
+import type { TemplateCard } from '@/lib/template-view';
 import { bytes, clock, dayName, dayTime, since } from '@/lib/time';
 import {
   applyTemplate,
   compareSnapshots,
   importStatus,
   listSnapshots,
+  publishTemplate,
   readTemplate,
   restoreSnapshot,
+  unpublishTemplate,
 } from './actions';
 import type { DiffItem, DiffView, ImportView, SnapshotRow, Usage } from './data';
 
@@ -428,11 +436,13 @@ function Changes({
 
 function Import({
   initial,
+  initialLink,
   guildName,
   enabled,
   span,
 }: {
   initial: ImportView | null;
+  initialLink: string | null;
   guildName: string;
   enabled: boolean;
   span: 7 | 12;
@@ -440,7 +450,8 @@ function Import({
   const { guildId } = useGuild();
   const t = useT();
   const { readOnly } = useDraft<BackupsConfig>();
-  const [link, setLink] = useState('');
+  const [link, setLink] = useState(initialLink ?? '');
+  const started = useRef(false);
   const [view, setView] = useState<ImportView | null>(initial);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<Status>(null);
@@ -470,7 +481,7 @@ function Import({
       40,
     );
 
-  const read = () => {
+  const read = (input = link) => {
     if (!enabled) {
       setStatus({ message: t('Turn Backups on first.'), error: true });
       return;
@@ -478,7 +489,7 @@ function Import({
     setBusy(true);
     setStatus(null);
     setView(null);
-    readTemplate(guildId, link).then((result) => {
+    readTemplate(guildId, input).then((result) => {
       if (!result.ok || !result.data) {
         setBusy(false);
         setStatus({ message: result.ok ? t('That did not work.') : result.error, error: true });
@@ -500,6 +511,13 @@ function Import({
       );
     });
   };
+
+  useEffect(() => {
+    if (started.current || !initialLink) return;
+    started.current = true;
+    if (readOnly) return;
+    read(initialLink);
+  });
 
   const apply = () => {
     if (!view) return;
@@ -545,13 +563,22 @@ function Import({
     : [];
 
   return (
-    <Panel title={t('Import from Discord')} id="import" span={span}>
+    <Panel
+      title={t('Import a template')}
+      id="import"
+      span={span}
+      actions={
+        <Link href="/templates" className="mx-btn mx-btn-ghost">
+          {t('Browse templates')}
+        </Link>
+      }
+    >
       <PanelBody>
         <div className="mx-inline">
           <input
             className="mx-input mx-mono"
             style={{ flex: '1 1 360px', width: 'auto' }}
-            aria-label={t('Discord template link')}
+            aria-label={t('Template link')}
             placeholder="https://discord.new/..."
             value={link}
             maxLength={200}
@@ -566,7 +593,7 @@ function Import({
               type="button"
               className="mx-btn"
               disabled={busy || link.trim().length === 0}
-              onClick={read}
+              onClick={() => read()}
             >
               {busy && !view ? t('Reading') : t('Read template')}
             </button>
@@ -618,11 +645,152 @@ function Import({
   );
 }
 
+function Publish({
+  snapshots,
+  initial,
+  span,
+  now,
+}: {
+  snapshots: SnapshotRow[];
+  initial: TemplateCard[];
+  span: 5 | 12;
+  now: string;
+}) {
+  const { guildId, timezone } = useGuild();
+  const t = useT();
+  const { readOnly } = useDraft<BackupsConfig>();
+  const [published, setPublished] = useState(initial);
+  const [snapshotId, setSnapshotId] = useState(snapshots[0]?.id ?? '');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [showName, setShowName] = useState(false);
+  const [status, setStatus] = useState<Status>(null);
+  const [pending, start] = useTransition();
+  const chosen = snapshots.some((snapshot) => snapshot.id === snapshotId)
+    ? snapshotId
+    : (snapshots[0]?.id ?? '');
+
+  const publish = () => {
+    start(async () => {
+      const result = await publishTemplate(guildId, {
+        snapshotId: chosen,
+        title,
+        description,
+        showName,
+      });
+      if (!result.ok || !result.data) {
+        setStatus({ message: result.ok ? t('That did not work.') : result.error, error: true });
+        return;
+      }
+      const card = result.data;
+      setPublished((list) => [card, ...list]);
+      setTitle('');
+      setDescription('');
+      setStatus({ message: t('Published.'), error: false });
+    });
+  };
+
+  const unpublish = (id: string) => {
+    start(async () => {
+      const result = await unpublishTemplate(guildId, id);
+      if (!result.ok) {
+        setStatus({ message: result.error, error: true });
+        return;
+      }
+      setPublished((list) => list.filter((card) => card.id !== id));
+      setStatus({ message: t('Unpublished.'), error: false });
+    });
+  };
+
+  return (
+    <Panel title={t('Publish as template')} id="publish" span={span}>
+      {readOnly ? (
+        published.length === 0 ? (
+          <PanelBody>
+            <span className="mx-sub">{t('Nothing published yet.')}</span>
+          </PanelBody>
+        ) : null
+      ) : snapshots.length === 0 ? (
+        <PanelBody>
+          <span className="mx-sub">{t('Take a snapshot first.')}</span>
+        </PanelBody>
+      ) : (
+        <PanelBody>
+          <Field label={t('Snapshot')}>
+            <Select
+              value={chosen}
+              options={snapshots.map((snapshot) => ({
+                value: snapshot.id,
+                label: `#${snapshot.number} ${dayTime(t, snapshot.createdAt, now, timezone)}`,
+                hint: counts(t, snapshot),
+              }))}
+              onChange={setSnapshotId}
+            />
+          </Field>
+          <Field label={t('Title')} aside={`${title.length}/${TEMPLATE_TITLE_MAX}`}>
+            <TextInput value={title} onChange={setTitle} maxLength={TEMPLATE_TITLE_MAX} />
+          </Field>
+          <Field
+            label={t('Description')}
+            aside={`${description.length}/${TEMPLATE_DESCRIPTION_MAX}`}
+          >
+            <TextArea
+              value={description}
+              onChange={setDescription}
+              maxLength={TEMPLATE_DESCRIPTION_MAX}
+            />
+          </Field>
+          <Checkbox
+            checked={showName}
+            onChange={setShowName}
+            label={t('Show the community name')}
+          />
+          <div className="mx-between">
+            <span className="mx-sub">
+              {t('Only roles, channels and permissions. No members, messages or settings.')}
+            </span>
+            <button
+              type="button"
+              className="mx-btn mx-btn-primary"
+              disabled={pending || !chosen || title.trim().length === 0}
+              onClick={publish}
+            >
+              {t('Publish')}
+            </button>
+          </div>
+          <StatusText status={status} />
+        </PanelBody>
+      )}
+      {published.map((card) => (
+        <div key={card.id} className="mx-row">
+          <div className="mx-row-main">
+            <Link href={`/templates/${card.id}`} className="mx-row-title">
+              {card.title}
+            </Link>
+            <span className="mx-sub">{t.plural(card.uses, 'Used {n} time', 'Used {n} times')}</span>
+          </div>
+          {readOnly ? null : (
+            <TwoStep
+              ghost
+              label={t('Unpublish')}
+              ariaLabel={t('Unpublish {name}', { name: card.title })}
+              disabled={pending}
+              run={() => unpublish(card.id)}
+            />
+          )}
+        </div>
+      ))}
+    </Panel>
+  );
+}
+
 export function BackupsForm({
   snapshots: initialSnapshots,
   usage: initialUsage,
   diff: initialDiff,
   pending,
+  templateLink,
+  published,
   enabled,
   guildName,
   now,
@@ -631,6 +799,8 @@ export function BackupsForm({
   usage: Usage;
   diff: DiffView | null;
   pending: ImportView | null;
+  templateLink: string | null;
+  published: TemplateCard[];
   enabled: boolean;
   guildName: string;
   now: string;
@@ -741,7 +911,14 @@ export function BackupsForm({
             enabled={enabled}
           />
         ) : null}
-        <Import initial={pending} guildName={guildName} enabled={enabled} span={diff ? 7 : 12} />
+        <Import
+          initial={pending}
+          initialLink={templateLink}
+          guildName={guildName}
+          enabled={enabled}
+          span={diff ? 7 : 12}
+        />
+        <Publish snapshots={snapshots} initial={published} span={diff ? 5 : 12} now={now} />
       </Grid>
     </div>
   );

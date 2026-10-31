@@ -32,6 +32,7 @@ import { starboard } from './de/starboard';
 import { start } from './de/start';
 import { suggestions } from './de/suggestions';
 import { support } from './de/support';
+import { templates } from './de/templates';
 import { tickets } from './de/tickets';
 import { time } from './de/time';
 import { voice } from './de/voice';
@@ -50,6 +51,7 @@ export const messages = {
   ...access,
   ...automod,
   ...backups,
+  ...templates,
   ...cards,
   ...collection,
   ...commands,

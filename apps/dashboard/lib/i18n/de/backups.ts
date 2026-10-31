@@ -60,8 +60,6 @@ export const backups = {
   'Undo it in the audit trail.': 'Rückgängig machen geht im Änderungsverlauf.',
   Categories: 'Kategorien',
   Overwrites: 'Overwrites',
-  'Import from Discord': 'Aus Discord importieren',
-  'Discord template link': 'Link zur Discord-Vorlage',
   Reading: 'Liest',
   'Read template': 'Vorlage lesen',
   '{n} item skipped': '{n} Eintrag übersprungen',

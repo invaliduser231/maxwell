@@ -63,6 +63,7 @@ export async function SiteFooter() {
         </div>
         <nav aria-label={t('Footer')} className="mx-land-foot-nav">
           <Link href="/communities">{t('Dashboard')}</Link>
+          <Link href="/templates">{t('Templates')}</Link>
           {source ? <a href={source}>GitHub</a> : null}
           <Link href="/imprint">{t('Imprint')}</Link>
           <Link href="/privacy">{t('Privacy')}</Link>
