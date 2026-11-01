@@ -92,22 +92,91 @@ export async function undoEntry(guildId: string, entryId: string): Promise<Resul
   return { ok: true };
 }
 
+const ACTIONS = new Set([
+  'automod.dryrun',
+  'automod.gate.banall',
+  'automod.gate.letin',
+  'automod.gate.setup',
+  'automod.lockdown.end',
+  'backups.import.apply',
+  'backups.import.preview',
+  'backups.restore',
+  'backups.snapshot',
+  'commands.test',
+  'economy.reset',
+  'economy.restock',
+  'events.poll.close',
+  'events.poll.publish',
+  'events.publish',
+  'feeds.resume',
+  'feeds.test',
+  'forms.review',
+  'games.resetChannel',
+  'giveaways.cancel',
+  'giveaways.end',
+  'giveaways.reroll',
+  'giveaways.start',
+  'insights.digest.test',
+  'levels.import',
+  'logs.test',
+  'moderation.action',
+  'moderation.inbox.assign',
+  'moderation.inbox.resolve',
+  'moderation.massban',
+  'moderation.review',
+  'moderation.sync',
+  'roles.menu.publish',
+  'roles.menu.remove',
+  'scheduler.post',
+  'security.gate.setup',
+  'security.honeypot.setup',
+  'security.incident.undo',
+  'security.pass',
+  'security.raid.start',
+  'security.raid.stop',
+  'security.shield.remove',
+  'suggestions.status',
+  'tickets.claim',
+  'tickets.close',
+  'tickets.member.add',
+  'tickets.panel.publish',
+  'tickets.panel.remove',
+  'tickets.reopen',
+  'tickets.reply',
+  'welcome.preview',
+  'welcome.rules.publish',
+  'welcome.rules.remove',
+]);
+
+const ACTORS: Record<string, { field: string; nullable?: boolean }> = {
+  'automod.dryrun': { field: 'requestedBy' },
+  'commands.test': { field: 'userId' },
+  'giveaways.start': { field: 'hostId' },
+  'moderation.action': { field: 'moderatorId' },
+  'moderation.inbox.assign': { field: 'assigneeId', nullable: true },
+  'moderation.massban': { field: 'moderatorId' },
+  'moderation.review': { field: 'moderatorId' },
+  'tickets.claim': { field: 'userId', nullable: true },
+  'welcome.preview': { field: 'userId' },
+};
+
 export async function runAction(
   guildId: string,
   module: string,
   action: string,
   payload: Record<string, unknown> = {},
 ): Promise<Result> {
-  if (!moduleByKey(module) || !/^[a-z][a-zA-Z0-9.]{0,63}$/.test(action)) {
+  const kind = `${module}.${action}`;
+  if (!moduleByKey(module) || !ACTIONS.has(kind)) {
     return { ok: false, error: 'Unknown action.' };
   }
   const check = await editor(guildId, module);
   if ('error' in check) return { ok: false, error: check.error };
-  await enqueue(db().sql, {
-    kind: `${module}.${action}`,
-    guildId,
-    payload: { ...payload, by: check.access.user.id },
-  });
+  const by = check.access.user.id;
+  const data: Record<string, unknown> = { ...payload, by };
+  const actor = ACTORS[kind];
+  if (actor && !(actor.nullable && data[actor.field] === null)) data[actor.field] = by;
+  await enqueue(db().sql, { kind, guildId, payload: data });
   return { ok: true };
 }
 
