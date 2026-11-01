@@ -29,5 +29,14 @@ postgres:
     storageClassName: ""
 
 backup:
-  storage:
-    storageClassName: ""
+  s3:
+    endpoint: "<s3 endpoint>"
+    region: "<s3 region>"
+    path: "<bucket>/postgres"
+    existingSecret: "<secret with ACCESS_KEY_ID and SECRET_ACCESS_KEY>"
+  age:
+    recipients: "<age public key>"
+
+tunnel:
+  enabled: false
+  existingSecret: "<secret with TUNNEL_TOKEN>"

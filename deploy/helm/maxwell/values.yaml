@@ -87,16 +87,28 @@ postgres:
 backup:
   enabled: true
   schedule: "17 3 * * *"
-  keepDays: 14
-  storage:
-    size: 5Gi
-    storageClassName: ""
-  encryption:
-    publicKey: ""
-  offsite:
-    enabled: false
-    remote: ""
+  keep: 14
+  s3:
+    provider: Other
+    endpoint: ""
+    region: ""
+    path: ""
     existingSecret: ""
+  age:
+    recipients: ""
+    version: v1.3.2
+    sha256:
+      amd64: cbe24006683f8eb669266162894b9a522a1af52f2665fbc63a4bb032ed26ac10
+      arm64: 6b8dc4333c53a5a57c9e5834e3a48f92605d7154014cd07269ff3327db5d37f4
+  rclone:
     image:
       repository: rclone/rclone
       tag: "1.75.2"
+
+tunnel:
+  enabled: false
+  replicas: 2
+  existingSecret: ""
+  image:
+    repository: cloudflare/cloudflared
+    tag: "2026.10.7"
