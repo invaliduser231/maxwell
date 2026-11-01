@@ -2,13 +2,16 @@ import { createHash } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { type NextRequest, NextResponse } from 'next/server';
 import { seal, token } from '@/lib/crypto';
+import { env } from '@/lib/env';
 import { authorizeUrl } from '@/lib/fluxer';
 import { secureCookies } from '@/lib/session';
 
 const OAUTH_COOKIE = 'mx_oauth';
 
 function safeNext(value: string | null): string {
-  return value?.startsWith('/') && !value.startsWith('//') ? value : '/communities';
+  if (!value?.startsWith('/') || value.startsWith('//')) return '/communities';
+  const base = new URL(env().DASHBOARD_URL);
+  return URL.parse(value, base)?.origin === base.origin ? value : '/communities';
 }
 
 export async function GET(request: NextRequest) {

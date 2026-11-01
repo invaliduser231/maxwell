@@ -8,7 +8,9 @@ import { createSession, SESSION_COOKIE, secureCookies } from '@/lib/session';
 const OAUTH_COOKIE = 'mx_oauth';
 
 function back(path: string): URL {
-  return new URL(path, env().DASHBOARD_URL);
+  const base = new URL(env().DASHBOARD_URL);
+  const url = new URL(path, base);
+  return url.origin === base.origin ? url : new URL('/communities', base);
 }
 
 export async function GET(request: NextRequest) {
