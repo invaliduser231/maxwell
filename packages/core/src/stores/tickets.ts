@@ -1,3 +1,4 @@
+import { openJson, openText, sealJson, sealText } from '../crypto/data.js';
 import type { Sql } from '../db/sql.js';
 
 export type TicketStatus = 'open' | 'closed';
@@ -158,8 +159,41 @@ function messageColumns(sql: Sql) {
   `;
 }
 
+function openTicket(row: Ticket): Ticket {
+  return {
+    ...row,
+    subject: openText(row.guildId, row.subject),
+    closeReason: openText(row.guildId, row.closeReason),
+  };
+}
+
+function openMessage<T extends TicketMessage>(guildId: string, row: T): T {
+  return {
+    ...row,
+    content: openText(guildId, row.content),
+    attachments: openJson<TicketAttachment[]>(guildId, row.attachments, []),
+    embeds: openJson<TicketEmbed[]>(guildId, row.embeds, []),
+  };
+}
+
+const GUILD_CACHE_LIMIT = 5_000;
+
 export class TicketStore {
+  readonly #guilds = new Map<string, string>();
+
   constructor(private readonly sql: Sql) {}
+
+  async #guildOf(ticketId: string): Promise<string | null> {
+    const known = this.#guilds.get(ticketId);
+    if (known) return known;
+    const [row] = await this.sql<{ guildId: string }[]>`
+      select guild_id::text as "guildId" from tickets_tickets where id = ${ticketId}
+    `;
+    if (!row) return null;
+    if (this.#guilds.size >= GUILD_CACHE_LIMIT) this.#guilds.clear();
+    this.#guilds.set(ticketId, row.guildId);
+    return row.guildId;
+  }
 
   async nextNumber(guildId: string): Promise<number> {
     const [row] = await this.sql<{ last: number }[]>`
@@ -176,26 +210,27 @@ export class TicketStore {
         (guild_id, number, panel_id, kind, source, channel_id, channel_name, opener_id, subject)
       values (
         ${input.guildId}, ${input.number}, ${input.panelId}, ${input.kind}, ${input.source},
-        ${input.channelId}, ${input.channelName}, ${input.openerId}, ${input.subject}
+        ${input.channelId}, ${input.channelName}, ${input.openerId},
+        ${sealText(input.guildId, input.subject)}
       )
       returning ${columns(this.sql)}
     `;
     if (!row) throw new Error('ticket insert returned nothing');
-    return row;
+    return openTicket(row);
   }
 
   async get(id: string): Promise<Ticket | null> {
     const [row] = await this.sql<Ticket[]>`
       select ${columns(this.sql)} from tickets_tickets where id = ${id}
     `;
-    return row ?? null;
+    return row ? openTicket(row) : null;
   }
 
   async getInGuild(guildId: string, id: string): Promise<Ticket | null> {
     const [row] = await this.sql<Ticket[]>`
       select ${columns(this.sql)} from tickets_tickets where guild_id = ${guildId} and id = ${id}
     `;
-    return row ?? null;
+    return row ? openTicket(row) : null;
   }
 
   async byNumber(guildId: string, number: number): Promise<Ticket | null> {
@@ -203,7 +238,7 @@ export class TicketStore {
       select ${columns(this.sql)} from tickets_tickets
       where guild_id = ${guildId} and number = ${number}
     `;
-    return row ?? null;
+    return row ? openTicket(row) : null;
   }
 
   async byChannel(channelId: string): Promise<Ticket | null> {
@@ -213,7 +248,7 @@ export class TicketStore {
       order by id desc
       limit 1
     `;
-    return row ?? null;
+    return row ? openTicket(row) : null;
   }
 
   async openFor(guildId: string, openerId: string, panelId?: string): Promise<Ticket[]> {
@@ -222,7 +257,7 @@ export class TicketStore {
       where guild_id = ${guildId} and opener_id = ${openerId} and status = 'open'
         ${panelId ? this.sql`and panel_id = ${panelId}` : this.sql``}
       order by id desc
-    `;
+    `.then((rows) => rows.map(openTicket));
   }
 
   async openModmail(userId: string): Promise<Ticket[]> {
@@ -230,7 +265,7 @@ export class TicketStore {
       select ${columns(this.sql)} from tickets_tickets
       where opener_id = ${userId} and status = 'open' and source = 'modmail'
       order by last_message_at desc
-    `;
+    `.then((rows) => rows.map(openTicket));
   }
 
   async list(
@@ -246,7 +281,7 @@ export class TicketStore {
         ${options.before ? this.sql`and id < ${options.before}` : this.sql``}
       order by id desc
       limit ${limit}
-    `;
+    `.then((rows) => rows.map(openTicket));
   }
 
   async summary(guildId: string): Promise<TicketSummary> {
@@ -333,7 +368,7 @@ export class TicketStore {
       where guild_id = ${guildId} and status = 'closed'
       order by closed_at desc nulls last, id desc
       limit ${limit} offset ${offset}
-    `;
+    `.then((rows) => rows.map(openTicket));
   }
 
   async claim(id: string, userId: string | null): Promise<{ previous: string | null } | null> {
@@ -386,13 +421,16 @@ export class TicketStore {
   }
 
   async close(id: string, closedBy: string | null, reason: string | null): Promise<Ticket | null> {
+    const guildId = await this.#guildOf(id);
+    if (!guildId) return null;
     const [row] = await this.sql<Ticket[]>`
       update tickets_tickets set
-        status = 'closed', closed_at = now(), closed_by = ${closedBy}, close_reason = ${reason}
+        status = 'closed', closed_at = now(), closed_by = ${closedBy},
+        close_reason = ${sealText(guildId, reason)}
       where id = ${id} and status = 'open'
       returning ${columns(this.sql)}
     `;
-    return row ?? null;
+    return row ? openTicket(row) : null;
   }
 
   async reopen(id: string, channelId: string | null): Promise<Ticket | null> {
@@ -405,7 +443,7 @@ export class TicketStore {
       where id = ${id} and status = 'closed'
       returning ${columns(this.sql)}
     `;
-    return row ?? null;
+    return row ? openTicket(row) : null;
   }
 
   async detachChannel(id: string): Promise<void> {
@@ -422,7 +460,7 @@ export class TicketStore {
       where channel_id = ${channelId}
       returning ${columns(this.sql)}
     `;
-    return row ?? null;
+    return row ? openTicket(row) : null;
   }
 
   async autoCloseDue(limit = 50): Promise<Ticket[]> {
@@ -437,7 +475,7 @@ export class TicketStore {
         order by t.last_message_at
         limit ${limit}
       )
-    `;
+    `.then((rows) => rows.map(openTicket));
   }
 
   async addMessage(
@@ -445,14 +483,17 @@ export class TicketStore {
     input: TicketMessageInput,
     override = false,
   ): Promise<boolean> {
-    const attachments = this.sql.json(input.attachments as never);
-    const embeds = this.sql.json((input.embeds ?? []) as never);
+    const guildId = await this.#guildOf(ticketId);
+    if (!guildId) return false;
+    const content = sealText(guildId, input.content);
+    const attachments = this.sql.json(sealJson(guildId, input.attachments) as never);
+    const embeds = this.sql.json(sealJson(guildId, input.embeds ?? []) as never);
     const rows = override
       ? await this.sql`
           insert into tickets_messages
             (ticket_id, message_id, author_id, author_name, author_avatar, bot, via, content, attachments, embeds, created_at)
           select ${ticketId}, ${input.messageId}, ${input.authorId}, ${input.authorName},
-            ${input.authorAvatar ?? null}, ${input.bot}, ${input.via ?? null}, ${input.content},
+            ${input.authorAvatar ?? null}, ${input.bot}, ${input.via ?? null}, ${content},
             ${attachments}, ${embeds}, ${input.createdAt}
           where (select count(*) from tickets_messages where ticket_id = ${ticketId}) < ${TRANSCRIPT_LIMIT}
           on conflict (ticket_id, message_id) do update set
@@ -466,7 +507,7 @@ export class TicketStore {
           insert into tickets_messages
             (ticket_id, message_id, author_id, author_name, author_avatar, bot, via, content, attachments, embeds, created_at)
           select ${ticketId}, ${input.messageId}, ${input.authorId}, ${input.authorName},
-            ${input.authorAvatar ?? null}, ${input.bot}, ${input.via ?? null}, ${input.content},
+            ${input.authorAvatar ?? null}, ${input.bot}, ${input.via ?? null}, ${content},
             ${attachments}, ${embeds}, ${input.createdAt}
           where (select count(*) from tickets_messages where ticket_id = ${ticketId}) < ${TRANSCRIPT_LIMIT}
           on conflict (ticket_id, message_id) do nothing
@@ -481,11 +522,19 @@ export class TicketStore {
     content: string,
     embeds?: TicketEmbed[],
   ): Promise<void> {
+    const guildId = await this.#guildOf(ticketId);
+    if (!guildId) return;
+    const [current] = await this.sql<{ content: string }[]>`
+      select content from tickets_messages
+      where ticket_id = ${ticketId} and message_id = ${messageId} and via is null
+    `;
+    if (!current) return;
+    const changed = openText(guildId, current.content) !== content;
     await this.sql`
       update tickets_messages set
-        edited_at = case when content <> ${content} then now() else edited_at end,
-        content = ${content}
-        ${embeds ? this.sql`, embeds = ${this.sql.json(embeds as never)}` : this.sql``}
+        edited_at = case when ${changed} then now() else edited_at end,
+        content = ${sealText(guildId, content)}
+        ${embeds ? this.sql`, embeds = ${this.sql.json(sealJson(guildId, embeds) as never)}` : this.sql``}
       where ticket_id = ${ticketId} and message_id = ${messageId} and via is null
     `;
   }
@@ -502,7 +551,9 @@ export class TicketStore {
     options: { after?: string; limit?: number } = {},
   ): Promise<TicketMessage[]> {
     const limit = Math.min(Math.max(options.limit ?? 500, 1), TRANSCRIPT_LIMIT);
-    return this.sql<TicketMessage[]>`
+    const guildId = await this.#guildOf(ticketId);
+    if (!guildId) return [];
+    const rows = await this.sql<TicketMessage[]>`
       select ${messageColumns(this.sql)}
       from tickets_messages m
       where m.ticket_id = ${ticketId}
@@ -510,10 +561,13 @@ export class TicketStore {
       order by m.created_at, m.message_id
       limit ${limit}
     `;
+    return rows.map((row) => openMessage(guildId, row));
   }
 
   async lastMessages(ticketId: string, limit = 40): Promise<TicketMessage[]> {
     const capped = Math.min(Math.max(limit, 1), 500);
+    const guildId = await this.#guildOf(ticketId);
+    if (!guildId) return [];
     const rows = await this.sql<TicketMessage[]>`
       select ${messageColumns(this.sql)}
       from tickets_messages m
@@ -521,7 +575,7 @@ export class TicketStore {
       order by m.created_at desc, m.message_id desc
       limit ${capped}
     `;
-    return rows.reverse();
+    return rows.reverse().map((row) => openMessage(guildId, row));
   }
 
   async messageIds(ticketId: string): Promise<Set<string>> {
@@ -612,14 +666,14 @@ export class TicketStore {
       order by rating_requested_at desc
       limit 1
     `;
-    return row ?? null;
+    return row ? openTicket(row) : null;
   }
 
   async ratingByMessage(messageId: string): Promise<Ticket | null> {
     const [row] = await this.sql<Ticket[]>`
       select ${columns(this.sql)} from tickets_tickets where rating_message_id = ${messageId}
     `;
-    return row ?? null;
+    return row ? openTicket(row) : null;
   }
 
   async rate(id: string, rating: number): Promise<boolean> {
@@ -659,20 +713,22 @@ export class TicketStore {
       select ${columns(this.sql)} from tickets_tickets
       where guild_id = ${guildId} and opener_id = ${userId}
       order by id
-    `;
+    `.then((rows) => rows.map(openTicket));
   }
 
   async transcripts(ticketIds: readonly string[]): Promise<Map<string, TicketMessage[]>> {
     const grouped = new Map<string, TicketMessage[]>();
     if (ticketIds.length === 0) return grouped;
-    const rows = await this.sql<TicketMessage[]>`
-      select ${messageColumns(this.sql)} from tickets_messages m
+    const rows = await this.sql<(TicketMessage & { guildId: string })[]>`
+      select ${messageColumns(this.sql)}, t.guild_id::text as "guildId"
+      from tickets_messages m
+      join tickets_tickets t on t.id = m.ticket_id
       where m.ticket_id in ${this.sql(ticketIds as string[])}
       order by m.ticket_id, m.created_at, m.message_id
     `;
-    for (const row of rows) {
+    for (const { guildId, ...row } of rows) {
       const list = grouped.get(row.ticketId) ?? [];
-      list.push(row);
+      list.push(openMessage(guildId, row));
       grouped.set(row.ticketId, list);
     }
     return grouped;
@@ -685,7 +741,7 @@ export class TicketStore {
       join tickets_tickets t on t.id = m.ticket_id
       where t.guild_id = ${guildId} and m.author_id = ${userId} and t.opener_id <> ${userId}
       order by m.created_at, m.message_id
-    `;
+    `.then((rows) => rows.map((row) => openMessage(guildId, row)));
   }
 
   async forgetMember(guildId: string, userId: string): Promise<MemberTicketForget> {
