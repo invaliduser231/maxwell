@@ -4,6 +4,7 @@ import {
   dmActions,
   type EscalationStep,
   type ModerationConfig,
+  type ReasonTemplate,
 } from '@maxwell/core/modules/moderation';
 import { useRef, useState, useTransition } from 'react';
 import {
@@ -14,6 +15,7 @@ import {
   RoleMulti,
   Select,
   Switch,
+  TextInput,
   ToggleRow,
 } from '@/components/controls';
 import { useGuild } from '@/components/guild';
@@ -35,6 +37,7 @@ import {
 import type { Key, Translator } from '@/lib/i18n';
 import { duration } from '@/lib/time';
 import { setCommand } from './actions';
+import { withChoice } from './reason-picks';
 
 export interface CommandRow {
   name: string;
@@ -309,6 +312,142 @@ function EscalationPanel() {
   );
 }
 
+function templateKey(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, '')
+    .replace(/^[_-]+/, '')
+    .slice(0, 24);
+}
+
+function freeKey(templates: readonly ReasonTemplate[]): string {
+  const taken = new Set(templates.map((template) => template.key));
+  let n = templates.length + 1;
+  while (taken.has(`reason${n}`)) n += 1;
+  return `reason${n}`;
+}
+
+function TemplatesPanel({ prefix }: { prefix: string }) {
+  const t = useT();
+  const { value, set, readOnly } = useDraft<ModerationConfig>();
+  const templates = value.reasonTemplates;
+  const ids = useRef<number[]>([]);
+  const nextId = useRef(0);
+  while (ids.current.length < templates.length) ids.current.push(nextId.current++);
+  if (ids.current.length > templates.length) ids.current.length = templates.length;
+  const keys = templates.map((template) => template.key);
+  const doubled = keys.find((key, index) => keys.indexOf(key) !== index);
+  const update = (index: number, patch: Partial<ReasonTemplate>) =>
+    set({
+      reasonTemplates: templates.map((template, position) =>
+        position === index ? { ...template, ...patch } : template,
+      ),
+    });
+
+  return (
+    <Panel title={t('Reason templates')} span={6} id="templates">
+      {templates.length === 0 ? <Empty>{t('No templates yet.')}</Empty> : null}
+      {templates.map((template, index) => {
+        const number = String(index + 1);
+        const lengths = withChoice(timeoutMinutes, template.timeoutMinutes);
+        return (
+          <div
+            className="mx-row"
+            key={ids.current[index] ?? index}
+            style={{ flexWrap: 'wrap', alignItems: 'flex-start' }}
+          >
+            <div style={{ width: 120, flexShrink: 0 }}>
+              <TextInput
+                mono
+                value={template.key}
+                maxLength={24}
+                label={t('Key for template {number}', { number })}
+                onChange={(next) => update(index, { key: templateKey(next) })}
+              />
+              {template.key ? null : <span className="mx-field-error">{t('Add a key.')}</span>}
+            </div>
+            <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+              <TextInput
+                value={template.text}
+                maxLength={500}
+                label={t('Reason for template {number}', { number })}
+                onChange={(next) => update(index, { text: next })}
+              />
+              {template.text.trim() ? null : (
+                <span className="mx-field-error">{t('Write a reason.')}</span>
+              )}
+            </div>
+            {readOnly ? null : (
+              <button
+                type="button"
+                className="mx-chip-x"
+                aria-label={t('Remove template {number}', { number })}
+                onClick={() => {
+                  ids.current.splice(index, 1);
+                  set({
+                    reasonTemplates: templates.filter((_, position) => position !== index),
+                  });
+                }}
+              >
+                <CloseIcon />
+              </button>
+            )}
+            <div className="mx-inline" style={{ flexBasis: '100%', gap: 18 }}>
+              <Select
+                label={t('Timeout for template {number}', { number })}
+                value={template.timeoutMinutes === null ? '' : String(template.timeoutMinutes)}
+                style={{ width: 200 }}
+                options={[
+                  { value: '', label: t('Default timeout') },
+                  ...lengths.map((minutes) => ({
+                    value: String(minutes),
+                    label: t('Timeout {length}', { length: duration(t, minutes * 60_000) }),
+                  })),
+                ]}
+                onChange={(next) => update(index, { timeoutMinutes: next ? Number(next) : null })}
+              />
+              <Checkbox
+                label={t('Delete messages on ban')}
+                checked={template.deleteMessages}
+                onChange={(deleteMessages) => update(index, { deleteMessages })}
+              />
+            </div>
+          </div>
+        );
+      })}
+      <PanelBody>
+        {doubled !== undefined ? (
+          <Callout tone="warn">{t('Two templates use {key}.', { key: doubled })}</Callout>
+        ) : null}
+        <div className="mx-inline" style={{ justifyContent: 'space-between' }}>
+          <span className="mx-hint mx-mono">{`${prefix}ban @member ${keys[0] ?? 'spam'}`}</span>
+          {readOnly || templates.length >= 25 ? null : (
+            <button
+              type="button"
+              className="mx-btn"
+              onClick={() =>
+                set({
+                  reasonTemplates: [
+                    ...templates,
+                    {
+                      key: freeKey(templates),
+                      text: t('New reason'),
+                      timeoutMinutes: null,
+                      deleteMessages: false,
+                    },
+                  ],
+                })
+              }
+            >
+              {t('Add template')}
+            </button>
+          )}
+        </div>
+      </PanelBody>
+    </Panel>
+  );
+}
+
 export function SettingsTab({
   commands,
   prefix,
@@ -457,6 +596,7 @@ export function SettingsTab({
             </div>
           </PanelBody>
         </Panel>
+        <TemplatesPanel prefix={prefix} />
         <CommandsPanel commands={commands} prefix={prefix} />
       </Column>
     </Grid>

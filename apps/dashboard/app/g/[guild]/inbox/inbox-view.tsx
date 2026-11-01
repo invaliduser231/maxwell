@@ -1,6 +1,6 @@
 'use client';
 
-import type { InboxKind, ModerationConfig } from '@maxwell/core/modules/moderation';
+import type { InboxKind, ModerationConfig, ReasonTemplate } from '@maxwell/core/modules/moderation';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
@@ -15,6 +15,7 @@ import { failed, type Status, StatusText } from '@/components/status-text';
 import { Avatar, Empty, Field, Grid, Panel, PanelBody } from '@/components/ui';
 import type { Key } from '@/lib/i18n';
 import { ago, duration } from '@/lib/time';
+import { ReasonPicks, withChoice } from '../moderation/reason-picks';
 import { reasonText } from '../security/security-form';
 import { claimItem, resolveItem } from './actions';
 import type { InboxDetail, InboxRow, InboxView as Mode } from './data';
@@ -173,10 +174,11 @@ function ResolveForm({
   const action = choice === 'close' || choice === 'dismiss' ? null : choice;
   const status = choice === 'dismiss' ? 'dismissed' : 'resolved';
   const timed = action === 'timeout' || action === 'ban';
-  const timeouts = timeoutChoices.includes(config.defaultTimeoutMinutes)
-    ? timeoutChoices
-    : [...timeoutChoices, config.defaultTimeoutMinutes].sort((a, b) => a - b);
   const [minutes, setMinutes] = useState(action === 'timeout' ? config.defaultTimeoutMinutes : 0);
+  const timeouts = withChoice(
+    withChoice(timeoutChoices, config.defaultTimeoutMinutes),
+    minutes || null,
+  );
   const [reason, setReason] = useState(detail.kind === 'report' ? (detail.body ?? '') : '');
   const [note, setNote] = useState('');
   const [remove, setRemove] = useState(detail.kind === 'report' && action !== null);
@@ -187,6 +189,14 @@ function ResolveForm({
   const needsReason = action !== null && config.requireReason && !reason.trim();
   const danger = action === 'ban' || action === 'kick';
   const name = detail.subject?.name ?? t('this member');
+  const removable = detail.kind === 'report' && Boolean(detail.messageUrl);
+  const pick = (template: ReasonTemplate) => {
+    setReason(template.text);
+    if (action === 'timeout' && template.timeoutMinutes !== null) {
+      setMinutes(template.timeoutMinutes);
+    }
+    if (removable && template.deleteMessages) setRemove(true);
+  };
 
   const label =
     detail.kind === 'gate'
@@ -270,6 +280,9 @@ function ResolveForm({
           ) : null}
         </div>
       ) : null}
+      {action && detail.kind !== 'gate' ? (
+        <ReasonPicks templates={config.reasonTemplates} onPick={pick} />
+      ) : null}
       <label className="mx-field">
         <span className="mx-label">{t('Note for the team')}</span>
         <input
@@ -283,7 +296,7 @@ function ResolveForm({
       {shield && action === 'ban' && detail.kind !== 'gate' ? (
         <Checkbox checked={share} onChange={setShare} label={t('Share with Maxwell Shield')} />
       ) : null}
-      {detail.kind === 'report' && detail.messageUrl && status === 'resolved' ? (
+      {removable && status === 'resolved' ? (
         <Checkbox checked={remove} onChange={setRemove} label={t('Delete the reported message')} />
       ) : null}
       <div className="mx-inline" style={{ justifyContent: 'flex-end' }}>

@@ -17,6 +17,7 @@ const actionInput = z.object({
   reason: z.string().trim().max(1_500),
   durationSeconds: z.number().int().positive().max(63_072_000).nullable(),
   shield: z.boolean().default(false),
+  deleteMessages: z.boolean().default(false),
 });
 
 export async function memberAction(
@@ -27,7 +28,7 @@ export async function memberAction(
   if ('error' in check) return { ok: false, error: check.error };
   const parsed = actionInput.safeParse(input);
   if (!parsed.success) return { ok: false, error: 'Check the action first.' };
-  const { action, userId, reason, durationSeconds, shield } = parsed.data;
+  const { action, userId, reason, durationSeconds, shield, deleteMessages } = parsed.data;
   if (userId === check.access.user.id && action !== 'unban' && action !== 'untimeout') {
     return { ok: false, error: 'That is you.' };
   }
@@ -38,6 +39,7 @@ export async function memberAction(
     durationSeconds: action === 'timeout' || action === 'ban' ? durationSeconds : null,
     moderatorId: check.access.user.id,
     shield: action === 'ban' && shield,
+    deleteMessages: action === 'ban' && deleteMessages,
   });
 }
 

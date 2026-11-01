@@ -69,6 +69,8 @@ export default async function MembersPage({
         requireReason={config.requireReason}
         defaultTimeoutMinutes={config.defaultTimeoutMinutes}
         shield={shield}
+        templates={config.reasonTemplates}
+        banDeleteMessageDays={config.banDeleteMessageDays}
         now={new Date().toISOString()}
       />
     </>

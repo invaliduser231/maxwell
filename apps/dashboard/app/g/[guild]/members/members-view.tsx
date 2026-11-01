@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReasonTemplate } from '@maxwell/core/modules/moderation';
 import type { MemberView } from '@maxwell/core/stores/moderation';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
@@ -11,6 +12,7 @@ import { failed, type Status, StatusText } from '@/components/status-text';
 import { Avatar, Callout, Empty, Grid, type Mood } from '@/components/ui';
 import type { Key } from '@/lib/i18n';
 import { age, date, dayTime, duration, since } from '@/lib/time';
+import { ReasonPicks, withChoice } from '../moderation/reason-picks';
 import { addNote, memberAction, removeNote } from './actions';
 import type { ListedMember, MemberFile, TimelineItem, TimelineKind } from './data';
 
@@ -88,6 +90,8 @@ function ActionForm({
   requireReason,
   defaultTimeoutMinutes,
   shield,
+  templates,
+  banDeleteMessageDays,
   onDone,
   onCancel,
 }: {
@@ -96,18 +100,19 @@ function ActionForm({
   requireReason: boolean;
   defaultTimeoutMinutes: number;
   shield: boolean;
+  templates: readonly ReasonTemplate[];
+  banDeleteMessageDays: number;
   onDone: (status: Status) => void;
   onCancel: () => void;
 }) {
   const t = useT();
   const { guildId } = useGuild();
   const [reason, setReason] = useState('');
-  const timeouts = timeoutChoices.includes(defaultTimeoutMinutes)
-    ? timeoutChoices
-    : [...timeoutChoices, defaultTimeoutMinutes].sort((a, b) => a - b);
   const [minutes, setMinutes] = useState(action === 'timeout' ? defaultTimeoutMinutes : 0);
+  const timeouts = withChoice(withChoice(timeoutChoices, defaultTimeoutMinutes), minutes || null);
   const [error, setError] = useState<string | null>(null);
   const [share, setShare] = useState(false);
+  const [wipe, setWipe] = useState(false);
   const [tried, setTried] = useState(false);
   const [pending, start] = useTransition();
   const needsReason =
@@ -115,6 +120,14 @@ function ActionForm({
   const timed = action === 'timeout' || action === 'ban';
   const choices = action === 'timeout' ? timeouts : banChoices;
   const danger = action === 'ban' || action === 'kick';
+  const reasoned = action !== 'unban' && action !== 'untimeout';
+  const pick = (template: ReasonTemplate) => {
+    setReason(template.text);
+    if (action === 'timeout' && template.timeoutMinutes !== null) {
+      setMinutes(template.timeoutMinutes);
+    }
+    if (action === 'ban') setWipe(template.deleteMessages);
+  };
 
   return (
     <form
@@ -131,6 +144,7 @@ function ActionForm({
             reason,
             durationSeconds: timed && minutes > 0 ? minutes * 60 : null,
             shield: action === 'ban' && share,
+            deleteMessages: action === 'ban' && wipe,
           });
           if (!result.ok) {
             setError(result.error);
@@ -170,6 +184,14 @@ function ActionForm({
           </div>
         ) : null}
       </div>
+      {reasoned ? <ReasonPicks templates={templates} onPick={pick} /> : null}
+      {action === 'ban' && banDeleteMessageDays === 0 ? (
+        <Checkbox
+          checked={wipe}
+          onChange={setWipe}
+          label={t('Delete their messages from the last day')}
+        />
+      ) : null}
       {shield && action === 'ban' ? (
         <Checkbox checked={share} onChange={setShare} label={t('Share with Maxwell Shield')} />
       ) : null}
@@ -304,6 +326,8 @@ function FilePanel({
   requireReason,
   defaultTimeoutMinutes,
   shield,
+  templates,
+  banDeleteMessageDays,
 }: {
   file: MemberFile;
   now: string;
@@ -312,6 +336,8 @@ function FilePanel({
   requireReason: boolean;
   defaultTimeoutMinutes: number;
   shield: boolean;
+  templates: readonly ReasonTemplate[];
+  banDeleteMessageDays: number;
 }) {
   const t = useT();
   const { guildId, timezone } = useGuild();
@@ -425,6 +451,8 @@ function FilePanel({
           requireReason={requireReason}
           defaultTimeoutMinutes={defaultTimeoutMinutes}
           shield={shield}
+          templates={templates}
+          banDeleteMessageDays={banDeleteMessageDays}
           onCancel={() => setAction(null)}
           onDone={(next) => {
             setAction(null);
@@ -538,6 +566,8 @@ export function MembersView({
   requireReason,
   defaultTimeoutMinutes,
   shield,
+  templates,
+  banDeleteMessageDays,
   now,
 }: {
   view: MemberView;
@@ -551,6 +581,8 @@ export function MembersView({
   requireReason: boolean;
   defaultTimeoutMinutes: number;
   shield: boolean;
+  templates: readonly ReasonTemplate[];
+  banDeleteMessageDays: number;
   now: string;
 }) {
   const t = useT();
@@ -667,6 +699,8 @@ export function MembersView({
           requireReason={requireReason}
           defaultTimeoutMinutes={defaultTimeoutMinutes}
           shield={shield}
+          templates={templates}
+          banDeleteMessageDays={banDeleteMessageDays}
         />
       ) : alone ? null : (
         <section className="mx-panel mx-s8" aria-label={t('Member file')}>
