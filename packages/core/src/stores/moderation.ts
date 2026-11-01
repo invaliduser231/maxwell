@@ -1,3 +1,4 @@
+import { openText, sealText } from '../crypto/data.js';
 import type { Sql } from '../db/sql.js';
 import type { CaseAction } from '../modules/moderation.js';
 
@@ -154,6 +155,35 @@ const caseColumns = (sql: Sql) => sql`
   edited_by::text as "editedBy", edited_at as "editedAt", created_at as "createdAt"
 `;
 
+const SEARCH_PAGE = 250;
+const SEARCH_SCAN = 5_000;
+
+function openCaseRow(row: CaseRow): CaseRow {
+  return {
+    ...row,
+    reason: openText(row.guildId, row.reason),
+    voidReason: openText(row.guildId, row.voidReason),
+    excerpt: openText(row.guildId, row.excerpt),
+  };
+}
+
+function openNote(row: NoteRow): NoteRow {
+  return { ...row, body: openText(row.guildId, row.body) };
+}
+
+function openName(guildId: string, row: NameRow): NameRow {
+  return {
+    ...row,
+    value: openText(guildId, row.value),
+    previous: openText(guildId, row.previous),
+  };
+}
+
+function matchesText(needle: string, ...values: (string | null | undefined)[]): boolean {
+  const lower = needle.toLowerCase();
+  return values.some((value) => value?.toLowerCase().includes(lower));
+}
+
 function expiryCutoff(expiryDays: number | null, now = Date.now()): Date | null {
   return expiryDays === null ? null : new Date(now - expiryDays * 86_400_000);
 }
@@ -179,13 +209,14 @@ export class ModerationStore {
           expires_at, excerpt, meta
         ) values (
           ${input.guildId}, ${number}, ${input.action}, ${input.userId}, ${input.moderatorId},
-          ${input.reason ?? null}, ${input.durationSeconds ?? null}, ${input.expiresAt ?? null},
-          ${input.excerpt ?? null}, ${tx.json((input.meta ?? {}) as never)}
+          ${sealText(input.guildId, input.reason ?? null)}, ${input.durationSeconds ?? null},
+          ${input.expiresAt ?? null}, ${sealText(input.guildId, input.excerpt ?? null)},
+          ${tx.json((input.meta ?? {}) as never)}
         )
         returning ${caseColumns(this.sql)}
       `;
       if (!row) throw new Error('case insert returned nothing');
-      return row;
+      return openCaseRow(row);
     });
   }
 
@@ -194,14 +225,51 @@ export class ModerationStore {
       select ${caseColumns(this.sql)} from moderation_cases
       where guild_id = ${guildId} and number = ${number}
     `;
-    return row ?? null;
+    return row ? openCaseRow(row) : null;
   }
 
   async list(guildId: string, filter: CaseFilter = {}): Promise<CaseRow[]> {
     const limit = Math.min(Math.max(filter.limit ?? 50, 1), 500);
-    const sql = this.sql;
+    const offset = Math.max(filter.offset ?? 0, 0);
     const search = filter.search?.trim();
     const searchId = search && /^\d{1,20}$/.test(search) ? search : null;
+    if (search && !searchId) return this.#searchCases(guildId, filter, search, limit, offset);
+    const rows = await this.#listCases(guildId, filter, searchId, filter.before, limit, offset);
+    return rows.map(openCaseRow);
+  }
+
+  async #searchCases(
+    guildId: string,
+    filter: CaseFilter,
+    search: string,
+    limit: number,
+    offset: number,
+  ): Promise<CaseRow[]> {
+    const found: CaseRow[] = [];
+    let before = filter.before;
+    let scanned = 0;
+    while (scanned < SEARCH_SCAN && found.length < offset + limit) {
+      const page = await this.#listCases(guildId, filter, null, before, SEARCH_PAGE, 0);
+      for (const raw of page) {
+        const row = openCaseRow(raw);
+        if (matchesText(search, row.reason, row.excerpt)) found.push(row);
+      }
+      scanned += page.length;
+      if (page.length < SEARCH_PAGE) break;
+      before = page[page.length - 1]?.number;
+    }
+    return found.slice(offset, offset + limit);
+  }
+
+  #listCases(
+    guildId: string,
+    filter: CaseFilter,
+    searchId: string | null,
+    before: number | undefined,
+    limit: number,
+    offset: number,
+  ) {
+    const sql = this.sql;
     return sql<CaseRow[]>`
       select ${caseColumns(sql)} from moderation_cases
       where guild_id = ${guildId}
@@ -210,18 +278,16 @@ export class ModerationStore {
         ${filter.userId ? sql`and user_id = ${filter.userId}` : sql``}
         ${filter.since ? sql`and created_at >= ${filter.since}` : sql``}
         ${filter.until ? sql`and created_at < ${filter.until}` : sql``}
-        ${filter.before ? sql`and number < ${filter.before}` : sql``}
+        ${before ? sql`and number < ${before}` : sql``}
         ${filter.includeVoided === false ? sql`and voided_at is null` : sql``}
         ${
-          search
-            ? searchId
-              ? sql`and (user_id = ${searchId} or moderator_id = ${searchId} or number = ${Number(searchId) <= 2_147_483_647 ? Number(searchId) : 0})`
-              : sql`and (reason ilike ${`%${search}%`} or excerpt ilike ${`%${search}%`})`
+          searchId
+            ? sql`and (user_id = ${searchId} or moderator_id = ${searchId} or number = ${Number(searchId) <= 2_147_483_647 ? Number(searchId) : 0})`
             : sql``
         }
       order by number desc
       limit ${limit}
-      offset ${Math.max(filter.offset ?? 0, 0)}
+      offset ${offset}
     `;
   }
 
@@ -261,10 +327,41 @@ export class ModerationStore {
     );
   }
 
+  async #searchMembers(
+    guildId: string,
+    search: string,
+    limit: number,
+  ): Promise<{ ids: string[]; ats: string[] }> {
+    const pattern = `%${search.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+    const found = new Map<string, Date>();
+    const keep = (userId: string, at: Date) => {
+      const seen = found.get(userId);
+      if (!seen || seen < at) found.set(userId, at);
+    };
+    const names = await this.sql<{ userId: string; value: string; at: Date }[]>`
+      select user_id::text as "userId", value, changed_at as at from moderation_names
+      where guild_id = ${guildId} and value is not null
+      order by changed_at desc, id desc
+      limit ${SEARCH_SCAN}
+    `;
+    for (const row of names) {
+      if (matchesText(search, openText(guildId, row.value))) keep(row.userId, row.at);
+    }
+    const invites = await this.sql<{ userId: string; at: Date }[]>`
+      select user_id::text as "userId", max(joined_at) as at from member_joins
+      where guild_id = ${guildId} and invite_code ilike ${pattern}
+      group by user_id
+    `;
+    for (const row of invites) keep(row.userId, row.at);
+    const top = [...found].sort((a, b) => b[1].getTime() - a[1].getTime()).slice(0, limit);
+    return { ids: top.map(([id]) => id), ats: top.map(([, at]) => at.toISOString()) };
+  }
+
   #candidates(
     guildId: string,
     view: MemberView,
     search: string | null,
+    matches: { ids: string[]; ats: string[] } | null,
     limit: number,
     month: Date,
     week: Date,
@@ -274,15 +371,9 @@ export class ModerationStore {
       return sql`select ${search}::bigint as user_id, now() as at`;
     }
     if (search) {
-      const pattern = `%${search.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
       return sql`
-        select user_id, max(at) as at from (
-          select user_id, changed_at as at from moderation_names
-          where guild_id = ${guildId} and value ilike ${pattern}
-          union all
-          select user_id, joined_at from member_joins
-          where guild_id = ${guildId} and invite_code ilike ${pattern}
-        ) s group by user_id order by at desc limit ${limit}
+        select s.user_id, s.at
+        from unnest(${matches?.ids ?? []}::bigint[], ${matches?.ats ?? []}::timestamptz[]) as s(user_id, at)
       `;
     }
     if (view === 'new') {
@@ -341,8 +432,13 @@ export class ModerationStore {
     const week = new Date(now - 7 * 86_400_000);
     const search = options.search?.trim() || null;
     const flagged = !search && options.view === 'flagged';
-    const candidates = this.#candidates(guildId, options.view, search, limit, month, week);
-    return sql<MemberListRow[]>`
+    const matches =
+      search && !/^\d{1,20}$/.test(search)
+        ? await this.#searchMembers(guildId, search, limit)
+        : null;
+    if (matches && matches.ids.length === 0) return [];
+    const candidates = this.#candidates(guildId, options.view, search, matches, limit, month, week);
+    const rows = await sql<MemberListRow[]>`
       select * from (
         select p.user_id::text as "userId", p.at as "lastAt",
           j.joined_at as "joinedAt", j.left_at as "leftAt",
@@ -388,6 +484,11 @@ export class ModerationStore {
       order by "lastAt" desc
       limit ${limit}
     `;
+    return rows.map((row) => ({
+      ...row,
+      username: openText(guildId, row.username),
+      display: openText(guildId, row.display),
+    }));
   }
 
   async joins(guildId: string, userId: string, limit = 20): Promise<JoinRow[]> {
@@ -435,7 +536,7 @@ export class ModerationStore {
       where guild_id = ${guildId} and user_id = ${userId} and action = 'warn'
         and voided_at is null and created_at > ${from}
       order by number desc
-    `;
+    `.then((rows) => rows.map(openCaseRow));
   }
 
   async openCase(guildId: string, userId: string, action: CaseAction): Promise<CaseRow | null> {
@@ -447,7 +548,7 @@ export class ModerationStore {
       order by number desc
       limit 1
     `;
-    return row ?? null;
+    return row ? openCaseRow(row) : null;
   }
 
   async setReason(
@@ -458,7 +559,7 @@ export class ModerationStore {
   ): Promise<{ before: string | null; claimed: boolean } | null> {
     const [row] = await this.sql<{ before: string | null; claimed: boolean }[]>`
       update moderation_cases c set
-        reason = ${reason},
+        reason = ${sealText(guildId, reason)},
         edited_by = ${editorId},
         edited_at = now(),
         moderator_id = coalesce(c.moderator_id, ${editorId})
@@ -470,7 +571,7 @@ export class ModerationStore {
       where c.guild_id = ${guildId} and c.number = ${number}
       returning old.reason as before, (old.moderator_id is null and ${editorId}::bigint is not null) as claimed
     `;
-    return row ?? null;
+    return row ? { ...row, before: openText(guildId, row.before) } : null;
   }
 
   async restoreReason(
@@ -481,7 +582,7 @@ export class ModerationStore {
   ): Promise<void> {
     await this.sql`
       update moderation_cases set
-        reason = ${reason},
+        reason = ${sealText(guildId, reason)},
         moderator_id = case when ${unclaim} then null else moderator_id end,
         edited_at = now()
       where guild_id = ${guildId} and number = ${number}
@@ -533,7 +634,8 @@ export class ModerationStore {
     reason: string | null,
   ): Promise<boolean> {
     const rows = await this.sql`
-      update moderation_cases set voided_at = now(), voided_by = ${by}, void_reason = ${reason}
+      update moderation_cases set voided_at = now(), voided_by = ${by},
+        void_reason = ${sealText(guildId, reason)}
       where guild_id = ${guildId} and number = ${number} and voided_at is null
       returning number
     `;
@@ -548,7 +650,8 @@ export class ModerationStore {
   ): Promise<number[]> {
     if (numbers.length === 0) return [];
     const rows = await this.sql<{ number: number }[]>`
-      update moderation_cases set voided_at = now(), voided_by = ${by}, void_reason = ${reason}
+      update moderation_cases set voided_at = now(), voided_by = ${by},
+        void_reason = ${sealText(guildId, reason)}
       where guild_id = ${guildId} and number = any(${this.sql.array(numbers as number[])}::int[]) and voided_at is null
       returning number
     `;
@@ -581,7 +684,7 @@ export class ModerationStore {
         and ended_at is null and voided_at is null
       order by expires_at
       limit ${limit}
-    `;
+    `.then((rows) => rows.map(openCaseRow));
   }
 
   async summary(
@@ -662,13 +765,13 @@ export class ModerationStore {
         values (
           ${guildId},
           (select coalesce(max(number), 0) + 1 from moderation_notes where guild_id = ${guildId}),
-          ${userId}, ${authorId}, ${body}
+          ${userId}, ${authorId}, ${sealText(guildId, body)}
         )
         returning id::text, number, guild_id::text as "guildId", user_id::text as "userId",
           author_id::text as "authorId", body, created_at as "createdAt"
       `;
       if (!row) throw new Error('note insert returned nothing');
-      return row;
+      return openNote(row);
     });
   }
 
@@ -680,7 +783,7 @@ export class ModerationStore {
       from moderation_notes
       where guild_id = ${guildId} and number = ${number} and deleted_at is null
     `;
-    return row ?? null;
+    return row ? openNote(row) : null;
   }
 
   async notes(guildId: string, userId: string, limit = 50): Promise<NoteRow[]> {
@@ -691,7 +794,7 @@ export class ModerationStore {
       where guild_id = ${guildId} and user_id = ${userId} and deleted_at is null
       order by created_at desc, id desc
       limit ${Math.min(Math.max(limit, 1), 200)}
-    `;
+    `.then((rows) => rows.map(openNote));
   }
 
   async deleteNote(guildId: string, id: string): Promise<boolean> {
@@ -720,7 +823,7 @@ export class ModerationStore {
       order by changed_at desc, id desc
       limit 1
     `;
-    return row ?? null;
+    return row ? openName(guildId, row) : null;
   }
 
   async recordName(
@@ -733,7 +836,10 @@ export class ModerationStore {
   ): Promise<void> {
     await this.sql`
       insert into moderation_names (guild_id, user_id, kind, value, previous, baseline)
-      values (${guildId}, ${userId}, ${kind}, ${value}, ${previous}, ${baseline})
+      values (
+        ${guildId}, ${userId}, ${kind}, ${sealText(guildId, value)},
+        ${sealText(guildId, previous)}, ${baseline}
+      )
     `;
   }
 
@@ -744,7 +850,7 @@ export class ModerationStore {
       where guild_id = ${guildId} and user_id = ${userId} and not baseline
       order by changed_at desc, id desc
       limit ${Math.min(Math.max(limit, 1), 200)}
-    `;
+    `.then((rows) => rows.map((row) => openName(guildId, row)));
   }
 
   async nameChanges(guildId: string, userId: string, since: Date): Promise<number> {
@@ -817,7 +923,7 @@ export class ModerationStore {
       order by number desc
       limit 1
     `;
-    return row ?? null;
+    return row ? openCaseRow(row) : null;
   }
 
   async attribute(
@@ -829,7 +935,7 @@ export class ModerationStore {
     const rows = await this.sql`
       update moderation_cases set
         moderator_id = coalesce(moderator_id, ${moderatorId}),
-        reason = coalesce(reason, ${reason})
+        reason = coalesce(reason, ${sealText(guildId, reason)})
       where guild_id = ${guildId} and number = ${number}
       returning number
     `;
@@ -855,7 +961,12 @@ export class ModerationStore {
         (select count(*)::int from moderation_cases
           where guild_id = ${guildId} and moderator_id = ${userId}) as issued
     `;
-    return { cases, names, notes: extra?.notes ?? 0, issued: extra?.issued ?? 0 };
+    return {
+      cases: cases.map(openCaseRow),
+      names: names.map((row) => openName(guildId, row)),
+      notes: extra?.notes ?? 0,
+      issued: extra?.issued ?? 0,
+    };
   }
 
   async forgetMember(guildId: string, userId: string): Promise<void> {
