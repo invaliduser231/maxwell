@@ -31,6 +31,7 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: postgres://maxwell:${POSTGRES_PASSWORD}@postgres:5432/maxwell
+      DATA_KEY: ${DATA_KEY:-}
 
   dashboard:
     <<: *app
@@ -41,6 +42,7 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: postgres://maxwell:${POSTGRES_PASSWORD}@postgres:5432/maxwell
+      DATA_KEY: ${DATA_KEY:-}
     ports:
       - "${DASHBOARD_BIND:-127.0.0.1}:${DASHBOARD_PORT:-3000}:3000"
 

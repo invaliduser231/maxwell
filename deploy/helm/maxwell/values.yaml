@@ -8,6 +8,7 @@ secrets:
   fluxerClientId: ""
   fluxerClientSecret: ""
   sessionSecret: ""
+  dataKey: ""
   fluxerlistApiKey: ""
   twitchClientSecret: ""
   postgresPassword: ""

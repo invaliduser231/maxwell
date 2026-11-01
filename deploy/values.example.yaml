@@ -3,6 +3,7 @@ secrets:
   fluxerClientId: "<oauth client id>"
   fluxerClientSecret: "<oauth client secret>"
   sessionSecret: ""
+  dataKey: ""
   fluxerlistApiKey: ""
   twitchClientSecret: ""
   postgresPassword: ""

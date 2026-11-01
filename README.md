@@ -12,7 +12,7 @@ cd maxwell
 cp .env.example .env
 ```
 
-Fill in at least `FLUXER_TOKEN`, `FLUXER_CLIENT_ID`, `FLUXER_CLIENT_SECRET`, `POSTGRES_PASSWORD`, `SESSION_SECRET` (32 characters or more), `DASHBOARD_URL` and `OWNER_IDS`. In the Fluxer application settings, add `<DASHBOARD_URL>/auth/callback` as a redirect URI.
+Fill in at least `FLUXER_TOKEN`, `FLUXER_CLIENT_ID`, `FLUXER_CLIENT_SECRET`, `POSTGRES_PASSWORD`, `SESSION_SECRET` (32 characters or more), `DATA_KEY`, `DASHBOARD_URL` and `OWNER_IDS`. In the Fluxer application settings, add `<DASHBOARD_URL>/auth/callback` as a redirect URI.
 
 ```sh
 docker compose up -d --build
@@ -27,6 +27,8 @@ gpg --decrypt backups/maxwell-<date>.dump.gpg | docker compose exec -T postgres 
 ```
 
 Stop the bot before restoring (`docker compose stop bot`).
+
+Back up `DATA_KEY` (create it with `openssl rand -base64 32`) separately from the database: without it the encrypted data is lost.
 
 Run one bot per database. A second bot started against the same database waits until the first one stops.
 

@@ -57,7 +57,7 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 
 {{- define "maxwell.secretEnv" -}}
 {{- $name := include "maxwell.secretName" . -}}
-{{- range $key := list "FLUXER_TOKEN" "FLUXER_CLIENT_ID" "FLUXER_CLIENT_SECRET" "SESSION_SECRET" "FLUXERLIST_API_KEY" "TWITCH_CLIENT_SECRET" }}
+{{- range $key := list "FLUXER_TOKEN" "FLUXER_CLIENT_ID" "FLUXER_CLIENT_SECRET" "SESSION_SECRET" "DATA_KEY" "FLUXERLIST_API_KEY" "TWITCH_CLIENT_SECRET" }}
 - name: {{ $key }}
   valueFrom:
     secretKeyRef:
