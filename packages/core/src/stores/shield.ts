@@ -15,7 +15,7 @@ const columns = (sql: Sql) => sql`
   reported_by::text as "reportedBy", created_at as "createdAt", expires_at as "expiresAt"
 `;
 
-const participates = (sql: Sql, guild: ReturnType<Sql>) => sql`
+export const participates = (sql: Sql, guild: ReturnType<Sql>) => sql`
   exists (
     select 1 from guild_modules m
     where m.guild_id = ${guild} and m.module = 'security' and m.enabled is true

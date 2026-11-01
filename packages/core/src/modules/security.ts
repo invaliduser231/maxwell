@@ -256,5 +256,39 @@ export default defineModule({
         create index security_shield_reports_user on security_shield_reports (user_id, expires_at);
       `,
     },
+    {
+      id: '3-shield-disputes',
+      up: `
+        create table security_shield_disputes (
+          id bigint generated always as identity primary key,
+          user_id bigint not null,
+          body text not null,
+          status text not null default 'open' check (status in ('open', 'removed', 'kept')),
+          note text,
+          decided_by bigint,
+          decided_at timestamptz,
+          created_at timestamptz not null default now()
+        );
+
+        create unique index security_shield_disputes_open on security_shield_disputes (user_id)
+          where status = 'open';
+        create index security_shield_disputes_user on security_shield_disputes (user_id, created_at desc);
+        create index security_shield_disputes_decided on security_shield_disputes (decided_at)
+          where status <> 'open';
+
+        create table security_shield_decisions (
+          id bigint generated always as identity primary key,
+          dispute_id bigint not null references security_shield_disputes (id) on delete cascade,
+          user_id bigint not null,
+          action text not null check (action in ('removed', 'kept')),
+          operator_id bigint not null,
+          note text,
+          records jsonb not null default '[]',
+          created_at timestamptz not null default now()
+        );
+
+        create index security_shield_decisions_created on security_shield_decisions (created_at desc);
+      `,
+    },
   ],
 });
