@@ -1,5 +1,6 @@
 import {
   AuditStore,
+  configureDataKey,
   connect,
   FluxerList,
   GuildStore,
@@ -8,6 +9,8 @@ import {
   type InstanceLock,
   ModuleStore,
   migrate,
+  onDataKeyError,
+  sealExisting,
   Votes,
   writeMeta,
 } from '@maxwell/core';
@@ -34,6 +37,9 @@ import { Voice } from './ui/voice.js';
 const config = loadConfig();
 const log = createLogger(config.LOG_LEVEL, config.NODE_ENV === 'development');
 const sql = connect(config.DATABASE_URL);
+const cipher = configureDataKey(config.DATA_KEY);
+if (!cipher.enabled) log.warn('DATA_KEY is not set, stored text is not encrypted');
+onDataKeyError((error) => log.error({ err: error }, 'could not decrypt stored text'));
 
 await migrate(sql, log, moduleMigrations());
 
@@ -106,11 +112,13 @@ const health = startHealthServer(config.HEALTH_PORT, {
 let stopping = false;
 let lock: InstanceLock | null = null;
 const waiting = new AbortController();
+const sealing = new AbortController();
 async function shutdown(signal: string): Promise<void> {
   if (stopping) return;
   stopping = true;
   log.info({ signal }, 'shutting down');
   waiting.abort();
+  sealing.abort();
   jobs.stop();
   stopStructure();
   await loaded.shutdown();
@@ -137,4 +145,9 @@ try {
 if (!stopping) {
   await platform.connect();
   jobs.start();
+  if (cipher.enabled) {
+    void sealExisting(sql, { signal: sealing.signal, pauseMs: 500, log }).catch((error) =>
+      log.warn({ err: error }, 'could not encrypt stored text'),
+    );
+  }
 }

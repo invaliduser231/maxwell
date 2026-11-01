@@ -17,6 +17,14 @@ describe('loadConfig', () => {
     expect(config.DEFAULT_PREFIX).toBe('m!');
   });
 
+  it('accepts an optional 32 byte data key', () => {
+    const base = { FLUXER_TOKEN: 'token', DATABASE_URL: 'postgres://x' };
+    expect(loadConfig({ ...base, DATA_KEY: '' }).DATA_KEY).toBeUndefined();
+    const key = Buffer.alloc(32, 7).toString('base64');
+    expect(loadConfig({ ...base, DATA_KEY: key }).DATA_KEY).toBe(key);
+    expect(() => loadConfig({ ...base, DATA_KEY: 'c2hvcnQ=' })).toThrow(/DATA_KEY/);
+  });
+
   it('still rejects a missing token', () => {
     expect(() => loadConfig({ FLUXER_TOKEN: '', DATABASE_URL: 'postgres://x' })).toThrow(
       /FLUXER_TOKEN/,

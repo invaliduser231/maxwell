@@ -1,3 +1,4 @@
+import { isValidDataKey } from '@maxwell/core/crypto/data';
 import { z } from 'zod';
 
 const idList = z
@@ -14,6 +15,7 @@ const schema = z.object({
   FLUXER_TOKEN: z.string().min(1),
   FLUXER_API: z.url().optional(),
   DATABASE_URL: z.string().min(1),
+  DATA_KEY: z.string().refine(isValidDataKey, 'must be 32 bytes encoded as base64').optional(),
   DEFAULT_PREFIX: z.string().min(1).max(8).default('m!'),
   OWNER_IDS: idList,
   ICON_EMOJIS: z.string().default(''),
