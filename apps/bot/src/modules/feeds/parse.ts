@@ -25,14 +25,68 @@ export interface ParsedFeed {
 
 const MAX_ITEMS = 50;
 const SUMMARY_MAX = 600;
+const BLOCK_TAGS = ['script', 'style'];
+
+function tagAt(html: string, at: number, tag: string): boolean {
+  for (let i = 0; i < tag.length; i++) {
+    const code = html.charCodeAt(at + i);
+    if ((code >= 65 && code <= 90 ? code + 32 : code) !== tag.charCodeAt(i)) return false;
+  }
+  return true;
+}
+
+function findTag(html: string, tag: string, from: number): number {
+  let at = html.indexOf('<', from);
+  while (at !== -1 && !tagAt(html, at, tag)) at = html.indexOf('<', at + 1);
+  return at;
+}
+
+function removeBlocks(html: string): string {
+  const unclosed = new Set<string>();
+  let out = '';
+  let kept = 0;
+  let at = html.indexOf('<');
+  while (at !== -1) {
+    let next = at + 1;
+    const name = BLOCK_TAGS.find((tag) => tagAt(html, next, tag));
+    if (name && !unclosed.has(name)) {
+      const close = findTag(html, `</${name}>`, next + name.length);
+      if (close === -1) {
+        unclosed.add(name);
+      } else {
+        out += html.slice(kept, at);
+        kept = close + name.length + 3;
+        next = kept;
+      }
+    }
+    at = html.indexOf('<', next);
+  }
+  return out + html.slice(kept);
+}
+
+function replaceTags(html: string, open: string, replacement: string, minBody = 0): string {
+  let out = '';
+  let kept = 0;
+  let at = findTag(html, open, 0);
+  while (at !== -1) {
+    const end = html.indexOf('>', at + open.length);
+    if (end === -1) break;
+    let next = at + 1;
+    if (end - at - open.length >= minBody) {
+      out += html.slice(kept, at) + replacement;
+      kept = end + 1;
+      next = kept;
+    }
+    at = findTag(html, open, next);
+  }
+  return out + html.slice(kept);
+}
 
 export function htmlToText(html: string): string {
-  const stripped = html
-    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, '')
+  const breaks = removeBlocks(html)
     .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(p|div|li|h[1-6]|blockquote|tr)>/gi, '\n')
-    .replace(/<li[^>]*>/gi, '- ')
-    .replace(/<[^>]+>/g, '');
+    .replace(/<\/(p|div|li|h[1-6]|blockquote|tr)>/gi, '\n');
+  const stripped = replaceTags(replaceTags(breaks, '<li', '- '), '<', '', 1);
   return decodeEntities(stripped)
     .replace(/\r/g, '')
     .replace(/[ \t ]+/g, ' ')
