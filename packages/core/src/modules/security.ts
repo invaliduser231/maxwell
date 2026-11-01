@@ -149,6 +149,10 @@ export const shieldSources = ['raid', 'nuke', 'severe', 'honeypot', 'manual'] as
 
 export type ShieldSource = (typeof shieldSources)[number];
 
+export const incidentKinds = ['raid', 'manual', 'nuke', 'lockdown'] as const;
+
+export type IncidentKind = (typeof incidentKinds)[number];
+
 export const SHIELD_MIN_COMMUNITIES = 2;
 export const SHIELD_DAYS = 90;
 
@@ -288,6 +292,51 @@ export default defineModule({
         );
 
         create index security_shield_decisions_created on security_shield_decisions (created_at desc);
+      `,
+    },
+    {
+      id: '4-incidents',
+      up: `
+        create table security_incidents (
+          id bigint generated always as identity primary key,
+          guild_id bigint not null,
+          kind text not null check (kind in ('raid', 'manual', 'nuke', 'lockdown')),
+          trigger text,
+          raid_id bigint,
+          lockdown_id bigint,
+          started_by bigint,
+          started_at timestamptz not null default now(),
+          ends_at timestamptz,
+          ended_at timestamptz,
+          ended_by bigint,
+          undone_at timestamptz,
+          undone_by bigint
+        );
+
+        create unique index security_incidents_open on security_incidents (guild_id)
+          where ended_at is null;
+        create index security_incidents_guild on security_incidents (guild_id, started_at desc);
+
+        create table security_incident_events (
+          id bigint generated always as identity primary key,
+          incident_id bigint not null references security_incidents (id) on delete cascade,
+          guild_id bigint not null,
+          kind text not null,
+          user_id bigint,
+          actor_id bigint,
+          by_maxwell boolean not null default false,
+          target_id bigint,
+          count integer not null default 1,
+          detail jsonb not null default '{}',
+          created_at timestamptz not null default now()
+        );
+
+        create index security_incident_events_incident
+          on security_incident_events (incident_id, created_at, id);
+        create unique index security_incident_events_target
+          on security_incident_events (incident_id, kind, target_id) where target_id is not null;
+        create index security_incident_events_user on security_incident_events (guild_id, user_id)
+          where user_id is not null;
       `,
     },
   ],

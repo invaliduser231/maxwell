@@ -7,6 +7,7 @@ export const RETENTION = {
   auditDays: 365,
   closedInboxDays: 365,
   closedDisputeDays: 365,
+  incidentDays: 90,
 } as const;
 
 const DAY = 86_400_000;
@@ -18,6 +19,7 @@ export interface RetentionResult {
   audit: number;
   inbox: number;
   disputes: number;
+  incidents: number;
 }
 
 export class RetentionStore {
@@ -32,6 +34,7 @@ export class RetentionStore {
       audit: await this.pruneAudit(before(RETENTION.auditDays)),
       inbox: await this.pruneInbox(before(RETENTION.closedInboxDays)),
       disputes: await this.pruneDisputes(before(RETENTION.closedDisputeDays)),
+      incidents: await this.pruneIncidents(before(RETENTION.incidentDays)),
     };
   }
 
@@ -104,6 +107,19 @@ export class RetentionStore {
     const rows = await this.sql`
       delete from security_shield_disputes
       where status <> 'open' and decided_at < ${before}
+      returning id
+    `;
+    return rows.length;
+  }
+
+  async pruneIncidents(before: Date): Promise<number> {
+    const [exists] = await this.sql<{ ok: boolean }[]>`
+      select to_regclass('security_incidents') is not null as ok
+    `;
+    if (!exists?.ok) return 0;
+    const rows = await this.sql`
+      delete from security_incidents
+      where coalesce(ended_at, started_at) < ${before}
       returning id
     `;
     return rows.length;

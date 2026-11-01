@@ -137,6 +137,16 @@ export class SecurityStore {
     return row ?? null;
   }
 
+  async lastScore(guildId: string, userId: string, since: Date): Promise<number | null> {
+    const [row] = await this.sql<{ score: number }[]>`
+      select score from security_checks
+      where guild_id = ${guildId} and user_id = ${userId} and created_at >= ${since}
+      order by id desc
+      limit 1
+    `;
+    return row?.score ?? null;
+  }
+
   async recentChecks(guildId: string, limit = 50): Promise<SecurityCheck[]> {
     return this.sql<SecurityCheck[]>`
       select ${checkColumns(this.sql)} from security_checks
