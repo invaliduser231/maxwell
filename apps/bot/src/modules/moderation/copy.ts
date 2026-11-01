@@ -33,6 +33,7 @@ const en = {
     unlock: 'Opens a locked channel again.',
     slowmode: 'Sets how long members wait between messages in a channel.',
     purge: 'Deletes recent messages in this channel, optionally filtered.',
+    massban: 'Bans several members at once by ID or mention.',
     noteRemove: 'Removes a note.',
     note: 'Adds a private note to a member file. Only moderators see notes.',
     notes: 'Sends you the notes on a member as a DM.',
@@ -211,6 +212,27 @@ const en = {
     confirmHint: (icon: string) => `React with ${icon} within 30 seconds to go ahead.`,
     expired: 'No answer, so nothing happened.',
     summary: (n: number, channel: string) => `Deleted ${plural(n, 'message')} in ${channel}`,
+  },
+
+  massban: {
+    none: 'Name at least one member by ID or mention.',
+    tooMany: (max: number) => `That's more than ${count(max)} members. Split the list.`,
+    confirm: (n: number) => `> [!WARNING]\n> This bans **${plural(n, 'member')}**.`,
+    reason: (reason: string) => `Reason: ${reason}`,
+    confirmHint: (icon: string) => `React with ${icon} within 30 seconds to go ahead.`,
+    expired: 'No answer, so nobody was banned.',
+    progress: (done: number, total: number) => `Checked ${count(done)} of ${count(total)}.`,
+    done: (banned: number, total: number) =>
+      `Banned ${count(banned)} of ${plural(total, 'member')}.`,
+    cases: (first: number, last: number) =>
+      first === last ? `Case #${first}.` : `Cases #${first} to #${last}.`,
+    skipped: (n: number) =>
+      `Skipped ${count(n)}: already banned, ranked too high or out of my reach.`,
+    failed: (n: number) => `${count(n)} failed. Check my role and permissions.`,
+    casesField: 'Cases',
+    logTitle: 'Mass ban',
+    logSummary: (banned: number, total: number) =>
+      `Banned ${count(banned)} of ${plural(total, 'member')}.`,
   },
 
   lock: {

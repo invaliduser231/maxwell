@@ -33,6 +33,7 @@ const de: ModerationCopy = {
     unlock: 'Gibt einen gesperrten Kanal wieder frei.',
     slowmode: 'Legt fest, wie lange Mitglieder in einem Kanal zwischen Nachrichten warten.',
     purge: 'Löscht die letzten Nachrichten in diesem Kanal, auf Wunsch gefiltert.',
+    massban: 'Bannt mehrere Mitglieder auf einmal per ID oder Erwähnung.',
     noteRemove: 'Löscht eine Notiz.',
     note: 'Legt eine private Notiz zu einem Mitglied an. Notizen sieht nur die Moderation.',
     notes: 'Schickt dir die Notizen zu einem Mitglied per DM.',
@@ -222,6 +223,27 @@ const de: ModerationCopy = {
     expired: 'Keine Antwort, also ist nichts passiert.',
     summary: (n: number, channel: string) =>
       `${plural(n, 'Nachricht', 'Nachrichten')} in ${channel} gelöscht`,
+  },
+
+  massban: {
+    none: 'Nenn mindestens ein Mitglied per ID oder Erwähnung.',
+    tooMany: (max: number) => `Das sind mehr als ${count(max)} Mitglieder. Teil die Liste auf.`,
+    confirm: (n: number) => `> [!WARNING]\n> Das bannt **${plural(n, 'Mitglied', 'Mitglieder')}**.`,
+    reason: (reason: string) => `Grund: ${reason}`,
+    confirmHint: (icon: string) => `Reagiere innerhalb von 30 Sekunden mit ${icon}, um loszulegen.`,
+    expired: 'Keine Antwort, also wurde niemand gebannt.',
+    progress: (done: number, total: number) => `${count(done)} von ${count(total)} geprüft.`,
+    done: (banned: number, total: number) =>
+      `${count(banned)} von ${plural(total, 'Mitglied', 'Mitgliedern')} gebannt.`,
+    cases: (first: number, last: number) =>
+      first === last ? `Fall #${first}.` : `Fälle #${first} bis #${last}.`,
+    skipped: (n: number) =>
+      `${count(n)} übersprungen: schon gebannt, zu hoher Rang oder außer meiner Reichweite.`,
+    failed: (n: number) => `${count(n)} fehlgeschlagen. Prüf meine Rolle und Rechte.`,
+    casesField: 'Fälle',
+    logTitle: 'Massenbann',
+    logSummary: (banned: number, total: number) =>
+      `${count(banned)} von ${plural(total, 'Mitglied', 'Mitgliedern')} gebannt.`,
   },
 
   lock: {

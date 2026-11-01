@@ -42,6 +42,7 @@ export interface ActInput {
   source: Source;
   escalate?: boolean;
   previousUntil?: Date | null;
+  quiet?: boolean;
 }
 
 export type EscalationResult =
@@ -130,6 +131,7 @@ export class ModerationService {
     let dm: ActResult['dm'] = 'skipped';
     const wantsDm =
       !performed &&
+      !input.quiet &&
       config.dmMembers &&
       (dmActions as readonly string[]).includes(action) &&
       !user?.bot;
@@ -201,7 +203,7 @@ export class ModerationService {
     await this.store.setMeta(guildId, row.number, { auditId });
     row.meta = { ...row.meta, auditId };
 
-    await this.postLog(row, user);
+    if (!input.quiet) await this.postLog(row, user);
 
     let active = 0;
     let escalation: EscalationResult | null = null;

@@ -1,5 +1,6 @@
 import { cancel } from '@maxwell/core';
 import { generalConfig } from '@maxwell/core/modules/general';
+import { MASS_BAN_MAX } from '@maxwell/core/modules/moderation';
 import type { OverwriteChange } from '@maxwell/core/stores/moderation';
 import { ShieldStore } from '@maxwell/core/stores/shield';
 import { z } from 'zod';
@@ -7,7 +8,9 @@ import { statusOf } from './access.js';
 import type { AppliedOverwrite, ChannelTools } from './channels.js';
 import { expiryKey, NAME_HISTORY_DAYS } from './config.js';
 import { reasons } from './copy.js';
+import { massBan, postMassBanSummary } from './massban.js';
 import { ActionError, type ModerationService } from './service.js';
+import { deleteSecondsFor } from './templates.js';
 import { auditReason } from './text.js';
 
 const HOUR = 3_600_000;
@@ -15,6 +18,7 @@ const DAY = 86_400_000;
 const OVERDUE_GRACE = 5 * 60_000;
 
 const snowflake = z.string().regex(/^\d{1,21}$/);
+const MASS_BAN_CHUNK = 20;
 
 export const actionPayload = z.object({
   action: z.enum(['ban', 'unban', 'kick', 'timeout', 'untimeout', 'warn']),
@@ -24,7 +28,24 @@ export const actionPayload = z.object({
   durationSeconds: z.number().int().positive().max(63_072_000).nullable().default(null),
   source: z.enum(['dashboard', 'automod', 'security']).default('dashboard'),
   deleteMessageSeconds: z.number().int().min(0).max(604_800).nullable().default(null),
+  deleteMessages: z.boolean().default(false),
   shield: z.boolean().default(false),
+});
+
+export const massBanPayload = z.object({
+  userIds: z.array(snowflake).min(1).max(MASS_BAN_MAX),
+  moderatorId: snowflake,
+  reason: z.string().max(1_500).nullable().default(null),
+  deleteMessages: z.boolean().default(false),
+  shield: z.boolean().default(false),
+  batch: z.string().max(64).nullable().default(null),
+  total: z.number().int().min(0).max(MASS_BAN_MAX).nullable().default(null),
+  banned: z
+    .array(z.object({ userId: snowflake, number: z.number().int().positive() }))
+    .max(MASS_BAN_MAX)
+    .default([]),
+  skipped: z.number().int().min(0).max(MASS_BAN_MAX).default(0),
+  failed: z.number().int().min(0).max(MASS_BAN_MAX).default(0),
 });
 
 export const reviewPayload = z.object({
@@ -142,6 +163,10 @@ export function registerJobs(moderation: ModerationService, tools: ChannelTools)
       const member = await platform.member(guildId, input.userId);
       previousUntil = member?.timeoutUntil ?? null;
     }
+    const deleteMessageSeconds =
+      input.action === 'ban' && input.deleteMessages && input.deleteMessageSeconds === null
+        ? deleteSecondsFor(await moderation.config(guildId))
+        : input.deleteMessageSeconds;
     try {
       const result = await moderation.act({
         guildId,
@@ -150,7 +175,7 @@ export function registerJobs(moderation: ModerationService, tools: ChannelTools)
         moderatorId: input.moderatorId,
         reason: input.reason,
         durationMs: input.durationSeconds !== null ? input.durationSeconds * 1_000 : null,
-        deleteMessageSeconds: input.deleteMessageSeconds,
+        deleteMessageSeconds,
         source: input.source,
         previousUntil,
       });
@@ -167,6 +192,49 @@ export function registerJobs(moderation: ModerationService, tools: ChannelTools)
       }
       throw error;
     }
+  });
+
+  ctx.job('massban', async (job) => {
+    const guildId = job.guildId;
+    const parsed = massBanPayload.safeParse(job.payload);
+    if (!guildId || !parsed.success) {
+      log.warn({ guild: guildId, payload: job.payload }, 'invalid mass ban payload');
+      return;
+    }
+    const input = parsed.data;
+    const config = await moderation.config(guildId);
+    const batch = input.batch ?? job.id;
+    const chunk = input.userIds.slice(0, MASS_BAN_CHUNK);
+    const rest = input.userIds.slice(MASS_BAN_CHUNK);
+    const result = await massBan(moderation, {
+      guildId,
+      userIds: chunk,
+      moderatorId: input.moderatorId,
+      reason: input.reason,
+      deleteMessageSeconds: input.deleteMessages ? deleteSecondsFor(config) : null,
+      source: 'dashboard',
+      batch,
+      shield: input.shield,
+      summary: false,
+    });
+    const banned = [...input.banned, ...result.banned];
+    const skipped = input.skipped + result.skipped.length;
+    const failed = input.failed + result.failed.length;
+    const total = input.total ?? input.userIds.length;
+    if (rest.length > 0) {
+      await ctx.schedule('massban', {
+        guildId,
+        payload: { ...input, userIds: rest, batch, total, banned, skipped, failed },
+        dedupeKey: `moderation.massban:${batch}:${rest.length}`,
+      });
+      return;
+    }
+    await postMassBanSummary(
+      moderation,
+      { guildId, moderatorId: input.moderatorId, reason: input.reason },
+      { total, banned },
+    );
+    log.info({ guild: guildId, banned: banned.length, skipped, failed }, 'mass ban finished');
   });
 
   ctx.job('review', async (job) => {

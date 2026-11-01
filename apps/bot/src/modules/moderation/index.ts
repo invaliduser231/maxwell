@@ -5,6 +5,7 @@ import { ChannelTools } from './channels.js';
 import { actionCommands } from './commands/actions.js';
 import { caseCommands } from './commands/cases.js';
 import { channelCommands } from './commands/channels.js';
+import { massBanCommand } from './commands/massban.js';
 import { noteCommands } from './commands/notes.js';
 import { reportCommands } from './commands/report.js';
 import { Confirmations } from './confirm.js';
@@ -47,6 +48,7 @@ export default defineBotModule({
 
     return [
       ...actionCommands(moderation),
+      massBanCommand(moderation, confirmations),
       ...caseCommands(moderation),
       ...noteCommands(moderation),
       ...reportCommands(inbox),
