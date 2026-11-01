@@ -1,3 +1,4 @@
+import type { FindingKey, Severity } from '@maxwell/core/modules/security-check';
 import { mention } from '../../commands/mentions.js';
 import { andList, bold, code, lines, plural, subtext } from '../../ui/format.js';
 import type { TargetColor } from './captcha.js';
@@ -8,6 +9,27 @@ function span(hours: number): string {
   if (hours % 24 !== 0) return plural(hours, 'Stunde', 'Stunden');
   return plural(hours / 24, 'Tag', 'Tagen');
 }
+
+const permissionNames: Record<string, string> = {
+  Administrator: 'Administrator',
+  ManageGuild: 'Server verwalten',
+  ManageRoles: 'Rollen verwalten',
+  ManageChannels: 'Kanäle verwalten',
+  ManageWebhooks: 'Webhooks verwalten',
+  BanMembers: 'Mitglieder bannen',
+  KickMembers: 'Mitglieder kicken',
+  MentionEveryone: '@everyone erwähnen',
+};
+
+const ruleNames: Record<string, string> = {
+  spam: 'Spam',
+  mentions: 'Massen-Erwähnungen',
+  newAccountLinks: 'Links von neuen Konten',
+  invites: 'Einladungslinks',
+};
+
+const named = (names: readonly string[], table: Record<string, string>) =>
+  andList(names.map((name) => table[name] ?? name));
 
 const de: SecurityCopy = {
   colors: { blue: 'blauen', yellow: 'gelben' } as Record<TargetColor, string>,
@@ -187,6 +209,36 @@ const de: SecurityCopy = {
     pending: (count: number) =>
       `${plural(count, 'Mitglied wartet', 'Mitglieder warten')} auf ein Captcha`,
   },
+  check: {
+    title: (score: number) => `Sicherheitscheck: ${score} von 100`,
+    clean: 'Nichts zu beheben.',
+    severity: { high: 'Hoch', medium: 'Mittel', low: 'Niedrig' } as Record<Severity, string>,
+    line: (severity: string, text: string) => `${bold(severity)}: ${text}`,
+    more: (count: number) => `${plural(count, 'weiterer Befund', 'weitere Befunde')} im Dashboard.`,
+    fixHint: (url: string | null) =>
+      url
+        ? `Beheben kannst du sie auf der [Security-Seite](${url}).`
+        : 'Beheben kannst du sie auf der Security-Seite im Dashboard.',
+    findings: {
+      securityOff: () => 'Security ist aus.',
+      everyone: (names: readonly string[]) => `@everyone hat ${named(names, permissionNames)}.`,
+      botPosition: (names: readonly string[]) =>
+        `Maxwells Rolle steht unter ${andList(names.slice(0, 3))} und kann deshalb nichts gegen diese Mitglieder tun.`,
+      botAdmin: (names: readonly string[]) => `Die Bot-Rolle ${names[0] ?? ''} hat Administrator.`,
+      nukeOff: () => 'Die Nuke-Wache ist aus.',
+      automodOff: () => 'AutoMod ist aus.',
+      automodRules: (names: readonly string[]) =>
+        `AutoMod prüft nicht auf ${named(names, ruleNames)}.`,
+      raidOff: () => 'Die Raid-Wache ist aus.',
+      verificationOff: () => 'Das Captcha für riskante Beitritte ist aus.',
+      adminRoles: (names: readonly string[]) =>
+        `${plural(names.length, 'Rolle gibt', 'Rollen geben')} Administrator: ${andList(names.slice(0, 5))}.`,
+      modRoles: (names: readonly string[]) =>
+        `In Moderation nicht als Mod-Rollen eingetragen: ${andList(names.slice(0, 5))}.`,
+      securityLog: () => 'Security hat keinen Log-Kanal.',
+      modLog: () => 'Moderation hat keinen Log-Kanal.',
+    } as Record<FindingKey, (names: readonly string[]) => string>,
+  },
   commands: {
     verify: 'Beantwortet dein Captcha. Mit "new" kommt ein neues Bild.',
     security: 'Zeigt, worauf Security achtet.',
@@ -197,6 +249,7 @@ const de: SecurityCopy = {
     honeypot: 'Legt einen Fallen-Kanal für Spam-Bots an.',
     shield: 'Teilt einen Bann für 90 Tage mit Maxwell Shield.',
     unshield: 'Nimmt ein Mitglied wieder aus Maxwell Shield heraus.',
+    check: 'Bewertet, wie gut die Community geschützt ist.',
   },
   replies: {
     passed: (userId: string) => `${mention.user(userId)} ist durch.`,

@@ -1,3 +1,4 @@
+import type { FindingKey, Severity } from '@maxwell/core/modules/security-check';
 import { mention } from '../../commands/mentions.js';
 import { localized } from '../../i18n/localized.js';
 import { andList, bold, code, lines, plural, subtext } from '../../ui/format.js';
@@ -9,6 +10,27 @@ function span(hours: number): string {
   if (hours % 24 !== 0) return plural(hours, 'hour');
   return plural(hours / 24, 'day');
 }
+
+const permissionNames: Record<string, string> = {
+  Administrator: 'Administrator',
+  ManageGuild: 'Manage Server',
+  ManageRoles: 'Manage Roles',
+  ManageChannels: 'Manage Channels',
+  ManageWebhooks: 'Manage Webhooks',
+  BanMembers: 'Ban Members',
+  KickMembers: 'Kick Members',
+  MentionEveryone: 'Mention @everyone',
+};
+
+const ruleNames: Record<string, string> = {
+  spam: 'spam',
+  mentions: 'mass mentions',
+  newAccountLinks: 'links from new accounts',
+  invites: 'invite links',
+};
+
+const named = (names: readonly string[], table: Record<string, string>) =>
+  andList(names.map((name) => table[name] ?? name));
 
 const en = {
   colors: { blue: 'blue', yellow: 'yellow' } as Record<TargetColor, string>,
@@ -181,6 +203,36 @@ const en = {
       on ? `${plural(channels, 'trap channel')}` : 'No honeypot',
     pending: (count: number) => `${plural(count, 'member')} waiting for a captcha`,
   },
+  check: {
+    title: (score: number) => `Security check: ${score} of 100`,
+    clean: 'Nothing to fix.',
+    severity: { high: 'High', medium: 'Medium', low: 'Low' } as Record<Severity, string>,
+    line: (severity: string, text: string) => `${bold(severity)}: ${text}`,
+    more: (count: number) => `${plural(count, 'more finding')} on the dashboard.`,
+    fixHint: (url: string | null) =>
+      url
+        ? `Fix them on the [Security page](${url}).`
+        : 'Fix them on the Security page in the dashboard.',
+    findings: {
+      securityOff: () => 'Security is off.',
+      everyone: (names: readonly string[]) => `@everyone has ${named(names, permissionNames)}.`,
+      botPosition: (names: readonly string[]) =>
+        `Maxwell's role is below ${andList(names.slice(0, 3))}, so it cannot act on those members.`,
+      botAdmin: (names: readonly string[]) => `The bot role ${names[0] ?? ''} has Administrator.`,
+      nukeOff: () => 'Nuke watch is off.',
+      automodOff: () => 'AutoMod is off.',
+      automodRules: (names: readonly string[]) =>
+        `AutoMod does not check for ${named(names, ruleNames)}.`,
+      raidOff: () => 'Raid watch is off.',
+      verificationOff: () => 'The captcha for risky joins is off.',
+      adminRoles: (names: readonly string[]) =>
+        `${plural(names.length, 'role')} grant Administrator: ${andList(names.slice(0, 5))}.`,
+      modRoles: (names: readonly string[]) =>
+        `Not set as mod roles in Moderation: ${andList(names.slice(0, 5))}.`,
+      securityLog: () => 'Security has no log channel.',
+      modLog: () => 'Moderation has no log channel.',
+    } as Record<FindingKey, (names: readonly string[]) => string>,
+  },
   commands: {
     verify: 'Answers your captcha. Use "new" for a new picture.',
     security: 'Shows what Security is watching.',
@@ -191,6 +243,7 @@ const en = {
     honeypot: 'Creates a trap channel for spam bots.',
     shield: 'Shares a ban with Maxwell Shield for 90 days.',
     unshield: 'Takes a member back out of Maxwell Shield.',
+    check: 'Rates how well the community is protected.',
   },
   replies: {
     passed: (userId: string) => `${mention.user(userId)} is through.`,
@@ -224,6 +277,8 @@ export const reasons = {
   raidOver: 'Raid mode over',
   honeypotChannel: 'Honeypot channel',
   channelName: 'do-not-post',
+  check: 'Security check fix',
+  checkUndo: 'Security check fix undone',
 };
 
 export const audit = {
@@ -232,4 +287,6 @@ export const audit = {
   passed: (name: string) => `Let ${name} through the security check`,
   honeypot: 'Created a honeypot channel',
   shieldRemoved: 'Took a member out of Maxwell Shield',
+  checkEveryone: 'Security check: removed dangerous permissions from @everyone',
+  checkBotAdmin: (role: string) => `Security check: removed Administrator from ${role}`,
 };

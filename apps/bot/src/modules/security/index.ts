@@ -6,6 +6,7 @@ import { SecurityStore } from '@maxwell/core/stores/security';
 import { ShieldStore } from '@maxwell/core/stores/shield';
 import { defineBotModule } from '../../runtime/module.js';
 import { looksLikeAnswer } from './captcha.js';
+import { registerCheck } from './check.js';
 import { securityCommands } from './commands.js';
 import { audit } from './copy.js';
 import { Guard } from './guard.js';
@@ -195,6 +196,8 @@ export default defineBotModule({
     ctx.undo('raid', async (entry, _payload, by) => {
       await raid.end(entry.guildId, by);
     });
+
+    registerCheck(ctx);
 
     return securityCommands(ctx, store, verifier, raid, honeypot);
   },

@@ -4,6 +4,7 @@ import { ShieldStore } from '@maxwell/core/stores/shield';
 import type { Command } from '../../commands/types.js';
 import { lines, timestamp } from '../../ui/format.js';
 import { palette } from '../../ui/palette.js';
+import { checkCommand } from './check.js';
 import { copy } from './copy.js';
 import type { Ctx } from './guard.js';
 import type { Honeypot } from './honeypot.js';
@@ -200,7 +201,7 @@ export function securityCommands(
       guildOnly: true,
       permissions: status.permissions,
       run: status.run,
-      subcommands: [status, raidOn, calm, pass, trap, share, unshare],
+      subcommands: [status, checkCommand(ctx), raidOn, calm, pass, trap, share, unshare],
     },
   ];
 }
