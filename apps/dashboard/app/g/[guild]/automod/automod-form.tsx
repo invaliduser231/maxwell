@@ -36,6 +36,7 @@ import type { DryRunView, GateView, PhishingListView } from './data';
 
 type Rules = AutomodConfig['rules'];
 type Raid = AutomodConfig['raid'];
+type Slowmode = AutomodConfig['slowmode'];
 type AnyRule = Rules[AutomodRuleKey];
 
 function translated<T extends string>(t: Translator, list: { value: T; label: Key }[]) {
@@ -69,11 +70,12 @@ const ACTIONS: { value: AutomodAction; label: Key }[] = [
   { value: 'ban', label: 'Ban' },
 ];
 
-type Tab = 'rules' | 'raid' | 'settings';
+type Tab = 'rules' | 'raid' | 'slowmode' | 'settings';
 
 const TABS: { value: Tab; label: Key }[] = [
   { value: 'rules', label: 'Rules' },
   { value: 'raid', label: 'Raid shield' },
+  { value: 'slowmode', label: 'Slowmode' },
   { value: 'settings', label: 'Settings' },
 ];
 
@@ -739,6 +741,8 @@ export function AutomodForm({
     }));
   const setRaid = (patch: Partial<Raid>) =>
     update((previous) => ({ ...previous, raid: { ...previous.raid, ...patch } }));
+  const setSlowmode = (patch: Partial<Slowmode>) =>
+    update((previous) => ({ ...previous, slowmode: { ...previous.slowmode, ...patch } }));
 
   const dryRun = () => {
     const key = selected;
@@ -1057,6 +1061,81 @@ export function AutomodForm({
                   value={raid.alertRoleId}
                   none={t('Nobody')}
                   onChange={(alertRoleId) => setRaid({ alertRoleId })}
+                />
+              </Field>
+            </Fields>
+          </PanelBody>
+        </Panel>
+      ) : null}
+
+      {tab === 'slowmode' ? (
+        <Panel
+          title={t('Adaptive slowmode')}
+          id="slowmode"
+          actions={
+            <Switch
+              order
+              label={t('Adaptive slowmode')}
+              checked={value.slowmode.enabled}
+              onChange={(enabled) => setSlowmode({ enabled })}
+            />
+          }
+        >
+          <PanelBody>
+            <span className="mx-sub">
+              {t(
+                'Maxwell only changes slowmode it set itself and puts the old value back when it gets quiet.',
+              )}
+            </span>
+            <Labelled label={t('Channels')}>
+              <ChannelMulti
+                value={value.slowmode.channelIds}
+                onChange={(channelIds) => setSlowmode({ channelIds })}
+              />
+            </Labelled>
+            <Fields>
+              <Field label={t('Messages per minute')}>
+                <NumberInput
+                  value={value.slowmode.maxPerMinute}
+                  min={5}
+                  max={1000}
+                  onChange={(maxPerMinute) => setSlowmode({ maxPerMinute })}
+                />
+              </Field>
+              <Field label={t('Lowest slowmode')}>
+                <NumberInput
+                  value={value.slowmode.minSeconds}
+                  min={1}
+                  max={21_600}
+                  suffix={t('seconds')}
+                  onChange={(minSeconds) => setSlowmode({ minSeconds })}
+                />
+              </Field>
+              <Field label={t('Highest slowmode')}>
+                <NumberInput
+                  value={value.slowmode.maxSeconds}
+                  min={1}
+                  max={21_600}
+                  suffix={t('seconds')}
+                  onChange={(maxSeconds) => setSlowmode({ maxSeconds })}
+                />
+              </Field>
+              <Field label={t('Step')}>
+                <NumberInput
+                  value={value.slowmode.stepSeconds}
+                  min={1}
+                  max={3_600}
+                  suffix={t('seconds')}
+                  onChange={(stepSeconds) => setSlowmode({ stepSeconds })}
+                />
+              </Field>
+              <Field label={t('Wait between changes')}>
+                <NumberInput
+                  value={value.slowmode.cooldownSeconds}
+                  min={30}
+                  max={3_600}
+                  suffix={t('seconds')}
+                  onChange={(cooldownSeconds) => setSlowmode({ cooldownSeconds })}
                 />
               </Field>
             </Fields>

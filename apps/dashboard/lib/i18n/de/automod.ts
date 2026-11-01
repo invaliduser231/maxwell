@@ -130,4 +130,15 @@ export const automod = {
   'The domain list has not been loaded yet.': 'Die Domainliste wurde noch nicht geladen.',
   'Catch lookalike domains': 'Nachgeahmte Domains erkennen',
   'Allowed domains': 'Erlaubte Domains',
+  Slowmode: 'Slowmode',
+  'Adaptive slowmode': 'Adaptiver Slowmode',
+  'Maxwell only changes slowmode it set itself and puts the old value back when it gets quiet.':
+    'Maxwell ändert nur Slowmode, den es selbst gesetzt hat, und stellt den alten Wert wieder her, wenn es ruhiger wird.',
+  Channels: 'Kanäle',
+  'Messages per minute': 'Nachrichten pro Minute',
+  'Lowest slowmode': 'Niedrigster Slowmode',
+  'Highest slowmode': 'Höchster Slowmode',
+  Step: 'Schritt',
+  'Wait between changes': 'Pause zwischen Änderungen',
+  seconds: 'Sekunden',
 } as const;
