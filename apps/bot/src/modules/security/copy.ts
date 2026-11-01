@@ -192,6 +192,27 @@ const en = {
       `${mention.user(userId)} took the trap role. Maxwell ${action} the account.`,
     actions: { ban: 'banned', softban: 'removed and cleaned up after', quarantine: 'held back' },
   },
+  incident: {
+    kinds: {
+      raid: 'Raid',
+      manual: 'Raid',
+      nuke: 'Nuke',
+      lockdown: 'Lockdown',
+    } as Record<string, string>,
+    ended: (kind: string, minutes: number) => `${kind} over after ${plural(minutes, 'minute')}.`,
+    parts: {
+      joins: (n: number) => plural(n, 'join'),
+      bans: (n: number) => plural(n, 'ban'),
+      kicks: (n: number) => plural(n, 'kick'),
+      timeouts: (n: number) => plural(n, 'timeout'),
+      deleted: (n: number) => plural(n, 'deleted message'),
+      hits: (n: number) => plural(n, 'AutoMod hit'),
+      channels: (n: number) => plural(n, 'channel change'),
+      roles: (n: number) => plural(n, 'role change'),
+    },
+    quiet: 'Nothing else happened.',
+    replay: (url: string) => `[Replay and undo](${url})`,
+  },
   status: {
     title: 'Security',
     verification: (on: boolean, threshold: number) =>
@@ -275,6 +296,7 @@ export const reasons = {
   raidSlowmode: 'Raid mode slowmode',
   raidInvites: 'Raid mode',
   raidOver: 'Raid mode over',
+  incidentUndo: (id: string) => `Undone after security incident #${id}`,
   honeypotChannel: 'Honeypot channel',
   channelName: 'do-not-post',
   check: 'Security check fix',
@@ -289,4 +311,6 @@ export const audit = {
   shieldRemoved: 'Took a member out of Maxwell Shield',
   checkEveryone: 'Security check: removed dangerous permissions from @everyone',
   checkBotAdmin: (role: string) => `Security check: removed Administrator from ${role}`,
+  incidentUndo: (id: string, count: number) =>
+    `Undid ${plural(count, 'action')} from security incident #${id}`,
 };

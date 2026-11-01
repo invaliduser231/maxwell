@@ -197,6 +197,28 @@ const de: SecurityCopy = {
       quarantine: 'zurückgehalten',
     },
   },
+  incident: {
+    kinds: {
+      raid: 'Raid',
+      manual: 'Raid',
+      nuke: 'Nuke',
+      lockdown: 'Lockdown',
+    } as Record<string, string>,
+    ended: (kind: string, minutes: number) =>
+      `${kind} vorbei nach ${plural(minutes, 'Minute', 'Minuten')}.`,
+    parts: {
+      joins: (n: number) => plural(n, 'Beitritt', 'Beitritte'),
+      bans: (n: number) => plural(n, 'Bann', 'Banns'),
+      kicks: (n: number) => plural(n, 'Kick', 'Kicks'),
+      timeouts: (n: number) => plural(n, 'Timeout', 'Timeouts'),
+      deleted: (n: number) => plural(n, 'gelöschte Nachricht', 'gelöschte Nachrichten'),
+      hits: (n: number) => plural(n, 'AutoMod-Treffer', 'AutoMod-Treffer'),
+      channels: (n: number) => plural(n, 'Kanaländerung', 'Kanaländerungen'),
+      roles: (n: number) => plural(n, 'Rollenänderung', 'Rollenänderungen'),
+    },
+    quiet: 'Sonst ist nichts passiert.',
+    replay: (url: string) => `[Ablauf ansehen und rückgängig machen](${url})`,
+  },
   status: {
     title: 'Security',
     verification: (on: boolean, threshold: number) =>

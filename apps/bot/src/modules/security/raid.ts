@@ -93,6 +93,8 @@ export class Newcomers {
 
 export interface RaidHooks {
   recheck(guildId: string, userIds: readonly string[]): Promise<void>;
+  started?(guildId: string, raid: SecurityRaid, trigger: RaidTrigger, by: Actor): Promise<unknown>;
+  ended?(guildId: string, by: Actor): Promise<unknown>;
 }
 
 export class RaidWatch {
@@ -233,6 +235,7 @@ export class RaidWatch {
       summary: `started (${trigger.kind})`,
       detail: { ...trigger, raidId: raid.id },
     });
+    await this.hooks.started?.(guildId, raid, trigger, by);
     await this.ctx.record(guildId, by, 'raid.start', audit.raidStarted(trigger.kind), {
       after: { raidId: raid.id, endsAt: endsAt.toISOString() },
       undo: { kind: 'raid', payload: { raidId: raid.id } },
@@ -341,6 +344,7 @@ export class RaidWatch {
       });
     }
     await this.guard.post(guildId, config, { content: copy.raid.ended(counts.flagged) });
+    await this.hooks.ended?.(guildId, by);
     return ended;
   }
 

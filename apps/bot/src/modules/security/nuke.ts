@@ -8,6 +8,7 @@ import { lines } from '../../ui/format.js';
 import { palette } from '../../ui/palette.js';
 import { copy, reasons } from './copy.js';
 import type { Ctx, Guard } from './guard.js';
+import type { NukeReport } from './incidents.js';
 
 export const dangerous: readonly Permission[] = [
   'Administrator',
@@ -99,6 +100,10 @@ export class ActionCounter {
   }
 }
 
+export interface NukeHooks {
+  stopped?(guildId: string, report: NukeReport): Promise<unknown>;
+}
+
 export interface Stopped {
   stripped: number;
   removed: 'kick' | 'ban' | null;
@@ -108,6 +113,7 @@ export interface Stopped {
 export class NukeWatch {
   readonly counter = new ActionCounter();
   readonly #handled = new Map<string, number>();
+  hooks: NukeHooks = {};
 
   constructor(
     private readonly ctx: Ctx,
@@ -203,13 +209,24 @@ export class NukeWatch {
         : null;
 
     const config = await this.ctx.config(guildId);
+    const restoreCounts = restore ? { channels: restore.channels, roles: restore.roles } : null;
     await this.store.event({
       guildId,
       kind: 'nuke',
       userId: null,
       actorId,
       summary: `${key} x${count}`,
-      detail: { key, count, ...stopped, restore, deletedChannels, deletedRoles },
+      detail: { key, count, ...stopped, restore: restoreCounts, deletedChannels, deletedRoles },
+    });
+    await this.hooks.stopped?.(guildId, {
+      actorId,
+      key,
+      count,
+      removed: stopped.removed,
+      stripped: stopped.stripped,
+      deletedChannels,
+      deletedRoles,
+      restored: restore?.ids ?? [],
     });
     await this.guard.post(guildId, config, {
       ping: true,
@@ -291,7 +308,7 @@ export class NukeWatch {
     guildId: string,
     channelIds: readonly string[],
     roleIds: readonly string[],
-  ): Promise<{ channels: number; roles: number }> {
+  ): Promise<{ channels: number; roles: number; ids: string[] }> {
     const plans = new Map<string, { roles: string[]; channels: string[] }>();
     const plan = (snapshotId: string) => {
       const entry = plans.get(snapshotId) ?? { roles: [], channels: [] };
@@ -308,9 +325,11 @@ export class NukeWatch {
     }
     let channels = 0;
     let roles = 0;
+    const ids: string[] = [];
     for (const [snapshotId, entry] of plans) {
       channels += entry.channels.length;
       roles += entry.roles.length;
+      ids.push(...entry.channels, ...entry.roles);
       await this.ctx.services.jobs.enqueue({
         kind: 'backups.restore',
         guildId,
@@ -324,6 +343,6 @@ export class NukeWatch {
         },
       });
     }
-    return { channels, roles };
+    return { channels, roles, ids };
   }
 }

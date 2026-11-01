@@ -2,6 +2,7 @@ import type { Actor } from '@maxwell/core';
 import definition, { shieldSources } from '@maxwell/core/modules/security';
 import { AutomodStore } from '@maxwell/core/stores/automod';
 import { BackupStore } from '@maxwell/core/stores/backups';
+import { IncidentStore } from '@maxwell/core/stores/incidents';
 import { SecurityStore } from '@maxwell/core/stores/security';
 import { ShieldStore } from '@maxwell/core/stores/shield';
 import { defineBotModule } from '../../runtime/module.js';
@@ -12,6 +13,7 @@ import { audit } from './copy.js';
 import { registerDisputes } from './disputes.js';
 import { Guard } from './guard.js';
 import { Honeypot } from './honeypot.js';
+import { IncidentRecorder } from './incidents.js';
 import { NukeWatch } from './nuke.js';
 import { RaidWatch } from './raid.js';
 import { Verifier, verifyInboxFor } from './verification.js';
@@ -42,31 +44,58 @@ export default defineBotModule({
     const raid = new RaidWatch(ctx, store, automod, guard);
     const inbox = verifyInboxFor(services);
     const verifier = new Verifier(ctx, store, guard, raid, inbox);
-    raid.hooks = { recheck: (guildId, userIds) => verifier.recheck(guildId, userIds) };
-    const nuke = new NukeWatch(ctx, store, new BackupStore(services.sql), guard);
+    const backups = new BackupStore(services.sql);
+    const incidents = new IncidentStore(services.sql);
+    const recorder = new IncidentRecorder(ctx, incidents, store, automod, backups, guard);
+    const safe = (work: Promise<unknown>) =>
+      work.catch((error) => log.warn({ err: error }, 'security incident record failed'));
+    raid.hooks = {
+      recheck: (guildId, userIds) => verifier.recheck(guildId, userIds),
+      started: (guildId, started, trigger, by) =>
+        safe(recorder.raidStarted(guildId, started, trigger, by, raid.joins.recent(guildId, 0))),
+      ended: (guildId, by) => safe(recorder.raidEnded(guildId, by)),
+    };
+    const nuke = new NukeWatch(ctx, store, backups, guard);
+    nuke.hooks = { stopped: (guildId, report) => safe(recorder.nukeStopped(guildId, report)) };
     const honeypot = new Honeypot(ctx, store, guard);
 
     ctx.privacy({
       export: async (guildId, userId) => {
-        const [data, report] = await Promise.all([
+        const [data, report, incidentEvents] = await Promise.all([
           store.memberData(guildId, userId),
           new ShieldStore(services.sql).get(guildId, userId),
+          incidents.memberData(guildId, userId),
         ]);
-        if (!report) return data;
+        const base =
+          incidentEvents.length > 0 ? { ...(data ?? {}), incidents: incidentEvents } : data;
+        if (!report) return base;
         const shield = {
           source: report.source,
           sharedAt: report.createdAt.toISOString(),
           expiresAt: report.expiresAt.toISOString(),
         };
-        return { ...(data ?? {}), shield };
+        return { ...(base ?? {}), shield };
       },
-      forget: (guildId, userId) => store.forgetMember(guildId, userId),
+      forget: async (guildId, userId) => {
+        await store.forgetMember(guildId, userId);
+        await incidents.forgetMember(guildId, userId);
+      },
     });
 
     ctx.on('memberJoin', async (join) => {
       await raid.onJoin(join);
       await verifier.onJoin(join);
+      await recorder.onJoin(join);
     });
+    ctx.on('banAdd', (change) => recorder.onBan(change));
+    ctx.on('messageRemove', (removal) => recorder.onRemoved(removal.guildId, 1));
+    ctx.on('messageBulkRemove', (removal) =>
+      recorder.onRemoved(removal.guildId, removal.ids.length),
+    );
+    ctx.on('channelCreate', (change) => recorder.onChannel('channelCreate', change));
+    ctx.on('channelDelete', (change) => recorder.onChannel('channelDelete', change));
+    ctx.on('roleCreate', (change) => recorder.onRole('roleCreate', change));
+    ctx.on('roleDelete', (change) => recorder.onRole('roleDelete', change));
     ctx.on('banRemove', async ({ guildId, user }) => {
       await new ShieldStore(services.sql).withdraw(guildId, user.id);
     });
@@ -76,6 +105,7 @@ export default defineBotModule({
     ctx.on('memberUpdate', async (update) => {
       await verifier.onMemberUpdate(update);
       await honeypot.onMemberUpdate(update);
+      await recorder.onMemberUpdate(update);
     });
 
     ctx.on(
@@ -112,7 +142,10 @@ export default defineBotModule({
       await raid.onMessage(message);
     });
 
-    ctx.on('auditLog', (entry) => nuke.onAuditLog(entry));
+    ctx.on('auditLog', async (entry) => {
+      await nuke.onAuditLog(entry);
+      await recorder.onAuditLog(entry);
+    });
 
     ctx.on(
       'ready',
@@ -142,6 +175,10 @@ export default defineBotModule({
       if (!job.guildId) return;
       await raid.end(job.guildId, actor(job.payload.by));
     });
+
+    ctx.job('incident.check', (job) => recorder.check(job));
+
+    ctx.job('incident.undo', (job) => recorder.undo(job));
 
     ctx.job('pass', async (job) => {
       const userId = text(job.payload.userId);
