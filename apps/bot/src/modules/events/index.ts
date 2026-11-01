@@ -45,7 +45,7 @@ export default defineBotModule({
 
     ctx.job('publish', async (job) => {
       const eventId = String(job.payload.eventId ?? '');
-      if (/^\d+$/.test(eventId)) await events.publish(eventId);
+      if (job.guildId && /^\d+$/.test(eventId)) await events.publish(job.guildId, eventId);
     });
     ctx.job('delete', (job) => events.remove(job));
     ctx.job('reminder', (job) => events.remind(job));

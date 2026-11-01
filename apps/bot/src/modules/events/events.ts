@@ -57,7 +57,7 @@ export class EventService {
       },
       undo: { kind: 'event.cancel', payload: { eventId: row.id } },
     });
-    await this.publish(row.id);
+    await this.publish(row.guildId, row.id);
     return row;
   }
 
@@ -78,11 +78,11 @@ export class EventService {
 
   async restore(guildId: string, id: string): Promise<void> {
     const row = await this.store.setStatus(guildId, id, 'scheduled');
-    if (row) await this.publish(row.id);
+    if (row) await this.publish(guildId, row.id);
   }
 
-  async publish(eventId: string): Promise<void> {
-    const row = await this.store.byId(eventId);
+  async publish(guildId: string, eventId: string): Promise<void> {
+    const row = await this.store.get(guildId, eventId);
     if (!row) return;
     if (row.status !== 'scheduled') {
       await this.#render(row);
@@ -279,12 +279,13 @@ export class EventService {
     await this.#render({ ...row, status: 'ended' });
     if (row.messageId) this.targets.set(row.messageId, null);
     const advanced = await this.store.advance(row.id, row.startsAt, new Date(next));
-    if (advanced) await this.publish(advanced.id);
+    if (advanced) await this.publish(advanced.guildId, advanced.id);
   }
 
   async refresh(job: Job): Promise<void> {
+    if (!job.guildId) return;
     const id = String(job.payload.eventId ?? '');
-    const row = await this.store.byId(id);
+    const row = await this.store.get(job.guildId, id);
     if (row?.status === 'scheduled') await this.#render(row);
   }
 
@@ -352,9 +353,10 @@ export class EventService {
   }
 
   async #current(job: Job): Promise<EventRow | null> {
+    if (!job.guildId) return null;
     const id = String(job.payload.eventId ?? '');
     const startsAt = Number(job.payload.startsAt);
-    const row = await this.store.byId(id);
+    const row = await this.store.get(job.guildId, id);
     if (row?.status !== 'scheduled') return null;
     return row.startsAt.getTime() === startsAt ? row : null;
   }
