@@ -287,11 +287,11 @@ export class ChannelTools {
   }
 
   async #log(guildId: string, input: Parameters<typeof channelLogEmbed>[0]): Promise<void> {
-    const config = await this.moderation.config(guildId);
-    if (!config.logChannelId) return;
+    const channelId = await this.moderation.logChannel(guildId);
+    if (!channelId) return;
     const embed: Embed = channelLogEmbed(input);
     await this.#services.platform
-      .send(config.logChannelId, { embeds: [embed], silent: true })
+      .send(channelId, { embeds: [embed], silent: true })
       .catch((error) =>
         this.#services.log.warn(
           { err: error, guild: guildId, module: 'moderation' },

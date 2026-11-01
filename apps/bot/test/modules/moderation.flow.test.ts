@@ -97,6 +97,7 @@ describe.skipIf(!url)('moderation flows', () => {
       sendDirect: async () => true,
       edit: async (_channel: string, messageId: string) => void edits.push(messageId),
       channels: async () => [channel],
+      channelInGuild: async () => true,
       missingBotPermissions: async () => ['Administrator'],
       setOverwrite: async (_channel: string, overwrite: Overwrite) => {
         const existing = channel.overwrites.find((entry) => entry.id === overwrite.id);

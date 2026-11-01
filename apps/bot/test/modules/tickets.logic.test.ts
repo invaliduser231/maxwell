@@ -19,7 +19,11 @@ import {
 import { panelEmbed, panelEmoji } from '../../src/modules/tickets/panels.js';
 import { isInternalNote } from '../../src/modules/tickets/privacy.js';
 import { transcriptEmbeds } from '../../src/modules/tickets/render.js';
-import { toTranscript } from '../../src/modules/tickets/service.js';
+import {
+  TicketService,
+  type TicketsContext,
+  toTranscript,
+} from '../../src/modules/tickets/service.js';
 
 const config = ticketsConfig.parse({
   panels: [
@@ -254,5 +258,36 @@ describe('KeyedQueue', () => {
     const queue = new KeyedQueue();
     await expect(queue.run('a', () => Promise.reject(new Error('x')))).rejects.toThrow('x');
     await expect(queue.run('a', async () => 5)).resolves.toBe(5);
+  });
+});
+
+describe('ticket log channel', () => {
+  it('posts only into a log channel of the same community', async () => {
+    const sent: string[] = [];
+    const warned: string[] = [];
+    const ctx = {
+      services: {
+        sql: {},
+        log: { warn: (_meta: unknown, line: string) => void warned.push(line) },
+        platform: {
+          channelInGuild: async (guildId: string, channelId: string) =>
+            guildId === '100000000000000001' && channelId === '700000000000000001',
+          send: async (channelId: string) => {
+            sent.push(channelId);
+            return '1';
+          },
+        },
+      },
+      config: async (guildId: string) =>
+        ticketsConfig.parse({
+          logChannelId:
+            guildId === '100000000000000001' ? '700000000000000001' : '700000000000000002',
+        }),
+    } as unknown as TicketsContext;
+    const service = new TicketService(ctx);
+    await service.log('100000000000000001', 'opened');
+    await service.log('100000000000000002', 'opened');
+    expect(sent).toEqual(['700000000000000001']);
+    expect(warned).toEqual(['ticket log channel unusable']);
   });
 });

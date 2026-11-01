@@ -67,6 +67,7 @@ function setup(config = moderationConfig.parse({ logChannelId: '800' })) {
   const moderation = {
     services: { platform, log: { warn: () => {}, info: () => {} }, sql: {} },
     config: async () => config,
+    logChannel: async () => config.logChannelId,
     store: {
       openCase: async (_g: string, id: string) => (id === banned ? { number: 1 } : null),
     },

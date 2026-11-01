@@ -135,7 +135,7 @@ describe('message cache privacy', () => {
 });
 
 describe('logs module with audit entries', () => {
-  function setup(missing: string[] = []) {
+  function setup(missing: string[] = [], channelId = '50') {
     const handlers = new Map<string, (payload: unknown) => Promise<void> | void>();
     const sent: OutgoingMessage[] = [];
     const privacy: PrivacyHandler[] = [];
@@ -147,13 +147,14 @@ describe('logs module with audit entries', () => {
         return String(sent.length);
       },
       channels: async () => [],
+      channelInGuild: async (guildId: string, id: string) => guildId === '900' && id === '50',
       missingBotPermissions: async () => missing,
     };
     const ctx = {
       key: 'logs',
       definition: logs.definition,
       services: { platform, log: createLogger('silent', false) } as unknown as Services,
-      config: async () => logsConfig.parse({ defaultChannelId: '50' }),
+      config: async () => logsConfig.parse({ defaultChannelId: channelId }),
       enabled: async () => true,
       update: async () => {},
       on: (event: string, handler: (payload: unknown) => Promise<void> | void) => {
@@ -201,6 +202,12 @@ describe('logs module with audit entries', () => {
     const { emit, sent } = setup();
     await emit('auditLog', entry(AuditAction.MemberKick, lena.id));
     expect(sent[0]?.embeds?.[0]?.title).toBe('Member kicked');
+  });
+
+  it('posts nothing into a log channel from another community', async () => {
+    const { emit, sent } = setup([], '51');
+    await emit('auditLog', entry(AuditAction.MemberKick, lena.id));
+    expect(sent).toEqual([]);
   });
 
   it('does not wait without audit log access', async () => {

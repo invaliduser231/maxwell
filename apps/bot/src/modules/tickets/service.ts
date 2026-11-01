@@ -339,6 +339,14 @@ export class TicketService {
   async #log(guildId: string, out: Outgoing): Promise<void> {
     const config = await this.ctx.config(guildId);
     if (!config.logChannelId) return;
+    if (
+      !(await this.services.platform
+        .channelInGuild(guildId, config.logChannelId)
+        .catch(() => false))
+    ) {
+      this.services.log.warn({ guild: guildId }, 'ticket log channel unusable');
+      return;
+    }
     const message = typeof out === 'string' ? { content: out } : out;
     await this.services.platform
       .send(config.logChannelId, { ...message, silent: true })

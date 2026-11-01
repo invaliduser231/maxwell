@@ -79,6 +79,7 @@ describe.skipIf(!url)('role menu flow', () => {
       return snowflake(719_000_000_000_000n);
     },
     channels: async () => [],
+    channelInGuild: async () => true,
     missingBotPermissions: async () => [],
   };
 

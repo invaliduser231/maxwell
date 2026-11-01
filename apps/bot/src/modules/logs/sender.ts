@@ -50,8 +50,12 @@ export class LogSender {
   }
 
   async deliver(guildId: string, channelId: string, message: OutgoingMessage): Promise<boolean> {
+    const { platform } = this.ctx.services;
     try {
-      await this.ctx.services.platform.send(channelId, { ...message, silent: true });
+      if (!(await platform.channelInGuild(guildId, channelId))) {
+        throw new Error('log channel not in this community');
+      }
+      await platform.send(channelId, { ...message, silent: true });
       return true;
     } catch (error) {
       const last = this.#warned.get(channelId) ?? 0;

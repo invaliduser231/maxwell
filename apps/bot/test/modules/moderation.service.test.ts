@@ -20,6 +20,8 @@ describe.skipIf(!url)('ModerationService', () => {
   const mod = '400000000000000009';
   const calls: string[] = [];
   const sent: { channel: string; message: Outgoing }[] = [];
+  const edits: string[] = [];
+  const foreign = new Set<string>();
   const dms: string[] = [];
   const scheduled: { kind: string; key?: string }[] = [];
   const records: { action: string; undo: unknown }[] = [];
@@ -62,7 +64,8 @@ describe.skipIf(!url)('ModerationService', () => {
         sent.push({ channel, message });
         return String(900 + sent.length);
       },
-      edit: async () => {},
+      edit: async (_channel: string, messageId: string) => void edits.push(messageId),
+      channelInGuild: async (_g: string, channel: string) => !foreign.has(channel),
     };
     const services = {
       sql,
@@ -181,5 +184,23 @@ describe.skipIf(!url)('ModerationService', () => {
     expect(calls.length).toBe(before);
     expect(result.row.meta.external).toBe(true);
     expect(await service.store.openCase(guild, target, 'ban')).toBeNull();
+  });
+
+  it('keeps case entries out of a log channel from another community', async () => {
+    const before = { sent: sent.length, edits: edits.length };
+    foreign.add('800');
+    const result = await service.act({
+      guildId: guild,
+      action: 'unban',
+      userId: target,
+      moderatorId: null,
+      reason: 'elsewhere',
+      source: 'external',
+    });
+    await service.refreshLog(guild, 1);
+    foreign.delete('800');
+    expect(sent.length).toBe(before.sent);
+    expect(edits.length).toBe(before.edits);
+    expect((await service.store.get(guild, result.row.number))?.logMessageId).toBeNull();
   });
 });

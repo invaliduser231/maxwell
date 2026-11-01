@@ -135,10 +135,10 @@ export async function postMassBanSummary(
 ): Promise<void> {
   if (result.banned.length === 0) return;
   const { platform, log } = moderation.services;
-  const config = await moderation.config(input.guildId);
-  if (!config.logChannelId) return;
+  const channelId = await moderation.logChannel(input.guildId);
+  if (!channelId) return;
   await platform
-    .send(config.logChannelId, { embeds: [massBanEmbed(input, result)], silent: true })
+    .send(channelId, { embeds: [massBanEmbed(input, result)], silent: true })
     .catch((error) =>
       log.warn({ err: error, guild: input.guildId, module: 'moderation' }, 'mod log unusable'),
     );

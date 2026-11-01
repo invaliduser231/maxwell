@@ -97,6 +97,17 @@ export class ModerationService {
     return this.ctx.config(guildId);
   }
 
+  async logChannel(guildId: string): Promise<string | null> {
+    const { logChannelId } = await this.config(guildId);
+    if (!logChannelId) return null;
+    const { platform, log } = this.services;
+    if (await platform.channelInGuild(guildId, logChannelId).catch(() => false)) {
+      return logChannelId;
+    }
+    log.warn({ guild: guildId, module: 'moderation' }, 'mod log unusable');
+    return null;
+  }
+
   onReview(listener: ReviewListener): void {
     this.#reviewListeners.push(listener);
   }
@@ -233,16 +244,16 @@ export class ModerationService {
 
   async postLog(row: CaseRow, user: UserRef | null): Promise<void> {
     const { platform, guilds, log } = this.services;
-    const config = await this.config(row.guildId);
-    if (!config.logChannelId) return;
+    const channelId = await this.logChannel(row.guildId);
+    if (!channelId) return;
     const prefix = await guilds.prefix(row.guildId);
     const target = user ?? (row.userId ? await platform.user(row.userId) : null);
     try {
-      const messageId = await platform.send(config.logChannelId, {
+      const messageId = await platform.send(channelId, {
         embeds: [caseEmbed(row, target, prefix)],
         silent: true,
       });
-      await this.store.setLogMessage(row.guildId, row.number, config.logChannelId, messageId);
+      await this.store.setLogMessage(row.guildId, row.number, channelId, messageId);
     } catch (error) {
       log.warn({ err: error, guild: row.guildId, module: 'moderation' }, 'mod log unusable');
     }
@@ -252,6 +263,10 @@ export class ModerationService {
     const { platform, guilds, log } = this.services;
     const row = await this.store.get(guildId, number);
     if (!row?.logChannelId || !row.logMessageId) return;
+    if (!(await platform.channelInGuild(guildId, row.logChannelId).catch(() => false))) {
+      log.debug({ guild: guildId, case: number }, 'mod log entry not editable');
+      return;
+    }
     const [prefix, user] = await Promise.all([
       guilds.prefix(guildId),
       row.userId ? platform.user(row.userId) : Promise.resolve(null),
