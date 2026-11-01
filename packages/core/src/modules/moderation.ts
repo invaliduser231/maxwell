@@ -45,6 +45,87 @@ export const defaultEscalation: EscalationStep[] = [
   { warns: 7, action: 'ban', durationMinutes: null, review: true },
 ];
 
+export const MASS_BAN_MAX = 200;
+
+export const reasonTemplate = z.object({
+  key: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[a-z0-9][a-z0-9_-]{0,23}$/),
+  text: z.string().trim().min(1).max(500),
+  timeoutMinutes: z.number().int().min(1).max(525_960).nullable().default(null),
+  deleteMessages: z.boolean().default(false),
+});
+
+export type ReasonTemplate = z.output<typeof reasonTemplate>;
+
+export const defaultReasonTemplates: ReasonTemplate[] = [
+  { key: 'spam', text: 'Spam', timeoutMinutes: 60, deleteMessages: true },
+  {
+    key: 'ads',
+    text: 'Advertising without permission',
+    timeoutMinutes: null,
+    deleteMessages: true,
+  },
+  { key: 'nsfw', text: 'NSFW content', timeoutMinutes: 1_440, deleteMessages: true },
+  {
+    key: 'toxic',
+    text: 'Insulting or harassing other members',
+    timeoutMinutes: 1_440,
+    deleteMessages: false,
+  },
+];
+
+export function findTemplate(
+  templates: readonly ReasonTemplate[],
+  reason: string | null | undefined,
+): ReasonTemplate | null {
+  const key = reason?.trim().toLowerCase();
+  if (!key) return null;
+  return templates.find((template) => template.key === key) ?? null;
+}
+
+const memberToken = /^(?:<@!?(\d{15,21})>|(\d{15,21}))$/;
+
+export function memberIdOf(token: string): string | null {
+  const match = memberToken.exec(token);
+  return match ? (match[1] ?? match[2] ?? null) : null;
+}
+
+export interface MemberIdList {
+  ids: string[];
+  invalid: string[];
+}
+
+export function parseMemberIds(text: string): MemberIdList {
+  const ids: string[] = [];
+  const invalid: string[] = [];
+  for (const token of text.split(/[\s,;]+/)) {
+    if (!token) continue;
+    const id = memberIdOf(token);
+    if (!id) {
+      if (!invalid.includes(token)) invalid.push(token);
+    } else if (!ids.includes(id)) ids.push(id);
+  }
+  return { ids, invalid };
+}
+
+export function splitMassBan(text: string): { ids: string[]; reason: string | null } {
+  const ids: string[] = [];
+  let rest = text;
+  for (;;) {
+    const match = /^[\s,;]*(\S+?)(?=[\s,;]|$)/.exec(rest);
+    const token = match?.[1];
+    const id = token ? memberIdOf(token) : null;
+    if (!match || !id) break;
+    if (!ids.includes(id)) ids.push(id);
+    rest = rest.slice(match[0].length);
+  }
+  const reason = rest.replace(/^[\s,;]+/, '').trim();
+  return { ids, reason: reason || null };
+}
+
 export const moderationConfig = z.object({
   logChannelId: z.string().nullable().default(null),
   modRoleIds: z.array(z.string()).max(25).default([]),
@@ -62,6 +143,14 @@ export const moderationConfig = z.object({
   reports: z.boolean().default(true),
   reportEmoji: z.string().min(1).max(100).nullable().default(null),
   appeals: z.boolean().default(false),
+  reasonTemplates: z
+    .array(reasonTemplate)
+    .max(25)
+    .refine(
+      (list) => new Set(list.map((template) => template.key)).size === list.length,
+      'Each template needs its own key.',
+    )
+    .default(defaultReasonTemplates),
 });
 
 export type ModerationConfig = z.output<typeof moderationConfig>;
