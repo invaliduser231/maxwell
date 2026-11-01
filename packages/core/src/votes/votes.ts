@@ -52,6 +52,10 @@ export class Votes {
     private readonly checkCooldownMs = 10 * 60_000,
   ) {}
 
+  get enabled(): boolean {
+    return this.api !== null;
+  }
+
   async hasVoted(userId: string): Promise<boolean> {
     const [row] = await this.sql`select 1 from voters where user_id = ${userId}`;
     return row !== undefined;

@@ -33,7 +33,7 @@ export const guildAccess = cache(async (guildId: string): Promise<GuildAccess | 
   const [membership, guild, voted, grantList] = await Promise.all([
     membershipOf,
     membershipOf.then((found) => (found || owner ? botGuild(guildId) : null)),
-    owner ? Promise.resolve(true) : votes.hasVoted(user.id),
+    owner || !votes.enabled ? Promise.resolve(true) : votes.hasVoted(user.id),
     access.list(guildId),
   ]);
   if (!membership && !owner) return null;
