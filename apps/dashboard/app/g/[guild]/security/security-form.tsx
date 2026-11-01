@@ -706,7 +706,7 @@ export function SecurityForm({ view }: { view: SecurityView }) {
         )}
       </Panel>
 
-      <Panel title={t.raw('Incidents')} span={12} id="sec-events">
+      <Panel title={t.raw('Security log')} span={12} id="sec-events">
         {view.events.filter((event) => event.kind !== 'verify').length === 0 ? (
           <Empty mood="sleeping">{t.raw('No raids, nukes or trapped bots yet.')}</Empty>
         ) : (
