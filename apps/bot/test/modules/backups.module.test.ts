@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 import { createLogger } from '../../src/log.js';
 import backups from '../../src/modules/backups/index.js';
-import type { ChannelRef, RoleRef } from '../../src/platform/types.js';
+import type { ChannelRef, RoleInput, RoleRef } from '../../src/platform/types.js';
 import { createContext } from '../../src/runtime/module.js';
 import { PrivacyRegistry } from '../../src/runtime/privacy.js';
 import type { JobHandler } from '../../src/runtime/scheduler.js';
@@ -18,6 +18,8 @@ describe.skipIf(!url)('backups module', () => {
   let store: BackupStore;
   const guild = String(916_000_000_000_000n + BigInt(Math.floor(Math.random() * 1_000_000_000)));
   const user = '420000000000000001';
+  const operator = '420000000000000002';
+  const created: RoleInput[] = [];
   const jobs = new Map<string, JobHandler>();
   const records: AuditInput[] = [];
   let overrides: Record<string, unknown> = {};
@@ -73,7 +75,13 @@ describe.skipIf(!url)('backups module', () => {
         on: () => {},
         roles: async () => roles,
         channels: async () => channels,
+        hasPermissions: async () => false,
+        createRole: async (_guild: string, input: RoleInput) => {
+          created.push(input);
+          return String(610_000_000_000_000_000n + BigInt(created.length));
+        },
       },
+      config: { OWNER_IDS: [operator] },
       jobs: {
         handle: (kind: string, handler: JobHandler) => jobs.set(kind, handler),
         enqueue: async () => null,
@@ -96,6 +104,7 @@ describe.skipIf(!url)('backups module', () => {
 
   afterAll(async () => {
     await sql`delete from backups_snapshots where guild_id = ${guild}`;
+    await sql`delete from backups_imports where guild_id = ${guild}`;
     await sql.end();
   });
 
@@ -131,5 +140,38 @@ describe.skipIf(!url)('backups module', () => {
     const [latest] = await store.list(guild);
     await jobs.get('backups.restore')?.(job({ snapshotId: latest?.id, scope: 'pick' }));
     expect(await store.list(guild)).toHaveLength(before);
+  });
+
+  it('lets bot operators import dangerous permissions other editors lack', async () => {
+    const apply = async (by: string) => {
+      const importId = await store.createImport(guild, 'template:1', by);
+      await store.setImportPlan(guild, importId, {
+        source: { code: 'template:1', name: 'Takeover', description: null },
+        everyone: null,
+        roles: [
+          {
+            key: 'r1',
+            name: 'Boss',
+            color: 0,
+            hoist: false,
+            mentionable: false,
+            permissions: ['Administrator', 'ManageMessages'],
+          },
+        ],
+        channels: [],
+        droppedPermissions: [],
+        skipped: [],
+      });
+      await jobs.get('backups.import.apply')?.(job({ importId, by }));
+      return store.getImport(guild, importId);
+    };
+    const denied = await apply(user);
+    expect(denied?.status).toBe('applied');
+    expect(denied?.result).toMatchObject({ withheld: ['Administrator'] });
+    expect(created.at(-1)?.permissions).toEqual(['ManageMessages']);
+    const trusted = await apply(operator);
+    expect(trusted?.status).toBe('applied');
+    expect(trusted?.result).not.toHaveProperty('withheld');
+    expect(created.at(-1)?.permissions).toEqual(['Administrator', 'ManageMessages']);
   });
 });

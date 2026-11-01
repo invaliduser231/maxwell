@@ -1,7 +1,14 @@
 import type { Actor } from '@maxwell/core';
 import { isTemplateData } from '@maxwell/core/modules/backups';
 import type { BackupStore } from '@maxwell/core/stores/backups';
-import { ChannelKind, type Overwrite, type Platform } from '../../platform/types.js';
+import { permissionNames } from '../../platform/permissions.js';
+import {
+  ChannelKind,
+  type Overwrite,
+  type Permission,
+  type Platform,
+} from '../../platform/types.js';
+import { dangerous } from '../security/nuke.js';
 import { audit } from './copy.js';
 import { withNamedPermissions } from './permissions.js';
 import {
@@ -24,12 +31,14 @@ export interface ImportResult {
   channels: { key: string; id: string; name: string }[];
   everyone: { before: string; after: string } | null;
   failed: { kind: 'role' | 'channel' | 'everyone'; name: string }[];
+  withheld?: Permission[];
 }
 
 export interface ImportDeps {
   platform: Platform;
   store: BackupStore;
   fetcher?: typeof fetch;
+  operator?(userId: string): boolean;
   record(guildId: string, by: Actor, summary: string, result: ImportResult): Promise<void>;
   onError(error: unknown, what: string): void;
 }
@@ -99,18 +108,48 @@ async function previewMaxwell(
   return id;
 }
 
+function without(names: readonly Permission[], withheld: ReadonlySet<Permission>): Permission[] {
+  return names.filter((name) => !withheld.has(name));
+}
+
 function toOverwrites(
   guildId: string,
   list: readonly PlanOverwrite[],
   roles: ReadonlyMap<string, string>,
+  withheld: ReadonlySet<Permission>,
 ): Overwrite[] {
   const out: Overwrite[] = [];
   for (const overwrite of list) {
     const id = overwrite.target === EVERYONE ? guildId : roles.get(overwrite.target);
     if (!id) continue;
-    out.push({ id, type: 'role', allow: overwrite.allow, deny: overwrite.deny });
+    out.push({ id, type: 'role', allow: without(overwrite.allow, withheld), deny: overwrite.deny });
   }
   return out;
+}
+
+async function ungranted(
+  deps: ImportDeps,
+  guildId: string,
+  plan: ImportPlan,
+  by: Actor,
+): Promise<Set<Permission>> {
+  const granted = new Set<Permission>([
+    ...(plan.everyone ?? []),
+    ...plan.roles.flatMap((role) => role.permissions),
+    ...plan.channels.flatMap((channel) =>
+      channel.overwrites.flatMap((overwrite) => overwrite.allow),
+    ),
+  ]);
+  const wanted = dangerous.filter((name) => granted.has(name));
+  const userId = by.id;
+  if (wanted.length === 0 || (userId && deps.operator?.(userId))) return new Set();
+  if (!userId) return new Set(wanted);
+  const missing = new Set<Permission>();
+  if (await deps.platform.hasPermissions(guildId, userId, null, wanted)) return missing;
+  for (const name of wanted) {
+    if (!(await deps.platform.hasPermissions(guildId, userId, null, [name]))) missing.add(name);
+  }
+  return missing;
 }
 
 export async function applyImport(
@@ -136,11 +175,17 @@ export async function applyImport(
   let crashed = false;
 
   try {
+    const withheld = await ungranted(deps, guildId, plan, by);
+    if (withheld.size > 0) result.withheld = [...withheld];
     if (Array.isArray(plan.everyone)) {
       try {
         const live = (await deps.platform.roles(guildId)).find((role) => role.id === guildId);
         if (live) {
-          const after = withNamedPermissions(live.permissions, plan.everyone);
+          const current = permissionNames(live.permissions);
+          const after = withNamedPermissions(
+            live.permissions,
+            plan.everyone.filter((name) => !withheld.has(name) || current.includes(name)),
+          );
           if (after !== live.permissions) {
             await deps.platform.editRole(guildId, guildId, { permissionBits: after }, reason);
             result.everyone = { before: live.permissions, after };
@@ -159,7 +204,7 @@ export async function applyImport(
           {
             name: role.name,
             color: role.color,
-            permissions: role.permissions,
+            permissions: without(role.permissions, withheld),
             hoist: role.hoist,
             mentionable: role.mentionable,
           },
@@ -189,7 +234,7 @@ export async function applyImport(
             userLimit: channel.userLimit ?? undefined,
             nsfw: channel.nsfw || undefined,
             rateLimitPerUser: channel.rateLimitPerUser || undefined,
-            overwrites: toOverwrites(guildId, channel.overwrites, roleIds),
+            overwrites: toOverwrites(guildId, channel.overwrites, roleIds, withheld),
           },
           reason,
         );
@@ -205,7 +250,7 @@ export async function applyImport(
     deps.onError(error, 'apply');
   }
 
-  if (result.roles.length > 0 || result.channels.length > 0 || result.everyone) {
+  if (result.roles.length > 0 || result.channels.length > 0 || result.everyone || result.withheld) {
     const summary = templateId
       ? audit.auditImportTemplate(plan.source.name)
       : audit.auditImport(plan.source.name);

@@ -109,6 +109,7 @@ export default defineBotModule({
     const importDeps: ImportDeps = {
       platform,
       store,
+      operator: (userId) => services.config.OWNER_IDS.includes(userId),
       record: async (guildId, by, summary, result) => {
         await ctx.record(guildId, by, 'import', summary, {
           after: result,
