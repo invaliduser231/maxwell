@@ -9,6 +9,7 @@ import { looksLikeAnswer } from './captcha.js';
 import { registerCheck } from './check.js';
 import { securityCommands } from './commands.js';
 import { audit } from './copy.js';
+import { registerDisputes } from './disputes.js';
 import { Guard } from './guard.js';
 import { Honeypot } from './honeypot.js';
 import { NukeWatch } from './nuke.js';
@@ -192,6 +193,8 @@ export default defineBotModule({
       if (!userId || !source) return;
       await new ShieldStore(services.sql).report(entry.guildId, userId, source, by.id);
     });
+
+    registerDisputes(ctx);
 
     ctx.undo('raid', async (entry, _payload, by) => {
       await raid.end(entry.guildId, by);
