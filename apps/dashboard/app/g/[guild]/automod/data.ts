@@ -1,6 +1,7 @@
 import 'server-only';
 import type { DryRun } from '@maxwell/core/stores/automod';
 import { AutomodStore } from '@maxwell/core/stores/automod';
+import { PhishingStore } from '@maxwell/core/stores/phishing';
 import { db } from '@/lib/db';
 import { type Person, people } from '@/lib/people';
 import { snowflakeTime } from '@/lib/time';
@@ -144,6 +145,22 @@ export async function gateView(guildId: string): Promise<GateView> {
         }
       : null,
     now: new Date(now).toISOString(),
+  };
+}
+
+export interface PhishingListView {
+  domains: number;
+  updatedAt: string;
+  now: string;
+}
+
+export async function phishingList(): Promise<PhishingListView | null> {
+  const latest = await new PhishingStore(db().sql).latest();
+  if (!latest) return null;
+  return {
+    domains: latest.domains,
+    updatedAt: new Date(latest.fetchedAt).toISOString(),
+    now: new Date().toISOString(),
   };
 }
 

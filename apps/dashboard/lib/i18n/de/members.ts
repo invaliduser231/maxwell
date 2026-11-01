@@ -8,6 +8,7 @@ export const members = {
   'Repeated messages': 'Wiederholte Nachrichten',
   'Emoji spam': 'Emoji-Spam',
   'Links from new accounts': 'Links von neuen Konten',
+  'Phishing links': 'Phishing-Links',
   Banned: 'Gebannt',
   'Timed out': 'Im Timeout',
   'Waiting for review': 'Wartet auf Prüfung',

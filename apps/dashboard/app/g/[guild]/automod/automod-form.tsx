@@ -32,7 +32,7 @@ import { runAction, undoEntry } from '@/lib/actions';
 import type { Key, Translator } from '@/lib/i18n';
 import { clock, dayTime, hoursLabel, inSentence, span } from '@/lib/time';
 import { dryRunResult, gateRole, gateStatus, startDryRun } from './actions';
-import type { DryRunView, GateView } from './data';
+import type { DryRunView, GateView, PhishingListView } from './data';
 
 type Rules = AutomodConfig['rules'];
 type Raid = AutomodConfig['raid'];
@@ -52,6 +52,7 @@ const RULES: { key: AutomodRuleKey; name: Key }[] = [
   { key: 'repeats', name: 'Repeated messages' },
   { key: 'emoji', name: 'Emoji spam' },
   { key: 'newAccountLinks', name: 'New accounts posting links' },
+  { key: 'phishing', name: 'Phishing links' },
 ];
 
 const MODES: { value: AutomodMode; label: Key }[] = [
@@ -142,6 +143,10 @@ function summary(t: Translator, key: AutomodRuleKey, rules: Rules): string {
       return t('Accounts under {age}', {
         age: hoursLabel(t, rules.newAccountLinks.minAccountAgeHours),
       });
+    case 'phishing':
+      return rules.phishing.lookalikes
+        ? t('Known phishing domains and lookalikes')
+        : t('Known phishing domains');
   }
 }
 
@@ -377,13 +382,16 @@ function Gate({ initial }: { initial: GateView }) {
 function RuleParams({
   ruleKey,
   rules,
+  phishing,
   set,
 }: {
   ruleKey: AutomodRuleKey;
   rules: Rules;
+  phishing: PhishingListView | null;
   set: (patch: Partial<AnyRule>) => void;
 }) {
   const t = useT();
+  const { timezone } = useGuild();
   switch (ruleKey) {
     case 'spam':
       return (
@@ -547,6 +555,34 @@ function RuleParams({
         </Pair>
       );
     }
+    case 'phishing':
+      return (
+        <>
+          <span className="mx-sub">
+            {phishing
+              ? t('{count} known domains, updated {when}', {
+                  count: phishing.domains,
+                  when: inSentence(t, dayTime(t, phishing.updatedAt, phishing.now, timezone)),
+                })
+              : t('The domain list has not been loaded yet.')}
+          </span>
+          <ToggleRow
+            title={t('Catch lookalike domains')}
+            order
+            checked={rules.phishing.lookalikes}
+            onChange={(lookalikes) => set({ lookalikes })}
+          />
+          <div className="mx-field">
+            <span className="mx-label">{t('Allowed domains')}</span>
+            <WordList
+              value={rules.phishing.allowedDomains}
+              mono
+              placeholder="example.com"
+              onChange={(allowedDomains) => set({ allowedDomains })}
+            />
+          </div>
+        </>
+      );
   }
 }
 
@@ -662,11 +698,13 @@ export function AutomodForm({
   hits,
   runs,
   gate,
+  phishing,
   saved,
 }: {
   hits: Record<string, number>;
   runs: DryRunView[];
   gate: GateView;
+  phishing: PhishingListView | null;
   saved: AutomodConfig;
 }) {
   const { guildId } = useGuild();
@@ -834,6 +872,7 @@ export function AutomodForm({
               <RuleParams
                 ruleKey={selected}
                 rules={rules}
+                phishing={phishing}
                 set={(patch) => setRule(selected, patch)}
               />
               <Pair>

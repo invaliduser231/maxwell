@@ -123,4 +123,11 @@ export const automod = {
   'Maxwell only keeps messages for this when you allow it.':
     'Maxwell speichert Nachrichten dafür nur, wenn du es erlaubst.',
   'Keep 7 days of messages': '7 Tage Nachrichten behalten',
+  'Phishing links': 'Phishing-Links',
+  'Known phishing domains and lookalikes': 'Bekannte Phishing-Domains und Nachahmungen',
+  'Known phishing domains': 'Bekannte Phishing-Domains',
+  '{count} known domains, updated {when}': '{count} bekannte Domains, aktualisiert {when}',
+  'The domain list has not been loaded yet.': 'Die Domainliste wurde noch nicht geladen.',
+  'Catch lookalike domains': 'Nachgeahmte Domains erkennen',
+  'Allowed domains': 'Erlaubte Domains',
 } as const;

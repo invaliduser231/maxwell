@@ -31,6 +31,7 @@ const ruleLabels: Record<string, Key> = {
   repeats: 'Repeated messages',
   emoji: 'Emoji spam',
   newAccountLinks: 'Links from new accounts',
+  phishing: 'Phishing links',
 };
 
 export interface ListedMember {
