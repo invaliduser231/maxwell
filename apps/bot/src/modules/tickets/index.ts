@@ -185,8 +185,10 @@ export default defineBotModule({
 
     ctx.job('finish', async (job) => {
       const ticketId = text(job.payload.ticketId);
-      if (!ticketId) return;
-      await service.finish(ticketId, (ticket, guild) => ratings.request(ticket, guild));
+      if (!job.guildId || !ticketId) return;
+      await service.finish(job.guildId, ticketId, (ticket, guild) =>
+        ratings.request(ticket, guild),
+      );
     });
 
     ctx.job('sweep', async () => {

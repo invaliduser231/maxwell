@@ -415,9 +415,13 @@ export class TicketService {
     return closed;
   }
 
-  async finish(ticketId: string, rate: (ticket: Ticket, guild: string) => Promise<void>) {
+  async finish(
+    guildId: string,
+    ticketId: string,
+    rate: (ticket: Ticket, guild: string) => Promise<void>,
+  ) {
     const { platform, log, config: env } = this.services;
-    const ticket = await this.store.get(ticketId);
+    const ticket = await this.store.getInGuild(guildId, ticketId);
     if (ticket?.status !== 'closed') return;
     const config = await this.ctx.config(ticket.guildId);
     const guild = await platform.guild(ticket.guildId);
