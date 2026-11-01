@@ -1,6 +1,7 @@
 import { formatDuration } from '../../commands/duration.js';
 import { snowflakeDate } from '../../ui/format.js';
 import { copy } from './copy.js';
+import { PhishingIndex } from './phishing.js';
 import {
   type AutomodConfig,
   type AutomodRule,
@@ -249,7 +250,10 @@ export function isExempt(rule: AutomodRule, message: Candidate, isMod: boolean):
 export class RuleEngine {
   readonly #tracks = new Map<string, Track>();
 
-  constructor(private readonly maxTracked = 20_000) {}
+  constructor(
+    private readonly maxTracked = 20_000,
+    private readonly phishing: PhishingIndex = new PhishingIndex(),
+  ) {}
 
   get tracked(): number {
     return this.#tracks.size;
@@ -370,6 +374,17 @@ export class RuleEngine {
         if (age >= rule.minAccountAgeHours * 3_600_000) return null;
         if (findLinks(content).length === 0 && findInvites(content).length === 0) return null;
         return copy.details.newAccountLink(formatDuration(Math.max(age, 0)));
+      }
+      case 'phishing': {
+        if (!('lookalikes' in rule)) return null;
+        const hit = this.phishing.check(findLinks(content), {
+          lookalikes: rule.lookalikes,
+          allowed: rule.allowedDomains,
+        });
+        if (!hit) return null;
+        return hit.brand
+          ? copy.details.lookalike(hit.host, copy.brands[hit.brand])
+          : copy.details.phishing(hit.host);
       }
     }
   }

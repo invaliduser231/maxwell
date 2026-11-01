@@ -1,6 +1,7 @@
 import type { Actor } from '@maxwell/core';
 import definition from '@maxwell/core/modules/automod';
 import { AutomodStore } from '@maxwell/core/stores/automod';
+import { PhishingStore } from '@maxwell/core/stores/phishing';
 import { defineBotModule } from '../../runtime/module.js';
 import { gateCommand } from './commands.js';
 import { Confirmations } from './confirm.js';
@@ -8,6 +9,8 @@ import { DryRunner, parseRule, replayGuild } from './dryrun.js';
 import { Enforcer } from './enforce.js';
 import { MessageHistory, toStored } from './history.js';
 import { GuildLookup } from './lookup.js';
+import { PhishingIndex } from './phishing.js';
+import { PhishingFeed, syncAt } from './phishing-feed.js';
 import { RuleEngine } from './rules.js';
 import { RaidShield } from './shield.js';
 import { HISTORY_DAYS } from './types.js';
@@ -41,7 +44,9 @@ export default defineBotModule({
     const { services } = ctx;
     const { platform, log } = services;
     const store = new AutomodStore(services.sql);
-    const engine = new RuleEngine();
+    const phishing = new PhishingIndex();
+    const feed = new PhishingFeed(new PhishingStore(services.sql), phishing, log);
+    const engine = new RuleEngine(undefined, phishing);
     const history = new MessageHistory(store, log);
     const lookup = new GuildLookup(platform);
     const enforcer = new Enforcer(ctx, store);
@@ -184,7 +189,7 @@ export default defineBotModule({
             lookup.mods(guildId, config.modRoleIds),
             lookup.parents(guildId),
           ]);
-          const runner = new DryRunner(parsed.key, parsed.rule, config, mods, parents);
+          const runner = new DryRunner(parsed.key, parsed.rule, config, mods, parents, phishing);
           const result = await replayGuild(store, guildId, runner);
           await store.finishDryRun(guildId, id, result);
         } catch (error) {
@@ -263,10 +268,20 @@ export default defineBotModule({
       }
     });
 
+    ctx.job('phishing.sync', async () => {
+      const next = await feed.sync();
+      await ctx.schedule('phishing.sync', syncAt(next));
+    });
+
     ctx.on(
       'ready',
       async () => {
         await ctx.schedule('purge', purgeAt(Date.now()));
+        const next = await feed.load().catch((error) => {
+          log.warn({ err: error }, 'phishing list load failed');
+          return Date.now();
+        });
+        await ctx.schedule('phishing.sync', syncAt(next));
       },
       { always: true },
     );

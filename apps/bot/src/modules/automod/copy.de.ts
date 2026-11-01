@@ -18,6 +18,7 @@ const de: AutomodCopy = {
     repeats: 'Wiederholte Nachrichten',
     emoji: 'Emoji-Spam',
     newAccountLinks: 'Links von neuen Konten',
+    phishing: 'Phishing-Links',
   },
   holds: {
     raid: 'Raid',
@@ -36,6 +37,14 @@ const de: AutomodCopy = {
     repeats: (count: number) => `${count}-mal dieselbe Nachricht`,
     emoji: (count: number) => `${count} Emojis`,
     newAccountLink: (age: string) => `Link von einem Konto, das erst ${age} alt ist`,
+    phishing: (host: string) => `bekannte Phishing-Domain ${host}`,
+    lookalike: (host: string, brand: string) => `${host} gibt sich als ${brand} aus`,
+  },
+  brands: {
+    fluxer: 'Fluxer',
+    discord: 'Discord',
+    steam: 'Steam',
+    nitro: 'Nitro',
   },
   actions: {
     delete: 'Nachricht gelöscht',

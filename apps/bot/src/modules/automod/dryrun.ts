@@ -5,6 +5,7 @@ import type {
   StoredMessage,
 } from '@maxwell/core/stores/automod';
 import { truncate } from '../../ui/format.js';
+import type { PhishingIndex } from './phishing.js';
 import { type EngineConfig, onlyRule, RuleEngine } from './rules.js';
 import {
   type AutomodConfig,
@@ -32,7 +33,7 @@ export function parseRule(
 }
 
 export class DryRunner {
-  readonly #engine = new RuleEngine(100_000);
+  readonly #engine: RuleEngine;
   readonly #config: EngineConfig;
   readonly #samples: DryRunSample[] = [];
   #scanned = 0;
@@ -45,7 +46,9 @@ export class DryRunner {
     base: Pick<AutomodConfig, 'exemptChannelIds' | 'exemptRoleIds' | 'ignoreBots'>,
     private readonly mods: ReadonlySet<string>,
     private readonly parents: ReadonlyMap<string, string | null>,
+    phishing?: PhishingIndex,
   ) {
+    this.#engine = new RuleEngine(100_000, phishing);
     this.#config = {
       exemptChannelIds: base.exemptChannelIds,
       exemptRoleIds: base.exemptRoleIds,

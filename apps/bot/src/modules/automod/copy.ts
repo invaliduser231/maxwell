@@ -1,6 +1,7 @@
 import { localized } from '../../i18n/localized.js';
 import { code } from '../../ui/format.js';
 import de from './copy.de.js';
+import type { Brand } from './phishing.js';
 import type { AutomodRuleKey, HoldReason } from './types.js';
 
 export const ruleNames: Record<AutomodRuleKey, string> = {
@@ -13,6 +14,7 @@ export const ruleNames: Record<AutomodRuleKey, string> = {
   repeats: 'Repeated messages',
   emoji: 'Emoji spam',
   newAccountLinks: 'Links from new accounts',
+  phishing: 'Phishing links',
 };
 
 const en = {
@@ -40,7 +42,15 @@ const en = {
     repeats: (count: number) => `same message ${count} times`,
     emoji: (count: number) => `${count} emojis`,
     newAccountLink: (age: string) => `link from an account ${age} old`,
+    phishing: (host: string) => `known phishing domain ${host}`,
+    lookalike: (host: string, brand: string) => `${host} imitates ${brand}`,
   },
+  brands: {
+    fluxer: 'Fluxer',
+    discord: 'Discord',
+    steam: 'Steam',
+    nitro: 'Nitro',
+  } as Record<Brand, string>,
   actions: {
     delete: 'Message deleted',
     warn: 'Warned',

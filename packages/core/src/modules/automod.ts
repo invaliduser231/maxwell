@@ -13,6 +13,7 @@ export const automodRuleKeys = [
   'repeats',
   'emoji',
   'newAccountLinks',
+  'phishing',
 ] as const;
 
 export type AutomodMode = (typeof automodModes)[number];
@@ -101,6 +102,14 @@ export const newAccountLinksRule = z
   })
   .prefault({});
 
+export const phishingRule = z
+  .object({
+    ...base('delete'),
+    lookalikes: z.boolean().default(true),
+    allowedDomains: z.array(z.string().max(253)).max(500).default([]),
+  })
+  .prefault({});
+
 export const automodRuleSchemas = {
   spam: spamRule,
   invites: invitesRule,
@@ -111,6 +120,7 @@ export const automodRuleSchemas = {
   repeats: repeatsRule,
   emoji: emojiRule,
   newAccountLinks: newAccountLinksRule,
+  phishing: phishingRule,
 } as const;
 
 export const automodRules = z.object(automodRuleSchemas).prefault({});
@@ -336,6 +346,20 @@ export default defineModule({
         insert into automod_history_guilds (guild_id, last_at)
           select guild_id, max(created_at) from automod_messages group by guild_id;
         drop table automod_messages_old;
+      `,
+    },
+    {
+      id: '6-phishing',
+      up: `
+        create table automod_phishing_domains (
+          domain text primary key
+        );
+
+        create table automod_phishing_sync (
+          source text primary key,
+          fetched_at timestamptz not null,
+          domains integer not null
+        );
       `,
     },
   ],
