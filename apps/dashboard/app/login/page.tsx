@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { TopBar } from '@/components/top-bar';
 import { Logo } from '@/components/ui';
-import { oauth } from '@/lib/env';
+import { env, oauth } from '@/lib/env';
 import type { Key } from '@/lib/i18n';
 import { getT, titled } from '@/lib/i18n/server';
 import { devLoginEnabled, getSession } from '@/lib/session';
@@ -14,13 +14,20 @@ const errors: Record<string, Key> = {
   failed: 'Fluxer did not let me in. Try again in a moment.',
 };
 
+function safeNext(next: string | undefined): string {
+  const base = new URL(env().DASHBOARD_URL);
+  return next?.startsWith('/') && URL.parse(next, base)?.origin === base.origin
+    ? next
+    : '/communities';
+}
+
 export default async function Login({
   searchParams,
 }: {
   searchParams: Promise<{ next?: string; error?: string }>;
 }) {
   const { next, error } = await searchParams;
-  if (await getSession()) redirect(next?.startsWith('/') ? next : '/communities');
+  if (await getSession()) redirect(safeNext(next));
   const start = `/auth/start${next ? `?next=${encodeURIComponent(next)}` : ''}`;
   const t = await getT();
   const message = error ? errors[error] : undefined;
