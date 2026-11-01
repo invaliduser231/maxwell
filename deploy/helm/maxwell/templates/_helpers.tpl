@@ -29,7 +29,7 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 
 {{- define "maxwell.dashboardUrl" -}}
 {{- if .Values.dashboard.host -}}
-{{- printf "%s://%s" (ternary "https" "http" .Values.ingress.tls.enabled) .Values.dashboard.host -}}
+{{- printf "%s://%s" (ternary "https" "http" (or .Values.tunnel.enabled (and .Values.ingress.enabled .Values.ingress.tls.enabled))) .Values.dashboard.host -}}
 {{- end -}}
 {{- end -}}
 
