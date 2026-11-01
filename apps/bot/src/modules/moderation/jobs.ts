@@ -4,7 +4,7 @@ import { MASS_BAN_MAX } from '@maxwell/core/modules/moderation';
 import type { OverwriteChange } from '@maxwell/core/stores/moderation';
 import { ShieldStore } from '@maxwell/core/stores/shield';
 import { z } from 'zod';
-import { statusOf } from './access.js';
+import { checkTarget, statusOf } from './access.js';
 import type { AppliedOverwrite, ChannelTools } from './channels.js';
 import { expiryKey, NAME_HISTORY_DAYS } from './config.js';
 import { reasons } from './copy.js';
@@ -30,6 +30,7 @@ export const actionPayload = z.object({
   deleteMessageSeconds: z.number().int().min(0).max(604_800).nullable().default(null),
   deleteMessages: z.boolean().default(false),
   shield: z.boolean().default(false),
+  by: snowflake.optional(),
 });
 
 export const massBanPayload = z.object({
@@ -62,7 +63,7 @@ function ignoreMissing(error: unknown): void {
 
 export function registerJobs(moderation: ModerationService, tools: ChannelTools): void {
   const { ctx, store } = moderation;
-  const { platform, log, sql, modules } = ctx.services;
+  const { platform, log, sql, modules, config } = ctx.services;
 
   const scheduleNext = async (kind: string, every: number) => {
     const next = Math.ceil((Date.now() + 1) / every) * every;
@@ -158,6 +159,20 @@ export function registerJobs(moderation: ModerationService, tools: ChannelTools)
       return;
     }
     const input = parsed.data;
+    if (input.by !== undefined && !config.OWNER_IDS.includes(input.by)) {
+      const { problem } = await checkTarget(platform, {
+        guildId,
+        actorId: input.by,
+        targetId: input.userId,
+        needsMember: false,
+        botAction: false,
+      });
+      if (problem === 'admin' || problem === 'higher') {
+        log.warn({ guild: guildId, action: input.action, problem }, 'dashboard action refused');
+        return;
+      }
+    }
+    const moderatorId = input.by ?? input.moderatorId;
     let previousUntil: Date | null = null;
     if (input.action === 'untimeout') {
       const member = await platform.member(guildId, input.userId);
@@ -172,7 +187,7 @@ export function registerJobs(moderation: ModerationService, tools: ChannelTools)
         guildId,
         action: input.action,
         userId: input.userId,
-        moderatorId: input.moderatorId,
+        moderatorId,
         reason: input.reason,
         durationMs: input.durationSeconds !== null ? input.durationSeconds * 1_000 : null,
         deleteMessageSeconds,
@@ -180,7 +195,7 @@ export function registerJobs(moderation: ModerationService, tools: ChannelTools)
         previousUntil,
       });
       if (input.shield && result.row.action === 'ban') {
-        await new ShieldStore(sql).report(guildId, input.userId, 'manual', input.moderatorId);
+        await new ShieldStore(sql).report(guildId, input.userId, 'manual', moderatorId);
       }
     } catch (error) {
       if (error instanceof ActionError && error.status !== null && error.status < 500) {
