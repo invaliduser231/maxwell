@@ -86,9 +86,9 @@ export class Reminders {
 
   async deliver(job: Job): Promise<void> {
     const id = String(job.payload.reminderId ?? '');
-    if (!/^\d+$/.test(id)) return;
+    if (!job.guildId || !/^\d+$/.test(id)) return;
     const pending = await this.store.get(id);
-    if (!pending) return;
+    if (!pending || pending.guildId !== job.guildId) return;
     if (!(await this.ctx.enabled(pending.guildId))) return;
     const row = await this.store.remove(pending.guildId, id);
     if (!row) return;
