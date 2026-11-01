@@ -95,7 +95,7 @@ Communities can take part in Maxwell Shield. If a community takes part, Maxwell 
 - **Purpose:** protecting communities and their members against raids and taken-over accounts.
 - **Legal basis:** Art. 6(1)(f) GDPR. The legitimate interest is that of the communities taking part and their members in protection against coordinated attacks.
 - **Retention:** 90 days, or until the ban is lifted or the community stops taking part.
-- You can object (section 14) and ask by email whether and why you are listed.
+- You can object (section 14). After signing in on the [Shield page](/shield) you see whether you are listed, the kind of entry, since when and in how many communities, and you can dispute the listing there. Disputes are decided by us, not by the communities; the dispute and our decision are deleted 12 months after the decision. You can also ask by email.
 
 ## 6. Who sees the data
 
