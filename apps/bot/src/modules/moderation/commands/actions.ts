@@ -12,6 +12,7 @@ import {
   type EscalationResult,
   type ModerationService,
 } from '../service.js';
+import { expandReason } from '../templates.js';
 import { humanDuration } from '../text.js';
 import { noise, usage, who } from './shared.js';
 
@@ -198,9 +199,15 @@ function build(spec: Spec, moderation: ModerationService): GuildCommand {
     async run(ctx: GuildContext) {
       const { voice, platform } = ctx.services;
       const userId = ctx.args.string(spec.args[0]?.name ?? 'member') as string;
-      const reasonText = ctx.args.string('reason')?.trim() || null;
-      const durationMs = ctx.args.number('duration') ?? null;
       const config = await moderation.config(ctx.guildId);
+      const expanded = expandReason(
+        config,
+        spec.name,
+        ctx.args.string('reason')?.trim() || null,
+        ctx.args.number('duration') ?? null,
+      );
+      const reasonText = expanded.reason;
+      const durationMs = expanded.durationMs;
 
       if (spec.reasonRequired && config.requireReason && !reasonText) {
         await usage(ctx, command, copy.errors.reasonRequired);
@@ -253,6 +260,7 @@ function build(spec: Spec, moderation: ModerationService): GuildCommand {
           moderatorId: ctx.message.author.id,
           reason: reasonText,
           durationMs: spec.name === 'ban' || spec.name === 'timeout' ? durationMs : null,
+          deleteMessageSeconds: expanded.deleteMessageSeconds,
           source: 'command',
           previousUntil,
           excerpt,
