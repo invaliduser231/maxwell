@@ -1,3 +1,4 @@
+import { openJson, openText, sealJson, sealText } from '../crypto/data.js';
 import type { Sql } from '../db/sql.js';
 
 export type FormAnswerValue = string | number | boolean;
@@ -73,6 +74,18 @@ function submissionColumns(sql: Sql) {
   `;
 }
 
+function openSession(row: FormSession): FormSession {
+  return { ...row, answers: openJson<FormSession['answers']>(row.guildId, row.answers, {}) };
+}
+
+function openSubmission(row: FormSubmission): FormSubmission {
+  return {
+    ...row,
+    answers: openJson<SubmittedAnswer[]>(row.guildId, row.answers, []),
+    note: openText(row.guildId, row.note),
+  };
+}
+
 export class FormStore {
   constructor(private readonly sql: Sql) {}
 
@@ -94,28 +107,28 @@ export class FormStore {
       on conflict (user_id) do nothing
       returning ${sessionColumns(this.sql)}
     `;
-    return row ?? null;
+    return row ? openSession(row) : null;
   }
 
   async session(userId: string): Promise<FormSession | null> {
     const [row] = await this.sql<FormSession[]>`
       select ${sessionColumns(this.sql)} from forms_sessions where user_id = ${userId}
     `;
-    return row ?? null;
+    return row ? openSession(row) : null;
   }
 
   async sessionById(id: string): Promise<FormSession | null> {
     const [row] = await this.sql<FormSession[]>`
       select ${sessionColumns(this.sql)} from forms_sessions where id = ${id}
     `;
-    return row ?? null;
+    return row ? openSession(row) : null;
   }
 
   async sessionByChannel(channelId: string): Promise<FormSession | null> {
     const [row] = await this.sql<FormSession[]>`
       select ${sessionColumns(this.sql)} from forms_sessions where channel_id = ${channelId}
     `;
-    return row ?? null;
+    return row ? openSession(row) : null;
   }
 
   async activeSessions(limit = 10_000): Promise<FormSession[]> {
@@ -123,7 +136,7 @@ export class FormStore {
       select ${sessionColumns(this.sql)} from forms_sessions
       order by expires_at desc
       limit ${limit}
-    `;
+    `.then((rows) => rows.map(openSession));
   }
 
   async guildSessions(guildId: string): Promise<FormSession[]> {
@@ -131,7 +144,7 @@ export class FormStore {
       select ${sessionColumns(this.sql)} from forms_sessions
       where guild_id = ${guildId}
       order by started_at desc
-    `;
+    `.then((rows) => rows.map(openSession));
   }
 
   async saveProgress(
@@ -140,9 +153,14 @@ export class FormStore {
     answers: Record<string, FormAnswerValue | null>,
     expiresAt: Date,
   ): Promise<void> {
+    const [session] = await this.sql<{ guildId: string }[]>`
+      select guild_id::text as "guildId" from forms_sessions where id = ${id}
+    `;
+    if (!session) return;
     await this.sql`
       update forms_sessions set
-        question_id = ${questionId}, answers = ${this.sql.json(answers as never)},
+        question_id = ${questionId},
+        answers = ${this.sql.json(sealJson(session.guildId, answers) as never)},
         expires_at = ${expiresAt}
       where id = ${id}
     `;
@@ -159,7 +177,7 @@ export class FormStore {
       delete from forms_sessions where id = ${id}
       returning ${sessionColumns(this.sql)}
     `;
-    return row ?? null;
+    return row ? openSession(row) : null;
   }
 
   async createSubmission(input: {
@@ -177,12 +195,12 @@ export class FormStore {
           ${input.guildId},
           (select coalesce(max(number), 0) + 1 from forms_submissions where guild_id = ${input.guildId}),
           ${input.formId}, ${input.formName}, ${input.userId},
-          ${tx.json(input.answers as never)}
+          ${tx.json(sealJson(input.guildId, input.answers) as never)}
         )
         returning ${submissionColumns(tx as unknown as Sql)}
       `;
       if (!row) throw new Error('submission insert returned nothing');
-      return row;
+      return openSubmission(row);
     });
   }
 
@@ -206,12 +224,12 @@ export class FormStore {
           ${input.guildId},
           (select coalesce(max(number), 0) + 1 from forms_submissions where guild_id = ${input.guildId}),
           ${input.formId}, ${input.formName}, ${input.userId},
-          ${tx.json(input.answers as never)}
+          ${tx.json(sealJson(input.guildId, input.answers) as never)}
         )
         returning ${submissionColumns(tx as unknown as Sql)}
       `;
       if (!row) throw new Error('submission insert returned nothing');
-      return row;
+      return openSubmission(row);
     });
   }
 
@@ -219,7 +237,7 @@ export class FormStore {
     const [row] = await this.sql<FormSubmission[]>`
       select ${submissionColumns(this.sql)} from forms_submissions where id = ${id}
     `;
-    return row ?? null;
+    return row ? openSubmission(row) : null;
   }
 
   async submissionInGuild(guildId: string, id: string): Promise<FormSubmission | null> {
@@ -227,7 +245,7 @@ export class FormStore {
       select ${submissionColumns(this.sql)} from forms_submissions
       where guild_id = ${guildId} and id = ${id}
     `;
-    return row ?? null;
+    return row ? openSubmission(row) : null;
   }
 
   async submissionByNumber(guildId: string, number: number): Promise<FormSubmission | null> {
@@ -236,7 +254,7 @@ export class FormStore {
       select ${submissionColumns(this.sql)} from forms_submissions
       where guild_id = ${guildId} and number = ${number}
     `;
-    return row ?? null;
+    return row ? openSubmission(row) : null;
   }
 
   async byReviewMessage(messageId: string): Promise<FormSubmission | null> {
@@ -244,7 +262,7 @@ export class FormStore {
       select ${submissionColumns(this.sql)} from forms_submissions
       where review_message_id = ${messageId}
     `;
-    return row ?? null;
+    return row ? openSubmission(row) : null;
   }
 
   async setReviewMessage(id: string, channelId: string, messageId: string): Promise<void> {
@@ -276,7 +294,7 @@ export class FormStore {
         ${options.before ? this.sql`and id < ${options.before}` : this.sql``}
       order by id desc
       limit ${limit}
-    `;
+    `.then((rows) => rows.map(openSubmission));
   }
 
   async counts(
@@ -314,13 +332,18 @@ export class FormStore {
     decidedBy: string | null,
     note: string | null,
   ): Promise<FormSubmission | null> {
+    const [current] = await this.sql<{ guildId: string }[]>`
+      select guild_id::text as "guildId" from forms_submissions where id = ${id}
+    `;
+    if (!current) return null;
     const [row] = await this.sql<FormSubmission[]>`
       update forms_submissions set
-        status = ${status}, decided_by = ${decidedBy}, decided_at = now(), note = ${note}
+        status = ${status}, decided_by = ${decidedBy}, decided_at = now(),
+        note = ${sealText(current.guildId, note)}
       where id = ${id} and status = 'pending'
       returning ${submissionColumns(this.sql)}
     `;
-    return row ?? null;
+    return row ? openSubmission(row) : null;
   }
 
   async setApplied(id: string, applied: AppliedActions): Promise<void> {
@@ -336,7 +359,7 @@ export class FormStore {
       where id = ${id} and status <> 'pending'
       returning ${submissionColumns(this.sql)}
     `;
-    return row ?? null;
+    return row ? openSubmission(row) : null;
   }
 
   async vote(submissionId: string, userId: string, vote: FormVote): Promise<void> {
@@ -410,7 +433,7 @@ export class FormStore {
       select ${submissionColumns(this.sql)} from forms_submissions
       where guild_id = ${guildId} and user_id = ${userId}
       order by id
-    `;
+    `.then((rows) => rows.map(openSubmission));
   }
 
   async memberVotes(

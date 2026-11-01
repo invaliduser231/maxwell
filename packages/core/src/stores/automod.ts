@@ -1,3 +1,4 @@
+import { openText, sealText } from '../crypto/data.js';
 import type { Sql } from '../db/sql.js';
 
 export interface AutomodHit {
@@ -96,6 +97,30 @@ export interface HeldMember {
 const MESSAGE_LIMIT = 4000;
 const SAMPLE_LIMIT = 20;
 
+function openHit<T extends Pick<AutomodHit, 'detail' | 'content'>>(guildId: string, row: T): T {
+  return { ...row, detail: openText(guildId, row.detail), content: openText(guildId, row.content) };
+}
+
+function sealSample(guildId: string, sample: DryRunSample): DryRunSample {
+  return {
+    ...sample,
+    content: sealText(guildId, sample.content),
+    detail: sealText(guildId, sample.detail),
+  };
+}
+
+function openSample(guildId: string, sample: DryRunSample): DryRunSample {
+  return {
+    ...sample,
+    content: openText(guildId, sample.content),
+    detail: openText(guildId, sample.detail),
+  };
+}
+
+function openDryRun(row: DryRun): DryRun {
+  return { ...row, samples: row.samples.map((sample) => openSample(row.guildId, sample)) };
+}
+
 export class AutomodStore {
   constructor(private readonly sql: Sql) {}
 
@@ -109,8 +134,9 @@ export class AutomodStore {
       rule: hit.rule,
       mode: hit.mode,
       action: hit.action,
-      detail: hit.detail.slice(0, 500),
-      content: hit.content === null ? null : hit.content.slice(0, MESSAGE_LIMIT),
+      detail: sealText(hit.guildId, hit.detail.slice(0, 500)),
+      content:
+        hit.content === null ? null : sealText(hit.guildId, hit.content.slice(0, MESSAGE_LIMIT)),
       created_at: (hit.createdAt ?? new Date()).toISOString(),
     }));
     await this.sql`
@@ -131,7 +157,7 @@ export class AutomodStore {
       where guild_id = ${guildId} and user_id = ${userId}
       order by created_at desc
       limit ${clamp(limit, 1, 200)}
-    `;
+    `.then((rows) => rows.map((row) => openHit(guildId, row)));
   }
 
   async recentHits(
@@ -147,7 +173,7 @@ export class AutomodStore {
         ${options.before ? this.sql`and id < ${options.before}` : this.sql``}
       order by id desc
       limit ${clamp(options.limit ?? 50, 1, 200)}
-    `;
+    `.then((rows) => rows.map((row) => openHit(guildId, row)));
   }
 
   async hitCounts(guildId: string, since: Date): Promise<{ rule: string; hits: number }[]> {
@@ -174,7 +200,7 @@ export class AutomodStore {
       author_id: message.authorId,
       author_roles: message.authorRoles,
       author_bot: message.authorBot,
-      content: message.content.slice(0, MESSAGE_LIMIT),
+      content: sealText(message.guildId, message.content.slice(0, MESSAGE_LIMIT)),
       mention_users: message.mentionUsers,
       mention_roles: message.mentionRoles,
       created_at: message.createdAt.toISOString(),
@@ -207,7 +233,7 @@ export class AutomodStore {
 
   async editMessage(guildId: string, messageId: string, content: string): Promise<void> {
     await this.sql`
-      update automod_messages set content = ${content.slice(0, MESSAGE_LIMIT)}
+      update automod_messages set content = ${sealText(guildId, content.slice(0, MESSAGE_LIMIT))}
       where guild_id = ${guildId} and message_id = ${messageId}
     `;
   }
@@ -231,7 +257,7 @@ export class AutomodStore {
         }
       order by created_at, message_id
       limit ${clamp(limit, 1, 10_000)}
-    `;
+    `.then((rows) => rows.map((row) => ({ ...row, content: openText(guildId, row.content) })));
   }
 
   async messageCount(guildId: string): Promise<number> {
@@ -305,7 +331,7 @@ export class AutomodStore {
         created_at as "createdAt", finished_at as "finishedAt"
       from automod_dryruns where guild_id = ${guildId} and id = ${id}
     `;
-    return row ?? null;
+    return row ? openDryRun(row) : null;
   }
 
   async listDryRuns(guildId: string, limit = 10): Promise<DryRun[]> {
@@ -316,7 +342,7 @@ export class AutomodStore {
       from automod_dryruns where guild_id = ${guildId}
       order by id desc
       limit ${clamp(limit, 1, 50)}
-    `;
+    `.then((rows) => rows.map(openDryRun));
   }
 
   async startDryRun(guildId: string, id: string): Promise<void> {
@@ -333,7 +359,11 @@ export class AutomodStore {
         scanned = ${result.scanned},
         caught = ${result.caught},
         by_mods = ${result.byMods},
-        samples = ${this.sql.json(result.samples.slice(0, SAMPLE_LIMIT) as never)},
+        samples = ${this.sql.json(
+          result.samples
+            .slice(0, SAMPLE_LIMIT)
+            .map((sample) => sealSample(guildId, sample)) as never,
+        )},
         finished_at = now()
       where guild_id = ${guildId} and id = ${id}
     `;
@@ -504,10 +534,13 @@ export class AutomodStore {
     `;
     if (hits.length + messages.length + held.length + samples.length === 0) return null;
     return {
-      hits: [...hits],
-      storedMessages: [...messages],
+      hits: hits.map((row) => openHit(guildId, row)),
+      storedMessages: messages.map((row) => ({ ...row, content: openText(guildId, row.content) })),
       gateHolds: [...held],
-      dryRunSamples: samples.map((row) => ({ dryRunId: row.dryRunId, ...row.sample })),
+      dryRunSamples: samples.map((row) => ({
+        dryRunId: row.dryRunId,
+        ...openSample(guildId, row.sample),
+      })),
     };
   }
 

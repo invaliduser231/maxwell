@@ -1,3 +1,4 @@
+import { openText, sealText } from '../crypto/data.js';
 import type { Sql } from '../db/sql.js';
 import type { IncidentKind } from '../modules/security.js';
 
@@ -243,6 +244,24 @@ const eventColumns = (sql: Sql) => sql`
   target_id as "targetId", count, detail, created_at as "createdAt"
 `;
 
+export function sealDetail(
+  guildId: string,
+  detail: Record<string, unknown>,
+): Record<string, unknown> {
+  return typeof detail.name === 'string'
+    ? { ...detail, name: sealText(guildId, detail.name) }
+    : detail;
+}
+
+export function openDetail(
+  guildId: string,
+  detail: Record<string, unknown>,
+): Record<string, unknown> {
+  return typeof detail.name === 'string'
+    ? { ...detail, name: openText(guildId, detail.name) }
+    : detail;
+}
+
 export class IncidentStore {
   readonly #tables = new Map<string, boolean>();
 
@@ -326,7 +345,8 @@ export class IncidentStore {
       values (
         ${incident.id}, ${incident.guildId}, ${input.kind}, ${input.userId ?? null},
         ${input.actorId ?? null}, ${input.byMaxwell ?? false}, ${input.targetId ?? null},
-        ${input.count ?? 1}, ${this.sql.json((input.detail ?? {}) as never)},
+        ${input.count ?? 1},
+        ${this.sql.json(sealDetail(incident.guildId, input.detail ?? {}) as never)},
         ${input.at ?? new Date()}
       )
       on conflict (incident_id, kind, target_id) where target_id is not null do update set
@@ -365,7 +385,9 @@ export class IncidentStore {
       where incident_id = ${incident.id}
       order by created_at, id
       limit ${limit}
-    `;
+    `.then((rows) =>
+      rows.map((row) => ({ ...row, detail: openDetail(incident.guildId, row.detail) })),
+    );
     const extra: IncidentEvent[] = [];
     if (await this.#has('automod_hits')) {
       const hits = await this.sql<

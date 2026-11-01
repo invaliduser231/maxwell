@@ -1,3 +1,4 @@
+import { openText, sealText } from '../crypto/data.js';
 import type { Sql } from '../db/sql.js';
 
 export interface StarboardPost {
@@ -26,6 +27,10 @@ const columns = `message_id as "messageId", guild_id as "guildId", channel_id as
   author_id as "authorId", post_id as "postId", post_image as "postImage", stars, content,
   created_at as "createdAt", updated_at as "updatedAt"`;
 
+function openPost(row: StarboardPost): StarboardPost {
+  return { ...row, content: openText(row.guildId, row.content) };
+}
+
 export class StarboardStore {
   constructor(private readonly sql: Sql) {}
 
@@ -33,14 +38,14 @@ export class StarboardStore {
     const [row] = await this.sql<StarboardPost[]>`
       select ${this.sql.unsafe(columns)} from starboard_posts where message_id = ${messageId}
     `;
-    return row ?? null;
+    return row ? openPost(row) : null;
   }
 
   async byPost(postId: string): Promise<StarboardPost | null> {
     const [row] = await this.sql<StarboardPost[]>`
       select ${this.sql.unsafe(columns)} from starboard_posts where post_id = ${postId}
     `;
-    return row ?? null;
+    return row ? openPost(row) : null;
   }
 
   async upsert(input: StarInput): Promise<StarboardPost> {
@@ -48,7 +53,7 @@ export class StarboardStore {
       insert into starboard_posts (message_id, guild_id, channel_id, author_id, stars, content)
       values (
         ${input.messageId}, ${input.guildId}, ${input.channelId}, ${input.authorId},
-        ${input.stars}, ${input.content.slice(0, 4000)}
+        ${input.stars}, ${sealText(input.guildId, input.content.slice(0, 4000))}
       )
       on conflict (message_id) do update set
         stars = excluded.stars,
@@ -57,7 +62,7 @@ export class StarboardStore {
       returning ${this.sql.unsafe(columns)}
     `;
     if (!row) throw new Error('starboard upsert returned nothing');
-    return row;
+    return openPost(row);
   }
 
   async setPost(messageId: string, postId: string | null, image = false): Promise<void> {
@@ -82,7 +87,7 @@ export class StarboardStore {
       delete from starboard_posts where message_id = ${messageId}
       returning ${this.sql.unsafe(columns)}
     `;
-    return row ?? null;
+    return row ? openPost(row) : null;
   }
 
   async top(
@@ -97,7 +102,7 @@ export class StarboardStore {
         ${options.since ? this.sql`and created_at >= ${options.since}` : this.sql``}
       order by stars desc, created_at desc
       limit ${limit} offset ${offset}
-    `;
+    `.then((rows) => rows.map(openPost));
   }
 
   async stats(guildId: string): Promise<{ posts: number; stars: number }> {
@@ -159,13 +164,13 @@ export class StarboardStore {
       where guild_id = ${guildId} and author_id = ${authorId}
       order by created_at desc
       limit ${Math.min(Math.max(limit, 1), 5000)}
-    `;
+    `.then((rows) => rows.map(openPost));
   }
 
   async forgetAuthor(guildId: string, authorId: string): Promise<StarboardPost[]> {
     return this.sql<StarboardPost[]>`
       delete from starboard_posts where guild_id = ${guildId} and author_id = ${authorId}
       returning ${this.sql.unsafe(columns)}
-    `;
+    `.then((rows) => rows.map(openPost));
   }
 }
