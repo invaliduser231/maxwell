@@ -33,6 +33,7 @@ import { runAction } from '@/lib/actions';
 import type { Translator } from '@/lib/i18n';
 import { ago, clock, date } from '@/lib/time';
 import type { CheckRow, EventRow, SecurityView } from './data';
+import { SecurityCheck } from './security-check';
 
 type Verification = SecurityConfig['verification'];
 type Weights = Verification['weights'];
@@ -173,6 +174,8 @@ export function SecurityForm({ view }: { view: SecurityView }) {
 
   return (
     <Grid>
+      <SecurityCheck health={view.health} />
+
       {view.raid ? (
         <div className="mx-s12">
           <Callout

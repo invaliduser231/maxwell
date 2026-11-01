@@ -1,9 +1,18 @@
 import 'server-only';
+import type { ModuleState } from '@maxwell/core';
 import { automodConfig } from '@maxwell/core/modules/automod';
+import { moderationConfig } from '@maxwell/core/modules/moderation';
+import { securityConfig } from '@maxwell/core/modules/security';
+import {
+  type Health,
+  type HealthInput,
+  securityHealth,
+} from '@maxwell/core/modules/security-check';
 import { SecurityStore } from '@maxwell/core/stores/security';
 import { ShieldStore } from '@maxwell/core/stores/shield';
+import type { z } from 'zod';
 import { db } from '@/lib/db';
-import { botRoleIds, guildRoles, PERMISSION } from '@/lib/fluxer';
+import { botRoleIds, type GuildRole, guildRoles, PERMISSION } from '@/lib/fluxer';
 import { people, personOf } from '@/lib/people';
 
 const DANGEROUS =
@@ -53,6 +62,7 @@ export interface SecurityView {
   checks: CheckRow[];
   events: EventRow[];
   shield: ShieldRow[];
+  health: Health;
 }
 
 export interface ShieldRow {
@@ -71,20 +81,59 @@ function dangerous(bits: string): boolean {
   }
 }
 
+function parse<T extends z.ZodType>(schema: T, state: ModuleState): z.output<T> {
+  const parsed = schema.safeParse(state.config);
+  return parsed.success ? parsed.data : schema.parse({});
+}
+
+function healthInput(
+  guildId: string,
+  roles: GuildRole[],
+  mine: string[] | null,
+  states: { security: ModuleState; automod: ModuleState; moderation: ModuleState },
+): HealthInput {
+  return {
+    guildId,
+    roles,
+    selfRoleIds: mine,
+    security: { enabled: states.security.enabled, config: parse(securityConfig, states.security) },
+    automod: { enabled: states.automod.enabled, config: parse(automodConfig, states.automod) },
+    moderation: {
+      enabled: states.moderation.enabled,
+      config: parse(moderationConfig, states.moderation),
+    },
+  };
+}
+
+export async function loadHealthInput(guildId: string): Promise<HealthInput> {
+  const { modules } = db();
+  const [roles, mine, security, automod, moderation] = await Promise.all([
+    guildRoles(guildId).catch(() => []),
+    botRoleIds(guildId),
+    modules.state(guildId, 'security'),
+    modules.state(guildId, 'automod'),
+    modules.state(guildId, 'moderation'),
+  ]);
+  return healthInput(guildId, roles, mine, { security, automod, moderation });
+}
+
 export async function securityView(guildId: string): Promise<SecurityView> {
   const { sql, modules } = db();
   const store = new SecurityStore(sql);
   const now = Date.now();
-  const [raid, counts, checks, events, automod, roles, mine, shared] = await Promise.all([
-    store.activeRaid(guildId),
-    store.counts(guildId, new Date(now - 86_400_000)),
-    store.recentChecks(guildId, 25),
-    store.events(guildId, 25),
-    modules.state(guildId, 'automod'),
-    guildRoles(guildId).catch(() => []),
-    botRoleIds(guildId),
-    new ShieldStore(sql).list(guildId, 50),
-  ]);
+  const [raid, counts, checks, events, automod, roles, mine, shared, own, moderation] =
+    await Promise.all([
+      store.activeRaid(guildId),
+      store.counts(guildId, new Date(now - 86_400_000)),
+      store.recentChecks(guildId, 25),
+      store.events(guildId, 25),
+      modules.state(guildId, 'automod'),
+      guildRoles(guildId).catch(() => []),
+      botRoleIds(guildId),
+      new ShieldStore(sql).list(guildId, 50),
+      modules.state(guildId, 'security'),
+      modules.state(guildId, 'moderation'),
+    ]);
   const gate = automodConfig.safeParse(automod.config);
   const raidConfig = gate.success ? gate.data.raid : automodConfig.parse({}).raid;
 
@@ -147,6 +196,9 @@ export async function securityView(guildId: string): Promise<SecurityView> {
       detail: event.detail,
       at: event.createdAt.getTime(),
     })),
+    health: securityHealth(
+      healthInput(guildId, roles, mine, { security: own, automod, moderation }),
+    ),
     shield: shared.map((report) => {
       const person = personOf(names, report.userId);
       return {
