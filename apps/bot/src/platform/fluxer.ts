@@ -53,6 +53,7 @@ const ignoredEvents = [
 const SUPPRESS_NOTIFICATIONS = 1 << 12;
 const TEXT_CHANNEL = 0;
 const INVITES_DISABLED = 'INVITES_DISABLED';
+const SNOWFLAKE = /^\d{1,21}$/;
 
 interface MemberSearchResponse {
   members: {
@@ -363,14 +364,14 @@ export class FluxerPlatform implements Platform {
 
   async send(channelId: string, message: Outgoing): Promise<string> {
     const prepared = await this.#prepare(channelId, message);
-    const sent = await this.#client.channels.send(channelId, toSendOptions(prepared));
+    const sent = await this.#client.channels.send(snowflake(channelId), toSendOptions(prepared));
     this.#scheduleDelete(channelId, sent.id, prepared.deleteAfter);
     return sent.id;
   }
 
   async reply(message: IncomingMessage, reply: Outgoing): Promise<string> {
     const prepared = await this.#prepare(message.channelId, reply);
-    const sent = await this.#client.channels.send(message.channelId, {
+    const sent = await this.#client.channels.send(snowflake(message.channelId), {
       ...toSendOptions(prepared),
       replyTo: {
         channelId: message.channelId,
@@ -387,7 +388,7 @@ export class FluxerPlatform implements Platform {
     const body: Record<string, unknown> = { content: prepared.content ?? '' };
     if (prepared.embeds) body.embeds = prepared.embeds.map((embed) => toEmbed(embed).toJSON());
     if (prepared.files?.length) {
-      const channel = await this.#client.channels.resolve(channelId);
+      const channel = await this.#client.channels.resolve(snowflake(channelId));
       if (!channel.isTextBased()) throw new Error('channel cannot hold attachments');
       body.attachments = await channel.uploadAttachmentsForSend(
         prepared.files.map((file, id) => ({
@@ -398,14 +399,17 @@ export class FluxerPlatform implements Platform {
         })),
       );
     }
-    await this.#client.rest.patch(Routes.channelMessage(channelId, messageId), { body });
+    await this.#client.rest.patch(
+      Routes.channelMessage(snowflake(channelId), snowflake(messageId)),
+      { body },
+    );
   }
 
   async message(channelId: string, messageId: string): Promise<IncomingMessage | null> {
     try {
-      const channel = await this.#client.channels.resolve(channelId);
+      const channel = await this.#client.channels.resolve(snowflake(channelId));
       if (!channel.isTextBased()) return null;
-      return toIncoming(await channel.messages.fetch(messageId));
+      return toIncoming(await channel.messages.fetch(snowflake(messageId)));
     } catch (error) {
       if (isStatus(error, 404) || isStatus(error, 403)) return null;
       throw error;
@@ -425,16 +429,19 @@ export class FluxerPlatform implements Platform {
 
   async startThread(channelId: string, messageId: string, name: string): Promise<string> {
     const thread = await this.#client.rest.post<{ id: string }>(
-      `/channels/${channelId}/messages/${messageId}/threads`,
+      `/channels/${snowflake(channelId)}/messages/${snowflake(messageId)}/threads`,
       { body: { name: name.slice(0, 100) } },
     );
     return thread.id;
   }
 
   async delete(channelId: string, messageId: string, reason?: string): Promise<void> {
-    await this.#client.rest.delete(Routes.channelMessage(channelId, messageId), {
-      headers: auditReason(reason),
-    });
+    await this.#client.rest.delete(
+      Routes.channelMessage(snowflake(channelId), snowflake(messageId)),
+      {
+        headers: auditReason(reason),
+      },
+    );
   }
 
   async bulkDelete(channelId: string, messageIds: string[], reason?: string): Promise<number> {
@@ -445,7 +452,7 @@ export class FluxerPlatform implements Platform {
       if (chunk.length === 1) {
         await this.delete(channelId, chunk[0] as string, reason);
       } else {
-        await this.#client.rest.post(Routes.channelBulkDelete(channelId), {
+        await this.#client.rest.post(Routes.channelBulkDelete(snowflake(channelId)), {
           body: { message_ids: chunk },
           headers: auditReason(reason),
         });
@@ -460,7 +467,7 @@ export class FluxerPlatform implements Platform {
     limit: number,
     before?: string,
   ): Promise<IncomingMessage[]> {
-    const channel = await this.#client.channels.resolve(channelId);
+    const channel = await this.#client.channels.resolve(snowflake(channelId));
     if (!channel.isTextBased()) return [];
     const page = await channel.messages.fetch({ limit: Math.min(Math.max(limit, 1), 100), before });
     return [...page.values()].map(toIncoming);
@@ -471,7 +478,7 @@ export class FluxerPlatform implements Platform {
     if (!channelId) return false;
     try {
       await this.#client.channels.send(
-        channelId,
+        snowflake(channelId),
         toSendOptions(typeof message === 'string' ? { content: message } : message),
       );
       return true;
@@ -482,7 +489,11 @@ export class FluxerPlatform implements Platform {
 
   async react(channelId: string, messageId: string, emoji: string): Promise<void> {
     await this.#client.rest.put(
-      Routes.channelMessageReactionMe(channelId, messageId, encodeURIComponent(emoji)),
+      Routes.channelMessageReactionMe(
+        snowflake(channelId),
+        snowflake(messageId),
+        encodeURIComponent(emoji),
+      ),
     );
   }
 
@@ -493,7 +504,7 @@ export class FluxerPlatform implements Platform {
     userId?: string,
   ): Promise<void> {
     await this.#client.rest.delete(
-      `/channels/${channelId}/messages/${messageId}/reactions/${encodeURIComponent(emoji)}/${userId ?? '@me'}`,
+      `/channels/${snowflake(channelId)}/messages/${snowflake(messageId)}/reactions/${encodeURIComponent(emoji)}/${userId === undefined ? '@me' : snowflake(userId)}`,
     );
   }
 
@@ -507,7 +518,7 @@ export class FluxerPlatform implements Platform {
     const query = new URLSearchParams({ limit: String(Math.min(Math.max(limit, 1), 100)) });
     if (after) query.set('after', after);
     const users = await this.#client.rest.get<{ id: string }[]>(
-      `/channels/${channelId}/messages/${messageId}/reactions/${encodeURIComponent(emoji)}?${query}`,
+      `/channels/${snowflake(channelId)}/messages/${snowflake(messageId)}/reactions/${encodeURIComponent(emoji)}?${query}`,
     );
     return users.map((user) => user.id);
   }
@@ -554,7 +565,7 @@ export class FluxerPlatform implements Platform {
   }
 
   async #botPermissions(guildId: string, channelId: string | null): Promise<PermissionsBitField> {
-    const guild = await this.#client.guilds.resolve(guildId);
+    const guild = await this.#client.guilds.resolve(snowflake(guildId));
     const me = guild.members.me ?? (await guild.members.fetchMe());
     const channel = channelId ? guild.channels.get(channelId) : undefined;
     return channel ? me.permissionsIn(channel) : me.permissions;
@@ -562,7 +573,7 @@ export class FluxerPlatform implements Platform {
 
   async user(userId: string): Promise<UserRef | null> {
     try {
-      return toUserRef(await this.#client.users.fetch(userId));
+      return toUserRef(await this.#client.users.fetch(snowflake(userId)));
     } catch {
       return null;
     }
@@ -570,7 +581,7 @@ export class FluxerPlatform implements Platform {
 
   async guild(guildId: string): Promise<GuildRef | null> {
     try {
-      return toGuildRef(await this.#client.guilds.resolve(guildId));
+      return toGuildRef(await this.#client.guilds.resolve(snowflake(guildId)));
     } catch {
       return null;
     }
@@ -578,8 +589,8 @@ export class FluxerPlatform implements Platform {
 
   async member(guildId: string, userId: string): Promise<MemberRef | null> {
     try {
-      const guild = await this.#client.guilds.resolve(guildId);
-      return toMemberRef(await guild.members.resolve(userId));
+      const guild = await this.#client.guilds.resolve(snowflake(guildId));
+      return toMemberRef(await guild.members.resolve(snowflake(userId)));
     } catch {
       return null;
     }
@@ -590,7 +601,7 @@ export class FluxerPlatform implements Platform {
     if (!guild) return false;
     if (guild.members.get(userId)) return true;
     try {
-      await guild.members.fetch(userId);
+      await guild.members.fetch(snowflake(userId));
       return true;
     } catch (error) {
       const cause = typeof error === 'object' && error !== null ? (error as Error).cause : null;
@@ -599,22 +610,22 @@ export class FluxerPlatform implements Platform {
   }
 
   async roles(guildId: string): Promise<RoleRef[]> {
-    const guild = await this.#client.guilds.resolve(guildId);
+    const guild = await this.#client.guilds.resolve(snowflake(guildId));
     return [...guild.roles.values()].map(toRoleRef).sort((a, b) => b.position - a.position);
   }
 
   async channels(guildId: string): Promise<ChannelRef[]> {
-    const guild = await this.#client.guilds.resolve(guildId);
+    const guild = await this.#client.guilds.resolve(snowflake(guildId));
     return [...guild.channels.values()].map(toChannelRef).sort((a, b) => a.position - b.position);
   }
 
   async channelInGuild(guildId: string, channelId: string): Promise<boolean> {
-    const guild = await this.#client.guilds.resolve(guildId);
+    const guild = await this.#client.guilds.resolve(snowflake(guildId));
     return guild.channels.has(channelId);
   }
 
   async welcomeChannel(guildId: string): Promise<string | null> {
-    const guild = await this.#client.guilds.resolve(guildId);
+    const guild = await this.#client.guilds.resolve(snowflake(guildId));
     const me = guild.members.me ?? (await guild.members.fetchMe());
     const canTalk = (channel: GuildChannel | undefined) =>
       channel !== undefined &&
@@ -631,7 +642,7 @@ export class FluxerPlatform implements Platform {
   }
 
   async ban(guildId: string, userId: string, options: BanOptions = {}): Promise<void> {
-    await this.#client.rest.put(Routes.guildBan(guildId, userId), {
+    await this.#client.rest.put(Routes.guildBan(snowflake(guildId), snowflake(userId)), {
       body: {
         delete_message_seconds: options.deleteMessageSeconds ?? 0,
         ban_duration_seconds: options.durationSeconds ?? 0,
@@ -641,13 +652,13 @@ export class FluxerPlatform implements Platform {
   }
 
   async unban(guildId: string, userId: string, reason?: string): Promise<void> {
-    await this.#client.rest.delete(Routes.guildBan(guildId, userId), {
+    await this.#client.rest.delete(Routes.guildBan(snowflake(guildId), snowflake(userId)), {
       headers: auditReason(reason),
     });
   }
 
   async kick(guildId: string, userId: string, reason?: string): Promise<void> {
-    await this.#client.rest.delete(Routes.guildMember(guildId, userId), {
+    await this.#client.rest.delete(Routes.guildMember(snowflake(guildId), snowflake(userId)), {
       headers: auditReason(reason),
     });
   }
@@ -658,7 +669,7 @@ export class FluxerPlatform implements Platform {
     until: Date | null,
     reason?: string,
   ): Promise<void> {
-    await this.#client.rest.patch(Routes.guildMember(guildId, userId), {
+    await this.#client.rest.patch(Routes.guildMember(snowflake(guildId), snowflake(userId)), {
       body: {
         communication_disabled_until: until ? until.toISOString() : null,
         timeout_reason: reason ?? null,
@@ -668,9 +679,12 @@ export class FluxerPlatform implements Platform {
   }
 
   async addRole(guildId: string, userId: string, roleId: string, reason?: string): Promise<void> {
-    await this.#client.rest.put(Routes.guildMemberRole(guildId, userId, roleId), {
-      headers: auditReason(reason),
-    });
+    await this.#client.rest.put(
+      Routes.guildMemberRole(snowflake(guildId), snowflake(userId), snowflake(roleId)),
+      {
+        headers: auditReason(reason),
+      },
+    );
   }
 
   async removeRole(
@@ -679,9 +693,12 @@ export class FluxerPlatform implements Platform {
     roleId: string,
     reason?: string,
   ): Promise<void> {
-    await this.#client.rest.delete(Routes.guildMemberRole(guildId, userId, roleId), {
-      headers: auditReason(reason),
-    });
+    await this.#client.rest.delete(
+      Routes.guildMemberRole(snowflake(guildId), snowflake(userId), snowflake(roleId)),
+      {
+        headers: auditReason(reason),
+      },
+    );
   }
 
   async setNickname(
@@ -690,7 +707,7 @@ export class FluxerPlatform implements Platform {
     nick: string | null,
     reason?: string,
   ): Promise<void> {
-    await this.#client.rest.patch(Routes.guildMember(guildId, userId), {
+    await this.#client.rest.patch(Routes.guildMember(snowflake(guildId), snowflake(userId)), {
       body: { nick },
       headers: auditReason(reason),
     });
@@ -698,21 +715,21 @@ export class FluxerPlatform implements Platform {
 
   async guildOwner(guildId: string): Promise<string | null> {
     try {
-      return (await this.#client.guilds.resolve(guildId)).ownerId ?? null;
+      return (await this.#client.guilds.resolve(snowflake(guildId))).ownerId ?? null;
     } catch {
       return null;
     }
   }
 
   async setInvitesPaused(guildId: string, paused: boolean, reason?: string): Promise<boolean> {
-    const guild = await this.#client.guilds.resolve(guildId);
+    const guild = await this.#client.guilds.resolve(snowflake(guildId));
     const current = (guild.features ?? []).map(String);
     const has = current.includes(INVITES_DISABLED);
     if (has === paused) return false;
     const features = paused
       ? [...current, INVITES_DISABLED]
       : current.filter((feature) => feature !== INVITES_DISABLED);
-    await this.#client.rest.patch(Routes.guild(guildId), {
+    await this.#client.rest.patch(Routes.guild(snowflake(guildId)), {
       body: { features },
       headers: auditReason(reason),
     });
@@ -721,29 +738,32 @@ export class FluxerPlatform implements Platform {
   }
 
   async moveVoice(guildId: string, userId: string, channelId: string | null): Promise<void> {
-    await this.#client.rest.patch(Routes.guildMember(guildId, userId), {
+    await this.#client.rest.patch(Routes.guildMember(snowflake(guildId), snowflake(userId)), {
       body: { channel_id: channelId },
     });
   }
 
   async createRole(guildId: string, input: RoleInput, reason?: string): Promise<string> {
-    const role = await this.#client.rest.post<{ id: string }>(Routes.guildRoles(guildId), {
-      body: {
-        name: input.name,
-        color: input.color ?? 0,
-        permissions: input.permissionBits ?? bits(input.permissions ?? []),
-        hoist: input.hoist ?? false,
-        mentionable: input.mentionable ?? false,
+    const role = await this.#client.rest.post<{ id: string }>(
+      Routes.guildRoles(snowflake(guildId)),
+      {
+        body: {
+          name: input.name,
+          color: input.color ?? 0,
+          permissions: input.permissionBits ?? bits(input.permissions ?? []),
+          hoist: input.hoist ?? false,
+          mentionable: input.mentionable ?? false,
+        },
+        headers: auditReason(reason),
       },
-      headers: auditReason(reason),
-    });
+    );
     return role.id;
   }
 
   async editRole(guildId: string, roleId: string, input: RoleEdit, reason?: string): Promise<void> {
     const permissions =
       input.permissionBits ?? (input.permissions ? bits(input.permissions) : undefined);
-    await this.#client.rest.patch(Routes.guildRole(guildId, roleId), {
+    await this.#client.rest.patch(Routes.guildRole(snowflake(guildId), snowflake(roleId)), {
       body: {
         name: input.name,
         color: input.color,
@@ -754,7 +774,7 @@ export class FluxerPlatform implements Platform {
       headers: auditReason(reason),
     });
     if (input.position !== undefined) {
-      await this.#client.rest.patch(Routes.guildRoles(guildId), {
+      await this.#client.rest.patch(Routes.guildRoles(snowflake(guildId)), {
         body: [{ id: roleId, position: input.position }],
         headers: auditReason(reason),
       });
@@ -762,25 +782,28 @@ export class FluxerPlatform implements Platform {
   }
 
   async deleteRole(guildId: string, roleId: string, reason?: string): Promise<void> {
-    await this.#client.rest.delete(Routes.guildRole(guildId, roleId), {
+    await this.#client.rest.delete(Routes.guildRole(snowflake(guildId), snowflake(roleId)), {
       headers: auditReason(reason),
     });
   }
 
   async createChannel(guildId: string, input: ChannelInput, reason?: string): Promise<string> {
-    const channel = await this.#client.rest.post<{ id: string }>(Routes.guildChannels(guildId), {
-      body: {
-        name: input.name,
-        type: input.type,
-        parent_id: input.parentId ?? null,
-        topic: input.topic,
-        user_limit: input.userLimit,
-        nsfw: input.nsfw,
-        rate_limit_per_user: input.rateLimitPerUser,
-        permission_overwrites: input.overwrites?.map((overwrite) => toWireOverwrite(overwrite)),
+    const channel = await this.#client.rest.post<{ id: string }>(
+      Routes.guildChannels(snowflake(guildId)),
+      {
+        body: {
+          name: input.name,
+          type: input.type,
+          parent_id: input.parentId ?? null,
+          topic: input.topic,
+          user_limit: input.userLimit,
+          nsfw: input.nsfw,
+          rate_limit_per_user: input.rateLimitPerUser,
+          permission_overwrites: input.overwrites?.map((overwrite) => toWireOverwrite(overwrite)),
+        },
+        headers: auditReason(reason),
       },
-      headers: auditReason(reason),
-    });
+    );
     return channel.id;
   }
 
@@ -789,7 +812,7 @@ export class FluxerPlatform implements Platform {
     input: Partial<ChannelInput> & { rateLimitPerUser?: number },
     reason?: string,
   ): Promise<void> {
-    await this.#client.rest.patch(Routes.channel(channelId), {
+    await this.#client.rest.patch(Routes.channel(snowflake(channelId)), {
       body: {
         name: input.name,
         parent_id: input.parentId,
@@ -804,7 +827,9 @@ export class FluxerPlatform implements Platform {
   }
 
   async deleteChannel(channelId: string, reason?: string): Promise<void> {
-    await this.#client.rest.delete(Routes.channel(channelId), { headers: auditReason(reason) });
+    await this.#client.rest.delete(Routes.channel(snowflake(channelId)), {
+      headers: auditReason(reason),
+    });
   }
 
   async setOverwrite(channelId: string, overwrite: Overwrite, reason?: string): Promise<void> {
@@ -813,16 +838,22 @@ export class FluxerPlatform implements Platform {
       ? channel.permissionOverwrites.cache.get(overwrite.id)?.toJSON()
       : undefined;
     const wire = toWireOverwrite(overwrite, existing);
-    await this.#client.rest.put(Routes.channelPermission(channelId, overwrite.id), {
-      body: { type: wire.type, allow: wire.allow, deny: wire.deny },
-      headers: auditReason(reason),
-    });
+    await this.#client.rest.put(
+      Routes.channelPermission(snowflake(channelId), snowflake(overwrite.id)),
+      {
+        body: { type: wire.type, allow: wire.allow, deny: wire.deny },
+        headers: auditReason(reason),
+      },
+    );
   }
 
   async deleteOverwrite(channelId: string, overwriteId: string, reason?: string): Promise<void> {
-    await this.#client.rest.delete(Routes.channelPermission(channelId, overwriteId), {
-      headers: auditReason(reason),
-    });
+    await this.#client.rest.delete(
+      Routes.channelPermission(snowflake(channelId), snowflake(overwriteId)),
+      {
+        headers: auditReason(reason),
+      },
+    );
   }
 
   async hasPermissions(
@@ -832,10 +863,10 @@ export class FluxerPlatform implements Platform {
     required: readonly Permission[],
   ): Promise<boolean> {
     if (required.length === 0) return true;
-    const guild = await this.#client.guilds.resolve(guildId);
+    const guild = await this.#client.guilds.resolve(snowflake(guildId));
     if (guild.ownerId === userId) return true;
 
-    const member = await guild.members.resolve(userId);
+    const member = await guild.members.resolve(snowflake(userId));
     const channel = channelId ? guild.channels.get(channelId) : undefined;
     const granted = channel ? member.permissionsIn(channel) : member.permissions;
     return hasAll(granted, required);
@@ -856,7 +887,7 @@ export class FluxerPlatform implements Platform {
     let response: MemberSearchResponse;
     try {
       response = await this.#client.rest.post<MemberSearchResponse>(
-        Routes.guildMembersSearch(guildId),
+        Routes.guildMembersSearch(snowflake(guildId)),
         {
           body: { query: userId, joined_at_gte: since, limit: 10 },
         },
@@ -877,6 +908,11 @@ export class FluxerPlatform implements Platform {
       },
     };
   }
+}
+
+function snowflake(value: string): string {
+  if (!SNOWFLAKE.test(value)) throw new Error('invalid snowflake id');
+  return value;
 }
 
 function auditReason(reason: string | undefined): Record<string, string> | undefined {

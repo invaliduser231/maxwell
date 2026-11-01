@@ -17,6 +17,9 @@ describe.skipIf(!url)('custom commands with storage', () => {
     BigInt(Date.now()) * 1_000_000n + BigInt(Math.floor(Math.random() * 1_000_000)),
   );
   const user = '300000000000000001';
+  const memberRole = '400000000000000001';
+  const brokenRole = '400000000000000002';
+  const guestRole = '400000000000000003';
   let config: CommandsConfig = commandsConfig.parse({});
   let enabled = true;
   const replies: Outgoing[] = [];
@@ -60,7 +63,7 @@ describe.skipIf(!url)('custom commands with storage', () => {
         ],
         user: async () => null,
         addRole: async (_g: string, _u: string, role: string) => {
-          if (role === 'broken') throw new Error('missing permissions');
+          if (role === brokenRole) throw new Error('missing permissions');
           roleCalls.push(`+${role}`);
         },
         removeRole: async (_g: string, _u: string, role: string) => {
@@ -112,8 +115,8 @@ describe.skipIf(!url)('custom commands with storage', () => {
           trigger: 'command',
           pattern: 'verify',
           responses: [],
-          addRoles: ['member', 'broken'],
-          removeRoles: ['guest'],
+          addRoles: [memberRole, brokenRole],
+          removeRoles: [guestRole],
         },
         { id: 'help', trigger: 'command', pattern: 'help', responses: ['shadowed'] },
         { id: 'gm', trigger: 'keyword', pattern: 'good morning', responses: ['Morning, {user}.'] },
@@ -155,14 +158,14 @@ describe.skipIf(!url)('custom commands with storage', () => {
   });
 
   it('changes roles, survives failures and records an undo', async () => {
-    await runner.handle(message('m!verify', ['guest']));
-    expect(roleCalls).toEqual(['+member', '-guest']);
+    await runner.handle(message('m!verify', [guestRole]));
+    expect(roleCalls).toEqual([`+${memberRole}`, `-${guestRole}`]);
     expect(records.at(-1)?.[2]).toBe('command.roles');
     expect(records.at(-1)?.[4]).toMatchObject({
-      undo: { kind: 'roles', payload: { userId: user, added: ['member'], removed: ['guest'] } },
+      undo: { kind: 'roles', payload: { userId: user, added: [memberRole], removed: [guestRole] } },
     });
-    await runner.undoRoles(guild, { userId: user, added: ['member'], removed: ['guest'] });
-    expect(roleCalls.slice(2)).toEqual(['-member', '+guest']);
+    await runner.undoRoles(guild, { userId: user, added: [memberRole], removed: [guestRole] });
+    expect(roleCalls.slice(2)).toEqual([`-${memberRole}`, `+${guestRole}`]);
   });
 
   it('stores test renders for the dashboard', async () => {

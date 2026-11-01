@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { defineModule } from './types.js';
 
+const id = z.string().regex(/^\d{1,21}$/);
+
 export const triggerTypes = ['command', 'keyword', 'regex'] as const;
 export const keywordModes = ['word', 'contains', 'exact', 'startsWith'] as const;
 export const cooldownScopes = ['user', 'channel', 'guild'] as const;
@@ -39,11 +41,11 @@ export const customCommand = z.object({
   color: z.number().int().min(0).max(0xffffff).nullable().default(null),
   reply: z.boolean().default(true),
   deleteTrigger: z.boolean().default(false),
-  addRoles: z.array(z.string()).max(10).default([]),
-  removeRoles: z.array(z.string()).max(10).default([]),
+  addRoles: z.array(id).max(10).default([]),
+  removeRoles: z.array(id).max(10).default([]),
   cooldown: z.number().int().min(0).max(86_400).default(0),
   cooldownScope: z.enum(cooldownScopes).default('user'),
-  allowedRoles: z.array(z.string()).max(50).default([]),
+  allowedRoles: z.array(id).max(50).default([]),
   allowedChannels: z.array(z.string()).max(50).default([]),
   enabled: z.boolean().default(true),
 });

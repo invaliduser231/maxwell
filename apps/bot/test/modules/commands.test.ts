@@ -200,11 +200,11 @@ describe('execution rules', () => {
   });
 
   it('plans only the role changes that do something', () => {
-    const plan = planRoles(command({ addRoles: ['a', 'b', 'c'], removeRoles: ['c', 'd'] }), [
-      'a',
-      'd',
+    const plan = planRoles(command({ addRoles: ['1', '2', '3'], removeRoles: ['3', '4'] }), [
+      '1',
+      '4',
     ]);
-    expect(plan).toEqual({ added: ['b'], removed: ['d'] });
+    expect(plan).toEqual({ added: ['2'], removed: ['4'] });
   });
 
   it('builds plain and embed responses', () => {
