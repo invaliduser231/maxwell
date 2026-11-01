@@ -277,6 +277,9 @@ export class RulesGate {
     const channelId = config.rules.channelId;
     const emoji = normalizeEmoji(config.rules.emoji);
     if (!channelId || !emoji) return null;
+    if (!(await platform.channelInGuild(guildId, channelId))) {
+      throw new Error('rules channel not in the community');
+    }
 
     if (config.rules.messageId) {
       await platform.react(channelId, config.rules.messageId, emoji);

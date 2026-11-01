@@ -70,8 +70,12 @@ export default defineBotModule({
 
     ctx.job('preview', async (job) => {
       const guildId = job.guildId;
-      const { userId, kind } = job.payload as { userId?: string; kind?: GreetingKind };
-      if (!guildId || !userId || !kind || !kinds.includes(kind)) return;
+      const { userId, kind, by } = job.payload as {
+        userId?: string;
+        kind?: GreetingKind;
+        by?: string;
+      };
+      if (!guildId || !userId || userId !== by || !kind || !kinds.includes(kind)) return;
       const config = await ctx.config(guildId);
       const [user, guild] = await Promise.all([
         services.platform.user(userId),

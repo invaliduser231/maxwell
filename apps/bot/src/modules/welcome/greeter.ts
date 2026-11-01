@@ -58,6 +58,10 @@ export class Greeter {
 
     const settings = kind === 'join' ? config.join : config.leave;
     const content = render(settings.message, vars).slice(0, 4000);
+    if (!(await platform.channelInGuild(guildId, channelId).catch(() => false))) {
+      this.#warn(guildId, channelId, kind);
+      return false;
+    }
     const missing = await platform
       .missingBotPermissions(guildId, channelId, ['ViewChannel', 'SendMessages', 'AttachFiles'])
       .catch(() => null);
