@@ -131,7 +131,11 @@ export const raidShield = z
     joins: z.number().int().min(2).max(500).default(10),
     perSeconds: z.number().int().min(2).max(600).default(10),
     minAccountAgeHours: z.number().int().min(0).max(8760).default(0),
-    gateRoleId: z.string().nullable().default(null),
+    gateRoleId: z
+      .string()
+      .regex(/^\d{1,21}$/)
+      .nullable()
+      .default(null),
     gateChannelId: z.string().nullable().default(null),
     lockdownMinutes: z.number().int().min(1).max(1440).default(15),
     alertRoleId: z.string().nullable().default(null),

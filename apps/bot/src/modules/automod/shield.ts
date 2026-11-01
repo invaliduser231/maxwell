@@ -15,6 +15,7 @@ type Ctx = ModuleContext<typeof automodConfig>;
 const JOIN_CAP = 1_000;
 const GUILD_CAP = 10_000;
 const ACTIVE_TTL = 15_000;
+const SNOWFLAKE = /^\d{1,21}$/;
 
 export interface JoinEntry {
   at: number;
@@ -272,6 +273,10 @@ export class RaidShield {
         done.push(entry.userId);
         continue;
       }
+      if (!SNOWFLAKE.test(roleId)) {
+        failed.push(entry.userId);
+        continue;
+      }
       try {
         await platform.removeRole(guildId, entry.userId, roleId, audit.gateReason);
         done.push(entry.userId);
@@ -329,6 +334,7 @@ export class RaidShield {
   }
 
   async rehold(guildId: string, userIds: readonly string[], roleId: string): Promise<void> {
+    if (!SNOWFLAKE.test(roleId)) return;
     const { platform, log } = this.ctx.services;
     for (const userId of userIds) {
       try {
