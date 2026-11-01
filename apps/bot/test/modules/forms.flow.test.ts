@@ -177,8 +177,10 @@ class FakePlatform {
     return this.channelList;
   }
 
-  async channelInGuild(_guildId: string, channelId: string) {
-    return this.channelList.some((channel) => channel.id === channelId);
+  async channelInGuild(guildId: string, channelId: string) {
+    return this.channelList.some(
+      (channel) => channel.id === channelId && channel.guildId === guildId,
+    );
   }
 
   async createChannel(guildId: string, input: ChannelInput): Promise<string> {
@@ -511,6 +513,15 @@ describe.skipIf(!url)('forms flow', () => {
     expect(jobs.some((job) => job.kind === 'forms.cleanup')).toBe(true);
     await runJobs('forms.cleanup');
     expect(platform.deletedChannels).toContain(channel?.id);
+  });
+
+  it('only cleans up channels in the job guild', async () => {
+    jobs.push(
+      { kind: 'forms.cleanup', guildId: snowflake(9), payload: { channelId: reviewChannel } },
+      { kind: 'forms.cleanup', payload: { channelId: reviewChannel } },
+    );
+    await runJobs('forms.cleanup');
+    expect(platform.deletedChannels).not.toContain(reviewChannel);
   });
 
   it('ends a session that runs out of time', async () => {

@@ -57,7 +57,8 @@ export default defineBotModule({
 
     ctx.job('cleanup', async (job) => {
       const channelId = text(job.payload.channelId);
-      if (!channelId) return;
+      if (!job.guildId || !channelId) return;
+      if (!(await platform.channelInGuild(job.guildId, channelId).catch(() => false))) return;
       await platform
         .deleteChannel(channelId, 'Maxwell forms')
         .catch((error) =>
