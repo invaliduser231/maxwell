@@ -1,7 +1,7 @@
 export const privacy = `
 # Privacy Policy
 
-Last updated: 2026-10-26
+Last updated: 2026-11-01
 
 ## 1. Summary
 
@@ -113,6 +113,7 @@ Maxwell fetches data from other services when admins set it up:
 - **Pictures:** HTTPS addresses that admins enter for card backgrounds, and pictures in starred messages.
 - **Discord:** when admins import a Discord server template, Maxwell loads it from discord.com.
 - **fluxerlist.com:** vote checks (section 4).
+- **FishFish (api.fishfish.gg):** every six hours Maxwell downloads a list of known phishing domains for the AutoMod phishing rule. No user data is sent.
 
 ## 8. Logs
 
