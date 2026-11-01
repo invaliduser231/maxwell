@@ -166,7 +166,7 @@ You can lodge a complaint with a data protection supervisory authority (Art. 77 
 
 ## 15. Security
 
-Connections are encrypted, Fluxer tokens are encrypted on top, sessions are stored only as hashes, and backups are encrypted. Only a few people have access to the servers. In the event of a data breach we will notify the supervisory authority and, where required, you (Art. 33 and 34 GDPR).
+Connections are encrypted, Fluxer tokens are encrypted on top, sessions are stored only as hashes, and backups are encrypted. Case reasons and excerpts, notes, name history, inbox reports and appeals, ticket and modmail transcripts, AutoMod hits and message history, starboard messages, names in incident timelines and form answers are stored encrypted with a separate key for each community. Only a few people have access to the servers. In the event of a data breach we will notify the supervisory authority and, where required, you (Art. 33 and 34 GDPR).
 
 ## 16. Changes
 
