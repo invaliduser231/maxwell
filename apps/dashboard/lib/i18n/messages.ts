@@ -28,6 +28,7 @@ import { publicPage } from './de/public';
 import { roles } from './de/roles';
 import { scheduler } from './de/scheduler';
 import { security } from './de/security';
+import { shield } from './de/shield';
 import { starboard } from './de/starboard';
 import { start } from './de/start';
 import { suggestions } from './de/suggestions';
@@ -78,4 +79,5 @@ export const messages = {
   ...starboard,
   ...voice,
   ...logs,
+  ...shield,
 } as const;
