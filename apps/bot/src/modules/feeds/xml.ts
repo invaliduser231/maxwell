@@ -118,10 +118,10 @@ export function parseXml(input: string, limits: XmlLimits = defaults): XmlNode {
       continue;
     }
     if (input.startsWith('<!', open)) {
-      const bracket = input.indexOf('[', open);
       const close = input.indexOf('>', open);
-      if (bracket !== -1 && (close === -1 || bracket < close)) {
-        const end = input.indexOf(']>', bracket);
+      const bracket = close === -1 ? -1 : input.slice(open, close).indexOf('[');
+      if (bracket !== -1) {
+        const end = input.indexOf(']>', open + bracket);
         i = end === -1 ? length : end + 2;
       } else {
         i = close === -1 ? length : close + 1;
