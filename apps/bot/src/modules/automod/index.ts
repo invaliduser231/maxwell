@@ -2,6 +2,7 @@ import type { Actor } from '@maxwell/core';
 import definition from '@maxwell/core/modules/automod';
 import { AutomodStore } from '@maxwell/core/stores/automod';
 import { PhishingStore } from '@maxwell/core/stores/phishing';
+import { SlowmodeStore } from '@maxwell/core/stores/slowmode';
 import { defineBotModule } from '../../runtime/module.js';
 import { gateCommand } from './commands.js';
 import { Confirmations } from './confirm.js';
@@ -13,6 +14,7 @@ import { PhishingIndex } from './phishing.js';
 import { PhishingFeed, syncAt } from './phishing-feed.js';
 import { RuleEngine } from './rules.js';
 import { RaidShield } from './shield.js';
+import { AdaptiveSlowmode } from './slowmode.js';
 import { HISTORY_DAYS } from './types.js';
 
 const PURGE_EVERY = 60 * 60_000;
@@ -51,6 +53,7 @@ export default defineBotModule({
     const lookup = new GuildLookup(platform);
     const enforcer = new Enforcer(ctx, store);
     const shield = new RaidShield(ctx, store);
+    const slowmode = new AdaptiveSlowmode(ctx, new SlowmodeStore(services.sql));
     const confirmations = new Confirmations(platform, services.voice.icons);
     const running = new Set<string>();
 
@@ -77,6 +80,9 @@ export default defineBotModule({
       if (!guildId || message.author.id === platform.selfId) return;
       const config = await ctx.config(guildId);
       if (config.keepHistory) history.add(toStored(message, guildId));
+      if (!message.author.bot && !message.fromWebhook) {
+        slowmode.observe(guildId, message.channelId, config);
+      }
       if (message.fromWebhook && config.ignoreBots) return;
       const [isMod, parentId] = await Promise.all([
         lookup.isMod(guildId, config.modRoleIds, message.memberRoles),
@@ -143,8 +149,22 @@ export default defineBotModule({
       lookup.forgetChannels(change.guildId);
       await shield.onChannelCreate(change);
     });
-    ctx.on('channelUpdate', ({ guildId }) => lookup.forgetChannels(guildId), { always: true });
-    ctx.on('channelDelete', ({ guildId }) => lookup.forgetChannels(guildId), { always: true });
+    ctx.on(
+      'channelUpdate',
+      async (change) => {
+        lookup.forgetChannels(change.guildId);
+        await slowmode.onChannelUpdate(change);
+      },
+      { always: true },
+    );
+    ctx.on(
+      'channelDelete',
+      async (change) => {
+        lookup.forgetChannels(change.guildId);
+        await slowmode.onChannelDelete(change);
+      },
+      { always: true },
+    );
     ctx.on('roleCreate', ({ guildId }) => lookup.forgetRoles(guildId), { always: true });
     ctx.on('roleUpdate', ({ guildId }) => lookup.forgetRoles(guildId), { always: true });
     ctx.on('roleDelete', ({ guildId }) => lookup.forgetRoles(guildId), { always: true });
@@ -282,6 +302,9 @@ export default defineBotModule({
           return Date.now();
         });
         await ctx.schedule('phishing.sync', syncAt(next));
+        await slowmode
+          .load()
+          .catch((error) => log.warn({ err: error }, 'adaptive slowmode load failed'));
       },
       { always: true },
     );
@@ -319,7 +342,9 @@ export default defineBotModule({
     });
 
     history.start();
+    slowmode.start();
     ctx.onShutdown(async () => {
+      slowmode.stop();
       confirmations.stop();
       await history.stop();
     });

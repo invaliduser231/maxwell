@@ -138,6 +138,18 @@ export const raidShield = z
   })
   .prefault({});
 
+export const adaptiveSlowmode = z
+  .object({
+    enabled: z.boolean().default(false),
+    channelIds: z.array(z.string()).max(50).default([]),
+    maxPerMinute: z.number().int().min(5).max(1000).default(30),
+    minSeconds: z.number().int().min(1).max(21_600).default(5),
+    maxSeconds: z.number().int().min(1).max(21_600).default(60),
+    stepSeconds: z.number().int().min(1).max(3_600).default(5),
+    cooldownSeconds: z.number().int().min(30).max(3_600).default(120),
+  })
+  .prefault({});
+
 export const automodConfig = z.object({
   logChannelId: z.string().nullable().default(null),
   modRoleIds: ids(),
@@ -148,12 +160,14 @@ export const automodConfig = z.object({
   keepHistory: z.boolean().default(false),
   rules: automodRules,
   raid: raidShield,
+  slowmode: adaptiveSlowmode,
 });
 
 export type AutomodConfig = z.infer<typeof automodConfig>;
 export type AutomodRules = AutomodConfig['rules'];
 export type AutomodRule = AutomodRules[AutomodRuleKey];
 export type RaidShieldConfig = AutomodConfig['raid'];
+export type AdaptiveSlowmodeConfig = AutomodConfig['slowmode'];
 
 export const HISTORY_DAYS = 7;
 
@@ -359,6 +373,19 @@ export default defineModule({
           source text primary key,
           fetched_at timestamptz not null,
           domains integer not null
+        );
+      `,
+    },
+    {
+      id: '7-slowmode',
+      up: `
+        create table automod_slowmode (
+          guild_id bigint not null,
+          channel_id bigint not null,
+          original integer not null,
+          applied integer not null,
+          changed_at timestamptz not null default now(),
+          primary key (guild_id, channel_id)
         );
       `,
     },

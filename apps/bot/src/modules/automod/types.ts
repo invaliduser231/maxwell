@@ -1,4 +1,5 @@
 export type {
+  AdaptiveSlowmodeConfig,
   AutomodAction,
   AutomodConfig,
   AutomodMode,

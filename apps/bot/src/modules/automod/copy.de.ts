@@ -69,6 +69,16 @@ const de: AutomodCopy = {
   logWhere: (who: string, channel: string) => `${who} in ${channel}`,
   logAction: 'Aktion',
   logFooter: (userId: string, messageId: string) => `Nutzer ${userId} / Nachricht ${messageId}`,
+  slowmode: {
+    raised: (channel: string, duration: string, rate: number) =>
+      `Slowmode in ${channel} auf ${duration} erhöht, ${rate} Nachrichten in der letzten Minute.`,
+    lowered: (channel: string, duration: string) =>
+      `Slowmode in ${channel} auf ${duration} gesenkt.`,
+    restored: (channel: string, duration: string | null) =>
+      duration
+        ? `Slowmode in ${channel} wieder auf ${duration}.`
+        : `Slowmode in ${channel} ist wieder aus.`,
+  },
 
   raidAlert: (joins: number, seconds: number, until: string) =>
     [

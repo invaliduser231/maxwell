@@ -72,6 +72,16 @@ const en = {
   logWhere: (who: string, channel: string) => `${who} in ${channel}`,
   logAction: 'Action',
   logFooter: (userId: string, messageId: string) => `User ${userId} / Message ${messageId}`,
+  slowmode: {
+    raised: (channel: string, duration: string, rate: number) =>
+      `Slowmode in ${channel} raised to ${duration}, ${rate} messages in the last minute.`,
+    lowered: (channel: string, duration: string) =>
+      `Slowmode in ${channel} lowered to ${duration}.`,
+    restored: (channel: string, duration: string | null) =>
+      duration
+        ? `Slowmode in ${channel} back to ${duration}.`
+        : `Slowmode in ${channel} is off again.`,
+  },
 
   raidAlert: (joins: number, seconds: number, until: string) =>
     [
@@ -133,6 +143,7 @@ export const audit = {
     `Raid shield started a lockdown after ${joins} joins in ${seconds}s`,
   auditLockdown: (duration: string) => `Started a lockdown for ${duration}`,
   auditLockdownEnd: 'Ended the lockdown',
+  slowmodeReason: 'AutoMod: adaptive slowmode',
   auditLetIn: (count: number) =>
     count === 1 ? 'Let 1 member in from the gate' : `Let ${count} members in from the gate`,
   auditBanAll: (count: number) =>
