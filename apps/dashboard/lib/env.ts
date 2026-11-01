@@ -1,4 +1,5 @@
 import 'server-only';
+import { isValidDataKey } from '@maxwell/core/crypto/data';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -9,6 +10,7 @@ const schema = z.object({
   FLUXER_CLIENT_SECRET: z.string().min(1).optional(),
   DASHBOARD_URL: z.url().default('http://localhost:3000'),
   SESSION_SECRET: z.string().min(32),
+  DATA_KEY: z.string().refine(isValidDataKey, 'must be 32 bytes encoded as base64').optional(),
   FLUXERLIST_API_KEY: z.string().optional(),
   FLUXERLIST_BOT_ID: z.string().optional(),
   FLUXERLIST_API_BASE: z.url().default('https://fluxerlist.com'),
