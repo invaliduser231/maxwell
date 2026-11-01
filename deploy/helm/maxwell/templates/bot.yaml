@@ -31,6 +31,8 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       securityContext:
+        seccompProfile:
+          type: RuntimeDefault
         runAsNonRoot: true
         runAsUser: 1000
         runAsGroup: 1000

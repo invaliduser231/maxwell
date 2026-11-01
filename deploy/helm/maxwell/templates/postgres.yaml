@@ -37,6 +37,8 @@ spec:
         app.kubernetes.io/component: postgres
     spec:
       securityContext:
+        seccompProfile:
+          type: RuntimeDefault
         fsGroup: 999
       terminationGracePeriodSeconds: 60
       containers:
