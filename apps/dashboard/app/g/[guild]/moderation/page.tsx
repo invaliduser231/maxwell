@@ -1,6 +1,7 @@
 import { builtinCommands, generalConfig } from '@maxwell/core';
 import { type CaseAction, caseActions, moderationConfig } from '@maxwell/core/modules/moderation';
 import { ModerationStore } from '@maxwell/core/stores/moderation';
+import { ShieldStore } from '@maxwell/core/stores/shield';
 import { ModuleShell } from '@/components/module-shell';
 import { db } from '@/lib/db';
 import { titled } from '@/lib/i18n/server';
@@ -51,7 +52,7 @@ export default async function ModerationPage({
   const selectedNumber = Number.parseInt(pick(raw.case), 10);
 
   const store = new ModerationStore(db().sql);
-  const [rows, overview, moderators, commands, general, prefix] = await Promise.all([
+  const [rows, overview, moderators, commands, general, prefix, shield] = await Promise.all([
     store.list(guild, {
       action: query.action ?? undefined,
       moderatorId: query.mod ?? undefined,
@@ -65,6 +66,7 @@ export default async function ModerationPage({
     builtinCommands(db().sql).catch(() => []),
     db().modules.get(guild, 'general', generalConfig),
     db().guilds.prefix(guild),
+    new ShieldStore(db().sql).participates(guild),
   ]);
 
   const shown = rows.slice(0, PAGE_SIZE);
@@ -113,6 +115,7 @@ export default async function ModerationPage({
         prefix={prefix}
         guildName={loaded.access.guild.name}
         viewerName={loaded.access.user.displayName}
+        shield={shield}
         now={new Date(now).toISOString()}
       />
     </ModuleShell>

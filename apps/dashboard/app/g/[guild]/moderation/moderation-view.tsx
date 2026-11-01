@@ -2,16 +2,19 @@
 
 import type { CaseAction } from '@maxwell/core/modules/moderation';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { Seg, Select, Tabs } from '@/components/controls';
 import { useGuild } from '@/components/guild';
 import { useT } from '@/components/i18n';
+import { useReadOnly } from '@/components/module-shell';
+import { type Status, StatusText } from '@/components/status-text';
 import { Empty, Grid } from '@/components/ui';
 import type { Key } from '@/lib/i18n';
 import { until, when } from '@/lib/time';
 import { CaseDetail } from './case-detail';
 import type { CaseView } from './data';
 import { ACTION_COLORS, ACTION_NAMES } from './labels';
+import { MassBanPanel } from './mass-ban';
 import type { CaseQuery, Range, Stats } from './query';
 import { type CommandRow, SettingsTab } from './settings';
 
@@ -89,6 +92,7 @@ function CasesTab({
   stats,
   moderators,
   now,
+  shield,
   onSettings,
 }: {
   query: CaseQuery;
@@ -98,14 +102,55 @@ function CasesTab({
   stats: Stats;
   moderators: { id: string; name: string }[];
   now: string;
+  shield: boolean;
   onSettings: () => void;
 }) {
   const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const { timezone } = useGuild();
+  const readOnly = useReadOnly();
   const [search, setSearch] = useState(query.q);
+  const [massOpen, setMassOpen] = useState(false);
+  const [massStatus, setMassStatus] = useState<Status>(null);
+  const [refreshAt, setRefreshAt] = useState(0);
   const [pending, start] = useTransition();
+
+  useEffect(() => {
+    if (!refreshAt) return;
+    const timer = setTimeout(() => router.refresh(), 4000);
+    return () => clearTimeout(timer);
+  }, [refreshAt, router]);
+
+  const massButton = readOnly ? null : (
+    <button
+      type="button"
+      className="mx-btn"
+      aria-expanded={massOpen}
+      onClick={() => {
+        setMassStatus(null);
+        setMassOpen(!massOpen);
+      }}
+    >
+      {t('Ban several members')}
+    </button>
+  );
+  const massPanel =
+    massOpen && !readOnly ? (
+      <MassBanPanel
+        shield={shield}
+        onCancel={() => setMassOpen(false)}
+        onDone={(next) => {
+          setMassOpen(false);
+          setMassStatus(next);
+          setRefreshAt(Date.now());
+        }}
+      />
+    ) : massStatus ? (
+      <div className="mx-inline" style={{ justifyContent: 'flex-end' }}>
+        <StatusText status={massStatus} />
+      </div>
+    ) : null;
 
   const go = (patch: Partial<CaseQuery> & { case?: number | null }) => {
     const next = { ...query, page: 0, ...patch };
@@ -132,21 +177,28 @@ function CasesTab({
 
   if (nothing) {
     return (
-      <section className="mx-panel" aria-label={t('Cases')}>
-        <Empty mood="sleeping">
-          <div className="mx-stack" style={{ alignItems: 'center' }}>
-            <span>{t('No cases yet.')}</span>
-            <button type="button" className="mx-btn" onClick={onSettings}>
-              {t('Open settings')}
-            </button>
-          </div>
-        </Empty>
-      </section>
+      <>
+        {massPanel}
+        <section className="mx-panel" aria-label={t('Cases')}>
+          <Empty mood="sleeping">
+            <div className="mx-stack" style={{ alignItems: 'center' }}>
+              <span>{t('No cases yet.')}</span>
+              <div className="mx-inline">
+                <button type="button" className="mx-btn" onClick={onSettings}>
+                  {t('Open settings')}
+                </button>
+                {massButton}
+              </div>
+            </div>
+          </Empty>
+        </section>
+      </>
     );
   }
 
   return (
     <>
+      {massPanel}
       <StatsBar stats={stats} now={now} />
       <Grid>
         <section className={`mx-panel mx-s${selected ? 8 : 12}`} aria-labelledby="cases-title">
@@ -160,6 +212,7 @@ function CasesTab({
                 onChange={(next) => go({ action: next === 'all' ? null : next })}
                 view
               />
+              {massButton}
             </div>
           </div>
           <div className="mx-inline" style={{ padding: '6px 16px 12px' }}>
@@ -322,6 +375,7 @@ export function ModerationView({
   prefix,
   guildName,
   viewerName,
+  shield,
   now,
 }: {
   initialTab: Tab;
@@ -335,6 +389,7 @@ export function ModerationView({
   prefix: string;
   guildName: string;
   viewerName: string;
+  shield: boolean;
   now: string;
 }) {
   const t = useT();
@@ -368,6 +423,7 @@ export function ModerationView({
           stats={stats}
           moderators={moderators}
           now={now}
+          shield={shield}
           onSettings={() => pick('settings')}
         />
       ) : (

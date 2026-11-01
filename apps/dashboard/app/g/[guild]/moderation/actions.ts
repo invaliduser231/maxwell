@@ -1,12 +1,15 @@
 'use server';
 
 import { generalConfig } from '@maxwell/core';
+import { MASS_BAN_MAX, moderationConfig, parseMemberIds } from '@maxwell/core/modules/moderation';
 import { ModerationStore } from '@maxwell/core/stores/moderation';
+import { ShieldStore } from '@maxwell/core/stores/shield';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { type Result, runAction, saveModule } from '@/lib/actions';
 import { db } from '@/lib/db';
 import { editor, viewer } from '@/lib/guard';
+import { people } from '@/lib/people';
 import { type CaseView, caseDetail } from './data';
 
 const MODULE = 'moderation';
@@ -140,6 +143,75 @@ export async function reviewCase(
     approve,
     moderatorId: check.access.user.id,
   });
+}
+
+export interface MassBanEntry {
+  id: string;
+  name: string;
+  avatar: string | null;
+  known: boolean;
+}
+
+export interface MassBanPreview {
+  members: MassBanEntry[];
+  invalid: string[];
+}
+
+export async function previewMassBan(
+  guildId: string,
+  text: string,
+): Promise<Result<MassBanPreview>> {
+  const check = await editor(guildId, MODULE);
+  if ('error' in check) return { ok: false, error: check.error };
+  const { ids, invalid } = parseMemberIds(text.slice(0, 20_000));
+  if (ids.length === 0) return { ok: false, error: 'Paste at least one member ID.' };
+  if (ids.length > MASS_BAN_MAX) return { ok: false, error: 'Up to 200 members at once.' };
+  const found = await people(ids, MASS_BAN_MAX);
+  const members = ids.map((id) => {
+    const person = found.get(id);
+    return {
+      id,
+      name: person?.name ?? id,
+      avatar: person?.avatar ?? null,
+      known: person?.known ?? false,
+    };
+  });
+  return { ok: true, data: { members, invalid: invalid.slice(0, 20) } };
+}
+
+const massBanInput = z.object({
+  userIds: z
+    .array(z.string().regex(/^\d{15,21}$/))
+    .min(1)
+    .max(MASS_BAN_MAX),
+  reason: z.string().trim().max(1_500),
+  deleteMessages: z.boolean().default(false),
+  shield: z.boolean().default(false),
+});
+
+export async function massBan(
+  guildId: string,
+  input: z.input<typeof massBanInput>,
+): Promise<Result> {
+  const check = await editor(guildId, MODULE);
+  if ('error' in check) return { ok: false, error: check.error };
+  const parsed = massBanInput.safeParse(input);
+  if (!parsed.success) return { ok: false, error: 'Check the list first.' };
+  const { reason, deleteMessages, shield } = parsed.data;
+  const self = check.access.user.id;
+  const userIds = [...new Set(parsed.data.userIds)].filter((id) => id !== self);
+  if (userIds.length === 0) return { ok: false, error: 'That is you.' };
+  const config = await db().modules.get(guildId, MODULE, moderationConfig);
+  if (config.requireReason && !reason) return { ok: false, error: 'Add a reason.' };
+  const result = await runAction(guildId, MODULE, 'massban', {
+    userIds,
+    moderatorId: self,
+    reason: reason || null,
+    deleteMessages,
+    shield: shield && (await new ShieldStore(db().sql).participates(guildId)),
+  });
+  if (result.ok) revalidatePath(`/g/${guildId}/moderation`);
+  return result;
 }
 
 export async function setCommand(guildId: string, name: string, on: boolean): Promise<Result> {

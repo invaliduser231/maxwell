@@ -124,4 +124,17 @@ export const moderation = {
   'Add template': 'Vorlage hinzufügen',
   'Delete their messages from the last day': 'Nachrichten vom letzten Tag löschen',
   'New reason': 'Neuer Grund',
+  'Ban several members': 'Mehrere Mitglieder bannen',
+  'Member IDs': 'Mitglieds-IDs',
+  'One per line, or separated by spaces or commas':
+    'Eine pro Zeile oder getrennt durch Leerzeichen oder Kommas',
+  'Skipped, not an ID: {list}': 'Übersprungen, keine ID: {list}',
+  'Members to ban': 'Zu bannende Mitglieder',
+  'Check list': 'Liste prüfen',
+  Back: 'Zurück',
+  'Ban {n} member': '{n} Mitglied bannen',
+  'Ban {n} members': '{n} Mitglieder bannen',
+  'Paste at least one member ID.': 'Füg mindestens eine Mitglieds-ID ein.',
+  'Up to 200 members at once.': 'Höchstens 200 Mitglieder auf einmal.',
+  'Check the list first.': 'Prüf die Liste nochmal.',
 } as const;
