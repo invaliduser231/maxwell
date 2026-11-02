@@ -308,9 +308,7 @@ export function pgSealSource(sql: Sql): SealSource {
       const kinds = new Map(target.columns.map((column) => [column.name, column.kind]));
       const encode = (name: string, value: unknown) => {
         const kind = kinds.get(name);
-        if (kind === 'text') return `${push(value)}::text`;
-        if (kind === 'reason' || kind === 'undo') return `${push(value)}::jsonb`;
-        return `${push(value === null ? null : JSON.stringify(value))}::jsonb`;
+        return kind === 'text' ? `${push(value)}::text` : `${push(value)}::jsonb`;
       };
       const sets = Object.entries(values).map(
         ([name, value]) => `${quote(name)} = ${encode(name, value)}`,

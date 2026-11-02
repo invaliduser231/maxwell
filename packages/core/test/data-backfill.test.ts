@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
+  pgSealSource,
   type SealRow,
   type SealSource,
   type SealTarget,
@@ -10,6 +11,7 @@ import {
   sealValue,
 } from '../src/crypto/backfill.js';
 import { DataCipher, isSealed } from '../src/crypto/data.js';
+import { connect, type Sql } from '../src/db/sql.js';
 
 const cipher = DataCipher.from(randomBytes(32).toString('base64'));
 const guild = '900000000000000001';
@@ -185,5 +187,62 @@ describe('sealValue', () => {
     });
     expect(Object.keys(values)).toEqual(['after']);
     expect(cipher.decrypt(guild, (values.after as { reason: string }).reason)).toBe('wrong member');
+  });
+});
+
+const url = process.env.TEST_DATABASE_URL;
+
+describe.skipIf(!url)('pgSealSource', () => {
+  let sql: Sql;
+  const table = `seal_probe_${Date.now()}`;
+  const probe: SealTarget = {
+    table,
+    key: [{ name: 'id', type: 'bigint' }],
+    guild: 'guild_id',
+    columns: [
+      { name: 'answers', kind: 'json' },
+      { name: 'samples', kind: 'samples' },
+      { name: 'detail', kind: 'name' },
+    ],
+  };
+
+  beforeAll(async () => {
+    sql = connect(url as string);
+    await sql.unsafe(
+      `create table ${table} (id bigint primary key, guild_id bigint not null, answers jsonb, samples jsonb, detail jsonb)`,
+    );
+  });
+
+  afterAll(async () => {
+    await sql.unsafe(`drop table if exists ${table}`);
+    await sql.end();
+  });
+
+  it('seals json columns and leaves nothing pending', async () => {
+    await sql.unsafe(`insert into ${table} values ($1, $2, $3::jsonb, $4::jsonb, $5::jsonb)`, [
+      '1',
+      guild,
+      { q: 'favourite colour' },
+      [{ content: 'hello there', detail: 'word' }],
+      { name: 'Nuker', count: 3 },
+    ] as never[]);
+    const source = pgSealSource(sql);
+    const progress = await sealTable(source, probe, { cipher });
+    expect(progress.sealed).toBe(1);
+    expect(await source.next(probe, null, 10)).toEqual([]);
+    const [row] = await sql.unsafe<
+      {
+        answers: unknown;
+        samples: { content: string; detail: string }[];
+        detail: { name: string; count: number };
+      }[]
+    >(`select answers, samples, detail from ${table} where id = 1`);
+    expect(JSON.parse(cipher.decrypt(guild, row?.answers as string))).toEqual({
+      q: 'favourite colour',
+    });
+    expect(cipher.decrypt(guild, row?.samples[0]?.content as string)).toBe('hello there');
+    expect(cipher.decrypt(guild, row?.samples[0]?.detail as string)).toBe('word');
+    expect(cipher.decrypt(guild, row?.detail.name as string)).toBe('Nuker');
+    expect(row?.detail.count).toBe(3);
   });
 });
