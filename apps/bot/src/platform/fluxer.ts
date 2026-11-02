@@ -198,7 +198,7 @@ export class FluxerPlatform implements Platform {
       this.#emit('memberLeave', {
         guildId: member.guild.id,
         userId: member.id,
-        user: member.user ? toUserRef(member.user) : null,
+        user: member.user?.username ? toUserRef(member.user) : null,
       });
     });
     client.on(Events.GuildMemberUpdate, (old, next) => {
@@ -594,7 +594,9 @@ export class FluxerPlatform implements Platform {
 
   async user(userId: string): Promise<UserRef | null> {
     try {
-      return toUserRef(await this.#client.users.fetch(snowflake(userId)));
+      const id = snowflake(userId);
+      const cached = this.#client.users.get(id);
+      return toUserRef(await this.#client.users.fetch(id, { force: !cached?.username }));
     } catch {
       return null;
     }
