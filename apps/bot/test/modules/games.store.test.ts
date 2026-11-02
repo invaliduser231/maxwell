@@ -149,6 +149,21 @@ describe.skipIf(!url)('GamesStore', () => {
     expect(results.filter(Boolean)).toHaveLength(1);
   });
 
+  it('leaves a duel open when closed for another community', async () => {
+    const duel = await store.createDuel({
+      guildId: guild,
+      channelId: channel,
+      challenger: a,
+      opponent: b,
+      stake: 0,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    const other = String(BigInt(guild) + 1n);
+    expect(await store.closeDuel(duel.id, 'expired', null, other)).toBeNull();
+    expect((await store.duel(duel.id))?.status).toBe('open');
+    expect((await store.closeDuel(duel.id, 'expired', null, guild))?.status).toBe('expired');
+  });
+
   it('keeps one open trivia question per channel and ends it once', async () => {
     const room = String(620_000_000_000_000_000n + BigInt(Math.floor(Math.random() * 1e9)));
     const question = { question: 'Two plus two?', answers: ['4'], choices: [] };

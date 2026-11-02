@@ -702,10 +702,12 @@ export class CollectionStore {
   async closeTrade(
     tradeId: string,
     status: Exclude<TradeStatus, 'open' | 'done'>,
+    guildId?: string,
   ): Promise<Trade | null> {
     const [row] = await this.sql<Trade[]>`
       update collection_trades set status = ${status}
       where id = ${tradeId} and status = 'open'
+        ${guildId === undefined ? this.sql`` : this.sql`and guild_id = ${guildId}`}
       returning ${tradeColumns(this.sql)}
     `;
     return row ?? null;

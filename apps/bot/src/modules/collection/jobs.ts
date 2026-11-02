@@ -164,7 +164,7 @@ export function registerCollectionJobs(
 
   ctx.job('tradeExpire', async (job) => {
     const data = parse(ctx, tradeExpirePayload, job);
-    if (data) await trades.expire(data.tradeId);
+    if (data && job.guildId) await trades.expire(job.guildId, data.tradeId);
   });
 
   ctx.undo('revoke', async (entry, payload) => {

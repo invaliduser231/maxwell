@@ -178,8 +178,8 @@ export class Coinflip {
     );
   }
 
-  async expire(duelId: string): Promise<void> {
-    const closed = await this.games.store.closeDuel(duelId, 'expired');
+  async expire(guildId: string, duelId: string): Promise<void> {
+    const closed = await this.games.store.closeDuel(duelId, 'expired', null, guildId);
     if (closed) await this.#finish(closed, copy.coinflip.expired);
   }
 

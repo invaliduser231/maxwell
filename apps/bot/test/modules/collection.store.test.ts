@@ -156,6 +156,21 @@ describe.skipIf(!url)('CollectionStore', () => {
     expect((await store.trade(trade.id))?.status).toBe('failed');
   });
 
+  it('leaves a trade open when closed for another community', async () => {
+    const trade = await store.createTrade({
+      guildId: guild,
+      channelId: channel,
+      fromUser: a,
+      toUser: b,
+      give: [],
+      want: [],
+      expiresAt: later(),
+    });
+    expect(await store.closeTrade(trade.id, 'expired', randomId())).toBeNull();
+    expect((await store.trade(trade.id))?.status).toBe('open');
+    expect((await store.closeTrade(trade.id, 'expired', guild))?.status).toBe('expired');
+  });
+
   it('keeps wishlists bounded', async () => {
     const [dragon] = await store.findCards(guild, 'Dragon');
     if (!dragon) throw new Error('missing card');

@@ -165,8 +165,8 @@ export class Trades {
     await this.#announceSets(confirmed);
   }
 
-  async expire(tradeId: string): Promise<void> {
-    const closed = await this.collection.store.closeTrade(tradeId, 'expired');
+  async expire(guildId: string, tradeId: string): Promise<void> {
+    const closed = await this.collection.store.closeTrade(tradeId, 'expired', guildId);
     if (closed) await this.#finish(closed, copy.trade.expired);
   }
 

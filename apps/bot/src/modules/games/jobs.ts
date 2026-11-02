@@ -57,7 +57,7 @@ export function registerGamesJobs(
 
   ctx.job('duelExpire', async (job) => {
     const data = parse(ctx, duelExpirePayload, job);
-    if (data) await coinflip.expire(data.duelId);
+    if (data && job.guildId) await coinflip.expire(job.guildId, data.duelId);
   });
 
   ctx.job('resetChannel', async (job) => {

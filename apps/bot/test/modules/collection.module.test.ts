@@ -10,6 +10,7 @@ import { Trades } from '../../src/modules/collection/trades.js';
 import { Wallets } from '../../src/modules/economy/wallets.js';
 import { createContext } from '../../src/runtime/module.js';
 import { PrivacyRegistry } from '../../src/runtime/privacy.js';
+import type { JobHandler } from '../../src/runtime/scheduler.js';
 import type { Services } from '../../src/services.js';
 
 const url = process.env.TEST_DATABASE_URL;
@@ -25,6 +26,7 @@ describe.skipIf(!url)('collection module', () => {
   const b = '520000000000000002';
   const channel = '530000000000000001';
   const privacy = new PrivacyRegistry();
+  const handlers = new Map<string, JobHandler>();
   const later = () => new Date(Date.now() + 600_000);
 
   beforeAll(async () => {
@@ -39,7 +41,10 @@ describe.skipIf(!url)('collection module', () => {
       log: createLogger('silent', false),
       platform: { on: () => {}, edit: async () => {}, unreact: async () => {} },
       voice: { icon: () => '', icons: { inline: () => '', reaction: () => null } },
-      jobs: { handle: () => {}, enqueue: async () => null },
+      jobs: {
+        handle: (kind: string, handler: JobHandler) => handlers.set(kind, handler),
+        enqueue: async () => null,
+      },
       undo: { handle: () => {} },
       settings: {
         config: async (_g: string, _k: string, schema: z.ZodType) => schema.parse({}),
@@ -85,6 +90,33 @@ describe.skipIf(!url)('collection module', () => {
     expect((await store.trade(trade.id))?.status).toBe('open');
     await trades.onReaction({ ...reaction, bot: false });
     expect((await store.trade(trade.id))?.status).toBe('cancelled');
+  });
+
+  it('expires a trade only from a job of its own community', async () => {
+    const trade = await store.createTrade({
+      guildId: guild,
+      channelId: channel,
+      fromUser: '520000000000000003',
+      toUser: '520000000000000004',
+      give: [],
+      want: [],
+      expiresAt: later(),
+    });
+    await store.setTradeMessage(trade.id, String(BigInt(trade.id) + 981_000_000_000_000n));
+    const run = (guildId: string | null) =>
+      handlers.get('collection.tradeExpire')?.({
+        id: '0',
+        kind: 'collection.tradeExpire',
+        guildId,
+        payload: { tradeId: trade.id },
+        runAt: new Date(),
+        attempts: 1,
+      });
+    await run(String(BigInt(guild) + 1n));
+    await run(null);
+    expect((await store.trade(trade.id))?.status).toBe('open');
+    await run(guild);
+    expect((await store.trade(trade.id))?.status).toBe('expired');
   });
 
   it('exports and forgets a member', async () => {

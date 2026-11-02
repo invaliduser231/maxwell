@@ -12,6 +12,7 @@ import { Trivia } from '../../src/modules/games/trivia.js';
 import type { IncomingMessage, Outgoing } from '../../src/platform/types.js';
 import { createContext } from '../../src/runtime/module.js';
 import { PrivacyRegistry } from '../../src/runtime/privacy.js';
+import type { JobHandler } from '../../src/runtime/scheduler.js';
 import type { Services } from '../../src/services.js';
 
 const url = process.env.TEST_DATABASE_URL;
@@ -25,6 +26,7 @@ describe.skipIf(!url)('games module', () => {
   const player = '650000000000000001';
   const rival = '650000000000000002';
   const privacy = new PrivacyRegistry();
+  const handlers = new Map<string, JobHandler>();
   const replies: string[] = [];
   const sent: string[] = [];
   const edits: string[] = [];
@@ -81,7 +83,10 @@ describe.skipIf(!url)('games module', () => {
         unreact: async () => {},
       },
       voice: { icon: () => '', icons: { inline: () => '', reaction: () => null } },
-      jobs: { handle: () => {}, enqueue: async () => null },
+      jobs: {
+        handle: (kind: string, handler: JobHandler) => handlers.set(kind, handler),
+        enqueue: async () => null,
+      },
       undo: { handle: () => {} },
       settings: {
         config: async (_g: string, key: string, schema: z.ZodType) =>
@@ -151,5 +156,31 @@ describe.skipIf(!url)('games module', () => {
     expect((await service.store.duel(duel.id))?.status).toBe('open');
     await coinflip.onReaction({ ...reaction, bot: false });
     expect((await service.store.duel(duel.id))?.status).toBe('declined');
+  });
+
+  it('expires a duel only from a job of its own community', async () => {
+    const duel = await service.store.createDuel({
+      guildId: guild,
+      channelId: room,
+      challenger: player,
+      opponent: rival,
+      stake: 0,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    await service.store.setDuelMessage(duel.id, String(BigInt(duel.id) + 991_000_000_000_000n));
+    const run = (guildId: string | null) =>
+      handlers.get('games.duelExpire')?.({
+        id: '0',
+        kind: 'games.duelExpire',
+        guildId,
+        payload: { duelId: duel.id },
+        runAt: new Date(),
+        attempts: 1,
+      });
+    await run(String(BigInt(guild) + 1n));
+    await run(null);
+    expect((await service.store.duel(duel.id))?.status).toBe('open');
+    await run(guild);
+    expect((await service.store.duel(duel.id))?.status).toBe('expired');
   });
 });

@@ -475,10 +475,12 @@ export class GamesStore {
     duelId: string,
     status: Exclude<DuelStatus, 'open'>,
     winner: string | null = null,
+    guildId?: string,
   ): Promise<Duel | null> {
     const [row] = await this.sql<Duel[]>`
       update games_duels set status = ${status}, winner = ${winner}
       where id = ${duelId} and status = 'open'
+        ${guildId === undefined ? this.sql`` : this.sql`and guild_id = ${guildId}`}
       returning ${duelColumns(this.sql)}
     `;
     return row ?? null;
