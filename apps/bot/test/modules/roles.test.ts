@@ -129,6 +129,71 @@ describe('reaction plans', () => {
     expect(planReaction(m, entry, [], true).temporary).toBe(true);
   });
 
+  it('gives verify roles and clears the reaction', () => {
+    const m = menu('verify');
+    const entry = findEntry(m, '\u{1F534}');
+    if (!entry) throw new Error('entry missing');
+    expect(planReaction(m, entry, [], true)).toEqual({
+      add: [red],
+      remove: [],
+      unreact: ['\u{1F534}'],
+      temporary: false,
+    });
+    expect(planReaction(m, entry, [red], false).remove).toEqual([]);
+  });
+
+  it('takes the role away in remove-only menus', () => {
+    const m = menu('remove');
+    const entry = findEntry(m, '\u{1F534}');
+    if (!entry) throw new Error('entry missing');
+    expect(planReaction(m, entry, [red], true)).toMatchObject({
+      add: [],
+      remove: [red],
+      unreact: ['\u{1F534}'],
+    });
+    expect(planReaction(m, entry, [], true)).toMatchObject({ add: [], remove: [] });
+  });
+
+  it('keeps the first pick in binding menus', () => {
+    const m = menu('binding');
+    const entry = findEntry(m, '\u{1F534}');
+    if (!entry) throw new Error('entry missing');
+    expect(planReaction(m, entry, [], true).add).toEqual([red]);
+    expect(planReaction(m, entry, [blue], true)).toMatchObject({
+      add: [],
+      remove: [],
+      unreact: ['\u{1F534}'],
+    });
+    expect(planReaction(m, entry, [red], false).remove).toEqual([]);
+  });
+
+  it('stops at the limit of a limited menu', () => {
+    const m = { ...menu('limit'), limit: 2 };
+    const entry = findEntry(m, '\u{1F534}');
+    if (!entry) throw new Error('entry missing');
+    expect(planReaction(m, entry, [blue], true).add).toEqual([red]);
+    expect(planReaction(m, entry, [blue, green], true)).toMatchObject({
+      add: [],
+      unreact: ['\u{1F534}'],
+    });
+    expect(planReaction(m, entry, [red, blue, green], true)).toMatchObject({
+      add: [],
+      unreact: [],
+    });
+    expect(planReaction(m, entry, [red], false).remove).toEqual([red]);
+  });
+
+  it('describes the new modes on the menu', () => {
+    expect(menuEmbed(menu('verify')).description?.split('\n').at(-1)).toBe(
+      '-# React to get the role.',
+    );
+    expect(
+      menuEmbed({ ...menu('limit'), limit: 3 })
+        .description?.split('\n')
+        .at(-1),
+    ).toBe('-# Up to 3 roles.');
+  });
+
   it('lists each emoji once', () => {
     expect(menuEmojis(menu('normal'))).toEqual([
       '\u{1F534}',

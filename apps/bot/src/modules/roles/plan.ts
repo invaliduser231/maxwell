@@ -11,6 +11,8 @@ export interface ReactionPlan {
   temporary: boolean;
 }
 
+const KEEP_ON_UNREACT = new Set<RoleMenu['type']>(['add', 'verify', 'remove', 'binding']);
+
 export function findEntry(menu: RoleMenu, emoji: string): Entry | null {
   return menu.entries.find((entry) => sameEmoji(entry.emoji, emoji)) ?? null;
 }
@@ -24,9 +26,33 @@ export function planReaction(
   const has = new Set(memberRoles);
   const plan: ReactionPlan = { add: [], remove: [], unreact: [], temporary: false };
 
-  if (!added) {
-    if (menu.type !== 'add' && has.has(entry.roleId)) plan.remove.push(entry.roleId);
+  const others = menu.entries.filter(
+    (other) => other.roleId !== entry.roleId && has.has(other.roleId),
+  );
+  const own = normalizeEmoji(entry.emoji);
+  const refuse = (): ReactionPlan => {
+    if (own) plan.unreact.push(own);
     return plan;
+  };
+
+  if (!added) {
+    if (!KEEP_ON_UNREACT.has(menu.type) && has.has(entry.roleId)) plan.remove.push(entry.roleId);
+    return plan;
+  }
+
+  switch (menu.type) {
+    case 'remove':
+      if (has.has(entry.roleId)) plan.remove.push(entry.roleId);
+      return refuse();
+    case 'verify':
+      if (!has.has(entry.roleId)) plan.add.push(entry.roleId);
+      return refuse();
+    case 'binding':
+      if (others.length > 0) return refuse();
+      break;
+    case 'limit':
+      if (!has.has(entry.roleId) && others.length >= menu.limit) return refuse();
+      break;
   }
 
   if (menu.type === 'unique') {

@@ -5,7 +5,7 @@ import { subtext } from '../../ui/format.js';
 import de from './copy.de.js';
 
 const en = {
-  menuHint(type: MenuType, minutes: number): string | null {
+  menuHint(type: MenuType, minutes: number, limit = 1): string | null {
     switch (type) {
       case 'unique':
         return subtext('One role at a time.');
@@ -13,6 +13,14 @@ const en = {
         return subtext('Roles stay when you remove the reaction.');
       case 'temporary':
         return subtext(`Roles last ${formatDuration(minutes * 60_000)}.`);
+      case 'verify':
+        return subtext('React to get the role.');
+      case 'remove':
+        return subtext('React to drop the role.');
+      case 'binding':
+        return subtext('Pick once. The choice is final.');
+      case 'limit':
+        return subtext(limit === 1 ? 'Up to 1 role.' : `Up to ${limit} roles.`);
       default:
         return null;
     }

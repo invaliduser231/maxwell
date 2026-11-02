@@ -25,8 +25,8 @@ export function menuEmbed(menu: RoleMenu): Embed {
         const label = entry.label ? `  ${entry.label}` : '';
         return `${displayEmoji(entry.emoji)}  ${mention.role(entry.roleId)}${label}`;
       }),
-      copy.menuHint(menu.type, menu.durationMinutes) && '',
-      copy.menuHint(menu.type, menu.durationMinutes),
+      copy.menuHint(menu.type, menu.durationMinutes, menu.limit) && '',
+      copy.menuHint(menu.type, menu.durationMinutes, menu.limit),
     ).slice(0, 4096),
   };
 }
