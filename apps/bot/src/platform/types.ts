@@ -150,6 +150,11 @@ export interface MemberLeave {
   user: UserRef | null;
 }
 
+export interface MemberRoles {
+  userId: string;
+  roles: string[];
+}
+
 export interface MemberUpdate {
   guildId: string;
   user: UserRef;
@@ -364,6 +369,7 @@ export interface Platform {
   guild(guildId: string): Promise<GuildRef | null>;
   member(guildId: string, userId: string): Promise<MemberRef | null>;
   isMember(guildId: string, userId: string): Promise<boolean | null>;
+  memberRoles(guildId: string, after: string | null, limit: number): Promise<MemberRoles[] | null>;
   roles(guildId: string): Promise<RoleRef[]>;
   channels(guildId: string): Promise<ChannelRef[]>;
   channelInGuild(guildId: string, channelId: string): Promise<boolean>;

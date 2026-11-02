@@ -25,6 +25,7 @@ import type {
   IncomingMessage,
   JoinSourceLookup,
   MemberRef,
+  MemberRoles,
   Outgoing,
   OutgoingMessage,
   Overwrite,
@@ -606,6 +607,27 @@ export class FluxerPlatform implements Platform {
     } catch (error) {
       const cause = typeof error === 'object' && error !== null ? (error as Error).cause : null;
       return isStatus(error, 404) || isStatus(cause, 404) ? false : null;
+    }
+  }
+
+  async memberRoles(
+    guildId: string,
+    after: string | null,
+    limit: number,
+  ): Promise<MemberRoles[] | null> {
+    const query = new URLSearchParams({ limit: String(limit) });
+    if (after) query.set('after', snowflake(after));
+    try {
+      const members = await this.#client.rest.get<{ user: { id: string }; roles?: string[] }[]>(
+        `${Routes.guildMembers(snowflake(guildId))}?${query}`,
+      );
+      return members.map((member) => ({ userId: member.user.id, roles: member.roles ?? [] }));
+    } catch (error) {
+      const cause = typeof error === 'object' && error !== null ? (error as Error).cause : null;
+      if ([403, 404].some((status) => isStatus(error, status) || isStatus(cause, status))) {
+        return null;
+      }
+      throw error;
     }
   }
 
