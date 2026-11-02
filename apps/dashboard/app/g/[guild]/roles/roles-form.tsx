@@ -68,6 +68,10 @@ const typeLabels: Record<MenuType, Key> = {
   unique: 'One of many',
   add: 'Add only',
   temporary: 'Temporary',
+  verify: 'Verify',
+  remove: 'Remove only',
+  binding: 'Pick once',
+  limit: 'Limited',
 };
 
 const durations = [60, 1440, 10080, 43200];
@@ -107,6 +111,14 @@ function typeNote(t: Translator, menu: RoleMenu): string | null {
       return t('Roles stay when you remove the reaction.');
     case 'temporary':
       return t('Roles last {span}.', { span: minutesLabel(t, menu.durationMinutes) });
+    case 'verify':
+      return t('React to get the role. The reaction goes away again.');
+    case 'remove':
+      return t('React to drop the role.');
+    case 'binding':
+      return t('Members pick once and cannot change.');
+    case 'limit':
+      return t.plural(menu.limit, 'Up to {n} role.', 'Up to {n} roles.');
     default:
       return null;
   }
@@ -155,6 +167,7 @@ function useAddMenu(onSelect: (index: number) => void) {
           description: '',
           type: 'normal',
           durationMinutes: 1440,
+          limit: 2,
           entries: [],
         },
       ],
@@ -281,7 +294,7 @@ function MenuEditor({ index, onRemoved }: { index: number; onRemoved: () => void
         <div className="mx-field">
           <span className="mx-label">{t('Mode')}</span>
           <div className="mx-when">
-            <Seg
+            <Select
               label={t('Mode')}
               value={menu.type}
               options={(Object.keys(typeLabels) as MenuType[]).map((type) => ({
@@ -290,6 +303,15 @@ function MenuEditor({ index, onRemoved }: { index: number; onRemoved: () => void
               }))}
               onChange={(type) => patch({ type })}
             />
+            {menu.type === 'limit' ? (
+              <NumberInput
+                label={t('Roles per member')}
+                value={menu.limit}
+                min={1}
+                max={20}
+                onChange={(limit) => patch({ limit })}
+              />
+            ) : null}
             {menu.type === 'temporary' ? (
               <Select
                 label={t('Roles last')}
