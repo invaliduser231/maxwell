@@ -165,7 +165,8 @@ export const sealTargets: SealTarget[] = [
     table: 'audit_entries',
     key: [{ name: 'id', type: 'bigint' }],
     guild: 'guild_id',
-    where: `module = 'moderation' and action like 'case.%'`,
+    where: `(module = 'moderation' and (action like 'case.%' or action in ('channel.lock', 'channel.unlock', 'inbox.resolve')))
+      or (module = 'tickets' and action = 'ticket.close')`,
     columns: [
       { name: 'before', kind: 'reason' },
       { name: 'after', kind: 'reason' },
@@ -178,6 +179,15 @@ const SEALED_PATTERN = '^enc:v1:[A-Za-z0-9+/]+={0,2}$';
 
 function quote(name: string): string {
   return `"${name.replace(/"/g, '""')}"`;
+}
+
+function plainKeys(path: string): string {
+  return `(${['reason', 'note']
+    .map(
+      (key) =>
+        `(jsonb_typeof(${path} -> '${key}') = 'string' and ${path} ->> '${key}' !~ '${SEALED_PATTERN}')`,
+    )
+    .join(' or ')})`;
 }
 
 function pending(column: SealColumn): string {
@@ -196,9 +206,9 @@ function pending(column: SealColumn): string {
     case 'name':
       return `(jsonb_typeof(${col} -> 'name') = 'string' and ${col} ->> 'name' !~ '${SEALED_PATTERN}')`;
     case 'reason':
-      return `(jsonb_typeof(${col} -> 'reason') = 'string' and ${col} ->> 'reason' !~ '${SEALED_PATTERN}')`;
+      return plainKeys(col);
     case 'undo':
-      return `(jsonb_typeof(${col} -> 'payload' -> 'reason') = 'string' and ${col} -> 'payload' ->> 'reason' !~ '${SEALED_PATTERN}')`;
+      return `(${plainKeys(`${col} -> 'payload'`)} or ${plainKeys(`${col} -> 'payload' -> 'item'`)})`;
   }
 }
 
@@ -242,15 +252,29 @@ export function sealValue(
         ? {
             ...value,
             reason: sealField(cipher, guildId, (value as { reason?: unknown }).reason),
+            note: sealField(cipher, guildId, (value as { note?: unknown }).note),
           }
         : value;
-    case 'undo':
-      return value && typeof value === 'object' && !Array.isArray(value)
-        ? {
-            ...value,
-            payload: sealValue(cipher, guildId, 'reason', (value as { payload?: unknown }).payload),
-          }
-        : value;
+    case 'undo': {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+      const payload = sealValue(
+        cipher,
+        guildId,
+        'reason',
+        (value as { payload?: unknown }).payload,
+      );
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        return { ...value, payload };
+      }
+      const item = (payload as { item?: unknown }).item;
+      return {
+        ...value,
+        payload:
+          item === undefined
+            ? payload
+            : { ...payload, item: sealValue(cipher, guildId, 'reason', item) },
+      };
+    }
   }
 }
 

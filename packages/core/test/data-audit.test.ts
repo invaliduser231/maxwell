@@ -96,6 +96,52 @@ describe('audit reasons', () => {
     expect(openAudit(stored(lock))).toEqual(stored(lock));
   });
 
+  it('seals lock, inbox and ticket reasons', () => {
+    configureDataKey(key);
+    const lock = sealAudit({
+      ...edit,
+      action: 'channel.lock',
+      before: undefined,
+      after: { channelId: '1', reason: 'raid', endsAt: null },
+      undo: { kind: 'lock', payload: { channelId: '1' } },
+    });
+    expect(isSealed((lock.after as { reason: string }).reason)).toBe(true);
+    expect(openAudit(stored(lock)).after).toEqual({ channelId: '1', reason: 'raid', endsAt: null });
+
+    const resolved = sealAudit({
+      ...edit,
+      action: 'inbox.resolve',
+      before: { status: 'open' },
+      after: { status: 'resolved', outcome: 'ban', outcomeCase: 3, note: 'second time' },
+      undo: { kind: 'inbox', payload: { item: { number: 2, status: 'claimed', note: 'odd' } } },
+    });
+    expect(JSON.stringify(resolved)).not.toContain('second time');
+    expect(JSON.stringify(resolved)).not.toContain('odd');
+    expect(openAudit(stored(resolved))).toEqual(
+      stored({
+        ...edit,
+        action: 'inbox.resolve',
+        before: { status: 'open' },
+        after: { status: 'resolved', outcome: 'ban', outcomeCase: 3, note: 'second time' },
+        undo: { kind: 'inbox', payload: { item: { number: 2, status: 'claimed', note: 'odd' } } },
+      }),
+    );
+
+    const closed = sealAudit({
+      ...edit,
+      module: 'tickets',
+      action: 'ticket.close',
+      before: { status: 'open' },
+      after: { status: 'closed', reason: 'my address is here' },
+      undo: { kind: 'close', payload: { ticketId: '7' } },
+    });
+    expect(JSON.stringify(closed)).not.toContain('address');
+    expect(openAudit(stored(closed)).after).toEqual({
+      status: 'closed',
+      reason: 'my address is here',
+    });
+  });
+
   it('reads entries written before the key was set', () => {
     configureDataKey(key);
     expect(openAudit(stored(edit))).toEqual(stored(edit));

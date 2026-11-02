@@ -71,18 +71,33 @@ function searchPattern(term: string): string {
   return `%${escapeLike(term.slice(0, 100))}%`;
 }
 
+const SEALED_ACTIONS: Record<string, readonly string[]> = {
+  moderation: ['channel.lock', 'channel.unlock', 'inbox.resolve'],
+  tickets: ['ticket.close'],
+};
+
+const SEALED_KEYS = ['reason', 'note'] as const;
+
 function sealsReason(module: string, action: string): boolean {
-  return module === 'moderation' && action.startsWith('case.');
+  if (module === 'moderation' && action.startsWith('case.')) return true;
+  return SEALED_ACTIONS[module]?.includes(action) ?? false;
 }
 
 function withReason(value: unknown, change: (text: string) => string): unknown {
-  if (!isRecord(value) || typeof value.reason !== 'string') return value;
-  return { ...value, reason: change(value.reason) };
+  if (!isRecord(value)) return value;
+  const next = { ...value };
+  for (const key of SEALED_KEYS) {
+    const text = next[key];
+    if (typeof text === 'string') next[key] = change(text);
+  }
+  return next;
 }
 
 function withUndoReason(undo: UndoSpec, change: (text: string) => string): UndoSpec {
-  if (!isRecord(undo.payload) || typeof undo.payload.reason !== 'string') return undo;
-  return { ...undo, payload: { ...undo.payload, reason: change(undo.payload.reason) } };
+  if (!isRecord(undo.payload)) return undo;
+  const payload = withReason(undo.payload, change) as Record<string, unknown>;
+  if (isRecord(payload.item)) payload.item = withReason(payload.item, change);
+  return { ...undo, payload };
 }
 
 export function sealAudit(input: AuditInput): AuditInput {
@@ -353,8 +368,8 @@ export class AuditStore {
 
   #sealedReason() {
     return this.sql`(
-      module = 'moderation' and action like 'case.%'
-      and (before ->> 'reason' ~ ${SEALED_PATTERN} or after ->> 'reason' ~ ${SEALED_PATTERN})
+      before ->> 'reason' ~ ${SEALED_PATTERN} or after ->> 'reason' ~ ${SEALED_PATTERN}
+      or before ->> 'note' ~ ${SEALED_PATTERN} or after ->> 'note' ~ ${SEALED_PATTERN}
     )`;
   }
 

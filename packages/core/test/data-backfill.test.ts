@@ -175,7 +175,9 @@ describe('sealValue', () => {
 
   it('only rewrites the audit columns that hold a case reason', () => {
     const audit = sealTargets.find((entry) => entry.table === 'audit_entries');
-    expect(audit?.where).toBe(`module = 'moderation' and action like 'case.%'`);
+    expect(audit?.where).toContain(`action like 'case.%'`);
+    expect(audit?.where).toContain(`'inbox.resolve'`);
+    expect(audit?.where).toContain(`action = 'ticket.close'`);
     const values = sealRow(cipher, audit as SealTarget, {
       key: ['1'],
       guildId: guild,
@@ -187,6 +189,24 @@ describe('sealValue', () => {
     });
     expect(Object.keys(values)).toEqual(['after']);
     expect(cipher.decrypt(guild, (values.after as { reason: string }).reason)).toBe('wrong member');
+  });
+
+  it('seals inbox notes, including the one kept for undo', () => {
+    const audit = sealTargets.find((entry) => entry.table === 'audit_entries') as SealTarget;
+    const values = sealRow(cipher, audit, {
+      key: ['1'],
+      guildId: guild,
+      values: {
+        before: { status: 'open' },
+        after: { status: 'resolved', note: 'second time' },
+        undo: { kind: 'inbox', payload: { item: { number: 2, note: 'odd' } } },
+      },
+    });
+    expect(Object.keys(values)).toEqual(['after', 'undo']);
+    expect(cipher.decrypt(guild, (values.after as { note: string }).note)).toBe('second time');
+    const undo = values.undo as { payload: { item: { number: number; note: string } } };
+    expect(undo.payload.item.number).toBe(2);
+    expect(cipher.decrypt(guild, undo.payload.item.note)).toBe('odd');
   });
 });
 
@@ -244,5 +264,29 @@ describe.skipIf(!url)('pgSealSource', () => {
     expect(cipher.decrypt(guild, row?.samples[0]?.detail as string)).toBe('word');
     expect(cipher.decrypt(guild, row?.detail.name as string)).toBe('Nuker');
     expect(row?.detail.count).toBe(3);
+  });
+
+  it('seals audit notes and reasons through the database', async () => {
+    const audit = sealTargets.find((entry) => entry.table === 'audit_entries') as SealTarget;
+    const probeAudit = { ...audit, table: `${table}_audit` };
+    await sql.unsafe(
+      `create table ${probeAudit.table} (id bigint primary key, guild_id bigint not null, module text, action text, before jsonb, after jsonb, undo jsonb)`,
+    );
+    await sql.unsafe(
+      `insert into ${probeAudit.table} values
+        (1, $1, 'moderation', 'inbox.resolve', '{"status":"open"}', '{"note":"second time"}', '{"kind":"inbox","payload":{"item":{"note":"odd"}}}'),
+        (2, $1, 'tickets', 'ticket.close', null, '{"reason":"my address"}', null),
+        (3, $1, 'tickets', 'panel.update', null, '{"reason":"untouched"}', null)`,
+      [guild],
+    );
+    const source = pgSealSource(sql);
+    expect((await sealTable(source, probeAudit, { cipher })).sealed).toBe(2);
+    expect(await source.next(probeAudit, null, 10)).toEqual([]);
+    const rows = await sql.unsafe<{ id: string; text: string }[]>(
+      `select id::text, concat(before::text, after::text, undo::text) as text from ${probeAudit.table} order by id`,
+    );
+    expect(rows.map((row) => row.text.includes('enc:v1:'))).toEqual([true, true, false]);
+    expect(rows[2]?.text).toContain('untouched');
+    await sql.unsafe(`drop table ${probeAudit.table}`);
   });
 });
