@@ -487,7 +487,9 @@ function harness(overrides: Record<string, unknown> = {}) {
   };
   const backups = {
     findChannel: vi.fn(async (_g: string, id: string) => ({ snapshotId: '31', channel: { id } })),
-    findRole: vi.fn(async () => null),
+    findRole: vi.fn(async (_g: string, id: string) =>
+      id.startsWith('2') ? { snapshotId: '31', role: { id } } : null,
+    ),
   };
   const securityStore = store as unknown as SecurityStore;
   const guard = new Guard(ctx, automod as unknown as AutomodStore);
@@ -751,12 +753,16 @@ function audit(
 
 describe('nuke watch', () => {
   it('stops a member who deletes channels too fast and restores them', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     const h = harness();
     h.memberRoles.set('7', ['800000000000000001']);
     for (const id of ['11', '12', '13']) {
       h.tick(1000);
       await h.nuke.onAuditLog(audit(12, '7', id));
     }
+    expect(h.jobs.enqueue).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(5_000);
+    vi.useRealTimers();
     expect(h.platform.removeRole).toHaveBeenCalledWith(
       guildId,
       '7',
@@ -774,6 +780,65 @@ describe('nuke watch', () => {
       }),
     );
     expect(h.store.events.at(-1)?.kind).toBe('nuke');
+  });
+
+  it('restores what the actor deletes after being caught in one go', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const h = harness();
+    h.memberRoles.set('7', ['800000000000000003']);
+    for (const id of ['11', '12', '13']) await h.nuke.onAuditLog(audit(12, '7', id));
+    await vi.advanceTimersByTimeAsync(2_000);
+    await h.nuke.onAuditLog(audit(12, '7', '14'));
+    for (const id of ['21', '22']) await h.nuke.onAuditLog(audit(32, '7', id));
+    await vi.advanceTimersByTimeAsync(4_000);
+    expect(h.jobs.enqueue).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1_000);
+    vi.useRealTimers();
+    expect(h.jobs.enqueue).toHaveBeenCalledTimes(1);
+    expect(h.jobs.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'backups.restore',
+        payload: expect.objectContaining({
+          scope: 'pick',
+          channels: ['11', '12', '13', '14'],
+          roles: ['21', '22'],
+        }),
+      }),
+    );
+    expect(h.store.events.filter((event) => event.kind === 'nuke')).toHaveLength(1);
+  });
+
+  it('stops the actor again when they keep going', async () => {
+    const h = harness();
+    h.memberRoles.set('7', ['800000000000000001']);
+    for (const id of ['11', '12', '13']) await h.nuke.onAuditLog(audit(12, '7', id));
+    expect(h.platform.removeRole).toHaveBeenCalledTimes(1);
+    h.tick(1_000);
+    await h.nuke.onAuditLog(audit(32, '7', '21'));
+    expect(h.platform.removeRole).toHaveBeenCalledTimes(1);
+    h.tick(5_000);
+    await h.nuke.onAuditLog(audit(32, '7', '22'));
+    expect(h.platform.removeRole).toHaveBeenCalledTimes(2);
+    expect(h.store.events.filter((event) => event.kind === 'nuke')).toHaveLength(1);
+  });
+
+  it('does not restore an earlier attack again on the next one', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const h = harness();
+    h.memberRoles.set('7', ['800000000000000003']);
+    for (const id of ['11', '12', '13']) await h.nuke.onAuditLog(audit(12, '7', id));
+    await vi.advanceTimersByTimeAsync(5_000);
+    h.tick(61_000);
+    for (const id of ['21', '22', '23']) await h.nuke.onAuditLog(audit(32, '7', id));
+    await h.nuke.onAuditLog(audit(12, '7', '11'));
+    await vi.advanceTimersByTimeAsync(5_000);
+    vi.useRealTimers();
+    const calls = h.jobs.enqueue.mock.calls as unknown as [{ payload: unknown }][];
+    const payloads = calls.map(([job]) => job.payload);
+    expect(payloads).toEqual([
+      expect.objectContaining({ channels: ['11', '12', '13'], roles: [] }),
+      expect.objectContaining({ channels: [], roles: ['21', '22', '23'] }),
+    ]);
   });
 
   it('kicks bots and leaves owners, trusted people and slow actors alone', async () => {

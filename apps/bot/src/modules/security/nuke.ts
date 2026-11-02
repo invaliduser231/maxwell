@@ -45,6 +45,17 @@ const SIMPLE: Record<number, NukeLimitKey> = {
 };
 
 const ACTOR_CAP = 20_000;
+const RESTORE_QUIET = 5_000;
+const RESTORE_MAX = 30_000;
+const RESTORE_MEMORY = 10 * 60_000;
+const RESTRIKE_GAP = 5_000;
+
+interface PendingRestore {
+  channels: Set<string>;
+  roles: Set<string>;
+  first: number;
+  timer: ReturnType<typeof setTimeout> | null;
+}
 
 export function hasDangerous(bits: unknown): boolean {
   if (typeof bits !== 'string' && typeof bits !== 'number') return false;
@@ -93,10 +104,14 @@ export class ActionCounter {
     return list;
   }
 
-  take(key: string): Strike[] {
+  peek(key: string): Strike[] | undefined {
+    return this.#entries.get(key);
+  }
+
+  take(key: string, since = Number.NEGATIVE_INFINITY): Strike[] {
     const list = this.#entries.get(key) ?? [];
     this.#entries.delete(key);
-    return list;
+    return list.filter((entry) => entry.at > since);
   }
 }
 
@@ -113,6 +128,9 @@ export interface Stopped {
 export class NukeWatch {
   readonly counter = new ActionCounter();
   readonly #handled = new Map<string, number>();
+  readonly #pending = new Map<string, PendingRestore>();
+  readonly #restored = new Map<string, number>();
+  readonly #stoppedAgain = new Map<string, number>();
   hooks: NukeHooks = {};
 
   constructor(
@@ -121,6 +139,7 @@ export class NukeWatch {
     private readonly backups: BackupStore,
     private readonly guard: Guard,
     private readonly now: () => number = Date.now,
+    private readonly quietMs = RESTORE_QUIET,
   ) {}
 
   async onAuditLog(entry: AuditLogEvent): Promise<void> {
@@ -141,22 +160,32 @@ export class NukeWatch {
 
     const at = this.now();
     const windowMs = settings.windowSeconds * 1000;
+    const handledKey = `${entry.guildId}:${actorId}`;
+    const last = this.#handled.get(handledKey);
+    if (last !== undefined && at - last < windowMs) {
+      if (settings.restore && entry.targetId) {
+        if (key === 'channelDelete')
+          this.#queueRestore(entry.guildId, actorId, [entry.targetId], []);
+        if (key === 'roleDelete') this.#queueRestore(entry.guildId, actorId, [], [entry.targetId]);
+      }
+      await this.#stopAgain(entry.guildId, actorId, key, settings, at);
+      return;
+    }
     const counterKey = `${entry.guildId}:${actorId}:${key}`;
     const strikes = this.counter.add(counterKey, { at, targetId: entry.targetId }, windowMs);
     if (strikes.length < settings.limits[key]) return;
-
-    const handledKey = `${entry.guildId}:${actorId}`;
-    const last = this.#handled.get(handledKey);
-    if (last !== undefined && at - last < windowMs) return;
     if (await this.#exempt(entry.guildId, actorId, settings)) return;
     this.#handled.set(handledKey, at);
+    this.#stoppedAgain.set(handledKey, at);
     if (this.#handled.size > ACTOR_CAP) {
       const first = this.#handled.keys().next().value;
       if (first !== undefined) this.#handled.delete(first);
     }
 
-    const deletedChannels = this.#targets(entry.guildId, actorId, 'channelDelete', strikes, key);
-    const deletedRoles = this.#targets(entry.guildId, actorId, 'roleDelete', strikes, key);
+    const since = at - windowMs;
+    const deletedChannels = this.#targets(entry.guildId, actorId, 'channelDelete', key, since);
+    const deletedRoles = this.#targets(entry.guildId, actorId, 'roleDelete', key, since);
+    this.counter.take(counterKey);
     await this.respond(
       entry.guildId,
       actorId,
@@ -172,11 +201,35 @@ export class NukeWatch {
     guildId: string,
     actorId: string,
     wanted: NukeLimitKey,
-    strikes: Strike[],
     key: NukeLimitKey,
+    since: number,
   ): string[] {
-    const list = key === wanted ? strikes : this.counter.take(`${guildId}:${actorId}:${wanted}`);
+    const list =
+      key === wanted
+        ? (this.counter.peek(`${guildId}:${actorId}:${wanted}`) ?? [])
+        : this.counter.take(`${guildId}:${actorId}:${wanted}`, since);
     return list.map((strike) => strike.targetId).filter((id): id is string => !!id);
+  }
+
+  async #stopAgain(
+    guildId: string,
+    actorId: string,
+    key: NukeLimitKey,
+    settings: NukeSettings,
+    at: number,
+  ): Promise<void> {
+    const throttleKey = `${guildId}:${actorId}`;
+    const last = this.#stoppedAgain.get(throttleKey);
+    if (last !== undefined && at - last < RESTRIKE_GAP) return;
+    this.#stoppedAgain.set(throttleKey, at);
+    if (this.#stoppedAgain.size > ACTOR_CAP) {
+      const first = this.#stoppedAgain.keys().next().value;
+      if (first !== undefined) this.#stoppedAgain.delete(first);
+    }
+    if (await this.#exempt(guildId, actorId, settings)) return;
+    const user = await this.ctx.services.platform.user(actorId);
+    const mode = user?.bot ? settings.botResponse : settings.response;
+    await this.stop(guildId, actorId, mode, reasons.nuke(key, 1));
   }
 
   async #exempt(guildId: string, actorId: string, settings: NukeSettings): Promise<boolean> {
@@ -205,8 +258,9 @@ export class NukeWatch {
 
     const restore =
       settings.restore && (deletedChannels.length > 0 || deletedRoles.length > 0)
-        ? await this.#restore(guildId, deletedChannels, deletedRoles)
+        ? await this.#backedUp(guildId, deletedChannels, deletedRoles)
         : null;
+    if (restore) this.#queueRestore(guildId, actorId, deletedChannels, deletedRoles);
 
     const config = await this.ctx.config(guildId);
     const restoreCounts = restore ? { channels: restore.channels, roles: restore.roles } : null;
@@ -304,6 +358,66 @@ export class NukeWatch {
     return result;
   }
 
+  async #backedUp(
+    guildId: string,
+    channelIds: readonly string[],
+    roleIds: readonly string[],
+  ): Promise<{ channels: number; roles: number; ids: string[] }> {
+    const found = { channels: 0, roles: 0, ids: [] as string[] };
+    for (const id of new Set(channelIds)) {
+      if (!(await this.backups.findChannel(guildId, id).catch(() => null))) continue;
+      found.channels++;
+      found.ids.push(id);
+    }
+    for (const id of new Set(roleIds)) {
+      if (!(await this.backups.findRole(guildId, id).catch(() => null))) continue;
+      found.roles++;
+      found.ids.push(id);
+    }
+    return found;
+  }
+
+  #queueRestore(
+    guildId: string,
+    actorId: string,
+    channelIds: readonly string[],
+    roleIds: readonly string[],
+  ): void {
+    const key = `${guildId}:${actorId}`;
+    const now = this.now();
+    const entry = this.#pending.get(key) ?? {
+      channels: new Set<string>(),
+      roles: new Set<string>(),
+      first: now,
+      timer: null,
+    };
+    this.#pending.set(key, entry);
+    for (const [id, at] of this.#restored) {
+      if (now - at <= RESTORE_MEMORY) break;
+      this.#restored.delete(id);
+    }
+    const fresh = (id: string) => {
+      const seen = `${guildId}:${id}`;
+      if (this.#restored.has(seen)) return false;
+      this.#restored.set(seen, now);
+      return true;
+    };
+    for (const id of channelIds) if (fresh(id)) entry.channels.add(id);
+    for (const id of roleIds) if (fresh(id)) entry.roles.add(id);
+    if (entry.channels.size === 0 && entry.roles.size === 0) {
+      this.#pending.delete(key);
+      return;
+    }
+    if (entry.timer) clearTimeout(entry.timer);
+    const wait = Math.max(0, Math.min(this.quietMs, entry.first + RESTORE_MAX - now));
+    entry.timer = setTimeout(() => {
+      this.#pending.delete(key);
+      this.#restore(guildId, [...entry.channels], [...entry.roles]).catch((error) =>
+        this.ctx.services.log.warn({ err: error, guild: guildId }, 'nuke restore failed'),
+      );
+    }, wait);
+  }
+
   async #restore(
     guildId: string,
     channelIds: readonly string[],
@@ -340,6 +454,7 @@ export class NukeWatch {
           channels: entry.channels,
           modules: [],
           by: maxwell.id,
+          automatic: true,
         },
       });
     }
