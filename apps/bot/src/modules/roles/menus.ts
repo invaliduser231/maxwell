@@ -52,12 +52,54 @@ export class Menus {
 
   onReaction(reaction: ReactionEvent, added: boolean): Promise<void> {
     const guildId = reaction.guildId;
-    if (!guildId || reaction.bot) return Promise.resolve();
+    if (!guildId) return Promise.resolve();
+    if (reaction.userId === this.ctx.services.platform.selfId) {
+      return added ? Promise.resolve() : this.#heal(guildId, reaction);
+    }
+    if (reaction.bot) return Promise.resolve();
     return this.#lanes.run(
       `${guildId}:${reaction.userId}`,
       () => this.#handle(guildId, reaction, added),
       (error) => this.ctx.services.log.warn({ err: error, guild: guildId }, 'menu reaction failed'),
     );
+  }
+
+  async #heal(guildId: string, reaction: ReactionEvent): Promise<void> {
+    const link = await this.#link(reaction.messageId);
+    if (!link || link.guildId !== guildId) return;
+    if (!link.emojis.some((emoji) => sameEmoji(emoji, reaction.emoji))) return;
+    const menu = (await this.ctx.config(guildId)).menus.find((item) => item.id === link.menuId);
+    if (!menu || !findEntry(menu, reaction.emoji)) return;
+    await this.ctx.services.platform
+      .react(reaction.channelId, reaction.messageId, reaction.emoji)
+      .catch((error) =>
+        this.ctx.services.log.debug({ err: error, guild: guildId }, 'menu reaction not restored'),
+      );
+  }
+
+  async onRoleDelete(guildId: string, roleId: string): Promise<void> {
+    const config = await this.ctx.config(guildId);
+    const touched = config.menus.filter((menu) =>
+      menu.entries.some((entry) => entry.roleId === roleId),
+    );
+    if (touched.length === 0) return;
+    await this.ctx.update(
+      guildId,
+      {
+        menus: config.menus.map((menu) => ({
+          ...menu,
+          entries: menu.entries.filter((entry) => entry.roleId !== roleId),
+        })),
+      },
+      { id: null },
+      audit.menuRoleGone(touched.length),
+    );
+    for (const menu of touched) {
+      if (!(await this.store.menuMessage(guildId, menu.id))) continue;
+      await this.publish(guildId, menu.id, { id: null }).catch((error) =>
+        this.ctx.services.log.warn({ err: error, guild: guildId }, 'menu refresh failed'),
+      );
+    }
   }
 
   #skipEcho(messageId: string, userId: string, emoji: string): void {

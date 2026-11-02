@@ -396,3 +396,78 @@ describe('Menus', () => {
     expect(calls).toEqual([]);
   });
 });
+
+describe('menu healing', () => {
+  const self = '318000000000000099';
+
+  function setup() {
+    let config = rolesConfig.parse({ menus: [menu('normal')] });
+    const calls: string[] = [];
+    const published = {
+      guildId,
+      menuId: 'colors',
+      channelId: '200000000000000001',
+      messageId: '700000000000000001',
+      emojis: ['\u{1F534}', 'blue:300000000000000001', 'green:300000000000000002'],
+      publishedAt: new Date(),
+    };
+    const platform = {
+      selfId: self,
+      react: async (_c: string, _m: string, emoji: string) => {
+        calls.push(`react ${emoji}`);
+      },
+      edit: async () => {
+        calls.push('edit');
+      },
+      unreact: async () => {},
+    };
+    const store = {
+      menuByMessage: async () => published,
+      menuMessage: async () => published,
+      saveMenuMessage: vi.fn(async () => {}),
+    };
+    const update = vi.fn(async (_g: string, patch: Partial<typeof config>) => {
+      config = { ...config, ...patch };
+    });
+    const ctx = {
+      config: async () => config,
+      enabled: async () => true,
+      update,
+      record: vi.fn(async () => '1'),
+      services: { platform, log: { warn() {}, info() {}, debug() {}, error() {} } },
+    } as unknown as ModuleContext<typeof rolesConfig>;
+    const menus = new Menus(ctx, store as unknown as RolesStore);
+    return { menus, calls, update, config: () => config };
+  }
+
+  const removed = (emoji: string) => ({
+    guildId,
+    channelId: '200000000000000001',
+    messageId: '700000000000000001',
+    userId: self,
+    emoji,
+    bot: true,
+  });
+
+  it('puts back its own reaction when someone clears it', async () => {
+    const { menus, calls } = setup();
+    await menus.onReaction(removed('\u{1F534}'), false);
+    expect(calls).toEqual(['react \u{1F534}']);
+  });
+
+  it('leaves reactions alone that are no longer on the menu', async () => {
+    const { menus, calls } = setup();
+    await menus.onReaction(removed('\u{1F600}'), false);
+    expect(calls).toEqual([]);
+  });
+
+  it('drops a deleted role from its menus and updates the message', async () => {
+    const { menus, calls, update, config } = setup();
+    await menus.onRoleDelete(guildId, blue);
+    expect(update).toHaveBeenCalledOnce();
+    expect(config().menus[0]?.entries.map((entry) => entry.roleId)).toEqual([red, green]);
+    expect(calls).toContain('edit');
+    await menus.onRoleDelete(guildId, '100000000000000999');
+    expect(update).toHaveBeenCalledOnce();
+  });
+});

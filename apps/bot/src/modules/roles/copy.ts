@@ -45,6 +45,10 @@ export const audit = {
   menuPosted: (title: string) => `Posted the role menu "${title}"`,
   menuUpdated: (title: string) => `Updated the role menu "${title}"`,
   menuRemoved: (title: string) => `Removed the role menu "${title}"`,
+  menuRoleGone: (count: number) =>
+    count === 1
+      ? 'Removed a deleted role from a role menu'
+      : `Removed a deleted role from ${count} role menus`,
   stickyRestored: (name: string, count: number) =>
     `Gave ${name} back ${count === 1 ? 'a sticky role' : `${count} sticky roles`} after a rejoin`,
 };
