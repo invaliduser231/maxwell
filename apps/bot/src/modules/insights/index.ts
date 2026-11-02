@@ -3,6 +3,7 @@ import { InboxStore } from '@maxwell/core/stores/inbox';
 import { InsightsStore } from '@maxwell/core/stores/insights';
 import { defineBotModule } from '../../runtime/module.js';
 import { InsightsCollector } from './collector.js';
+import { statsCommand } from './commands.js';
 import { WeeklyDigest } from './digest.js';
 import { nextSlot } from './recurring.js';
 
@@ -70,5 +71,7 @@ export default defineBotModule({
     ctx.onShutdown(async () => {
       await collector.flush();
     });
+
+    return [statsCommand(store, () => collector.flush())];
   },
 });
