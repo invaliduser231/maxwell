@@ -1,7 +1,7 @@
 export const privacy = `
 # Privacy Policy
 
-Last updated: 2026-11-01
+Last updated: 2026-11-02
 
 ## 1. Summary
 
@@ -69,14 +69,14 @@ Maxwell receives messages and events from the communities it is in, such as mess
 - **Security:** verification checks with a risk score and its reasons (for example account age, avatar, name, joins in a wave, earlier bans), captcha attempts and security events; deleted after 90 days. During a raid, nuke or lockdown, Maxwell keeps an incident timeline with joins and their risk score, bans, kicks and timeouts with who gave them, the number of deleted messages and created or deleted channels and roles, without message content; it is deleted after 90 days.
 - **Logs:** Maxwell keeps up to the last 2,000 messages per community in memory only, so it can show the old text when a message is edited or deleted. Nothing of this is written to our database, and it is gone when the bot restarts. The log entries themselves are posted into a channel of the community and then belong to the community.
 - **Invites and joins:** when a member joined or left, which invite they used and who created it; deleted 12 months after the member left.
-- **Welcome and roles:** whether a member accepted the rules; roles a member had, so they can be given back on rejoin (deleted 180 days after leaving by default); temporary roles until they run out.
+- **Welcome and roles:** whether a member accepted the rules; roles a member had, so they can be given back on rejoin (deleted 180 days after leaving by default); temporary roles until they run out. If admins set up roles for activity, the number of messages per member and day, deleted after 90 days, and who got such a role.
 - **Levels, economy, collection and games:** XP, balances, transactions, purchases, inventory, cards, trades, scores and activity counts. Activity counts for the collection are deleted after 400 days.
 - **Tickets and modmail:** tickets with opener, members, subject and rating, and, if transcripts are on (the default), every message in the ticket with author, name, avatar link, content, attachment names and links and edits. Closed tickets are deleted with their transcript 12 months after closing. When someone sends Maxwell a direct message, we store the DM channel so replies can reach them.
 - **Forms, suggestions, events, polls and giveaways:** answers, suggestions, votes, sign-ups, entries and winners.
 - **Starboard:** the author and content of starred messages.
 - **Scheduler:** reminders with their text until they are delivered or removed.
-- **Insights:** message counts per channel and hour and per member and day, joins and leaves, voice time per channel and moderation actions per moderator. Deleted after 365 days by default (admins can choose 30 to 730). If admins pick a channel for the weekly digest, Maxwell posts these numbers there once a week as totals for the whole community, without naming members.
-- **Backups:** the structure of the community (roles, channels, permissions) and who made a snapshot. Daily snapshots are deleted after 14 days by default (1 to 90).
+- **Insights:** message counts per channel and hour and per member and day, joins and leaves, voice time per channel and moderation actions per moderator. Deleted after 365 days by default (admins can choose 30 to 730). If admins pick a channel for the weekly digest, Maxwell posts these numbers there once a week as totals for the whole community, without naming members. Members can look up their own numbers with a command. Moderators can look up other members, and people who manage the community can list the most active members; the answer is posted in the channel where they ask.
+- **Backups:** the structure of the community (roles, channels, permissions) and who made a snapshot. Daily snapshots are deleted after 14 days by default (1 to 90). Unless admins turn it off, also which member has which role, so a restored role can be given back; this is deleted when the member leaves, and for deleted roles after the same 14 days.
 - **Templates:** a published template contains only the structure (roles, channels, permissions) and, if the admins choose, the name of the community.
 - **Cards:** background pictures that admins upload or link. Maxwell downloads linked pictures once and stores them as JPEG. Avatars are drawn onto cards and kept in memory only.
 - **Custom commands, voice rooms and feeds:** who last used a command, owners and members of voice rooms while the room exists. Feeds store no personal data.
