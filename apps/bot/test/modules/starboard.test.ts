@@ -142,6 +142,9 @@ describe('Starboard', () => {
       edit: vi.fn(async () => {}),
       delete: vi.fn(async () => {}),
       channels: vi.fn(async () => [] as ChannelRef[]),
+      channelInGuild: vi.fn(
+        async (_g: string, channelId: string) => channelId === source || channelId === board,
+      ),
     };
     const post = existing
       ? ({
@@ -201,7 +204,12 @@ describe('Starboard', () => {
       board,
       expect.objectContaining({ content: expect.stringContaining('**2**') }),
     );
-    expect(store.setPost).toHaveBeenCalledWith('700000000000000001', '800000000000000001', false);
+    expect(store.setPost).toHaveBeenCalledWith(
+      guildId,
+      '700000000000000001',
+      '800000000000000001',
+      false,
+    );
   });
 
   it('stays quiet below the threshold', async () => {
@@ -258,6 +266,17 @@ describe('Starboard', () => {
     expect(platform.send).not.toHaveBeenCalled();
   });
 
+  it('ignores channels from other communities', async () => {
+    const { starboard, platform, store, job } = setup([author, '1', '2'], { postId: '1' });
+    await starboard.sync({
+      ...job,
+      payload: { channelId: '200000000000000099', messageId: '700000000000000001' },
+    });
+    expect(platform.message).not.toHaveBeenCalled();
+    expect(platform.send).not.toHaveBeenCalled();
+    expect(store.remove).not.toHaveBeenCalled();
+  });
+
   it('removes the entry when the message is gone', async () => {
     const { starboard, platform, store, job } = setup(
       ['1', '2'],
@@ -266,7 +285,7 @@ describe('Starboard', () => {
     );
     await starboard.sync(job);
     expect(platform.delete).toHaveBeenCalledWith(board, '800000000000000001', expect.any(String));
-    expect(store.remove).toHaveBeenCalledWith('700000000000000001');
+    expect(store.remove).toHaveBeenCalledWith(guildId, '700000000000000001');
   });
 
   it('ignores reactions from bots', async () => {
@@ -302,6 +321,6 @@ describe('Starboard', () => {
     const { starboard, platform, store, job } = setup(['1'], { postId: '800000000000000001' });
     await starboard.sync(job);
     expect(platform.delete).toHaveBeenCalledWith(board, '800000000000000001', expect.any(String));
-    expect(store.setPost).toHaveBeenCalledWith('700000000000000001', null);
+    expect(store.setPost).toHaveBeenCalledWith(guildId, '700000000000000001', null);
   });
 });

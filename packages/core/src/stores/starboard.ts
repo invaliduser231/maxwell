@@ -34,9 +34,10 @@ function openPost(row: StarboardPost): StarboardPost {
 export class StarboardStore {
   constructor(private readonly sql: Sql) {}
 
-  async get(messageId: string): Promise<StarboardPost | null> {
+  async get(guildId: string, messageId: string): Promise<StarboardPost | null> {
     const [row] = await this.sql<StarboardPost[]>`
-      select ${this.sql.unsafe(columns)} from starboard_posts where message_id = ${messageId}
+      select ${this.sql.unsafe(columns)} from starboard_posts
+      where guild_id = ${guildId} and message_id = ${messageId}
     `;
     return row ? openPost(row) : null;
   }
@@ -65,11 +66,16 @@ export class StarboardStore {
     return openPost(row);
   }
 
-  async setPost(messageId: string, postId: string | null, image = false): Promise<void> {
+  async setPost(
+    guildId: string,
+    messageId: string,
+    postId: string | null,
+    image = false,
+  ): Promise<void> {
     await this.sql`
       update starboard_posts set post_id = ${postId}, post_image = ${postId !== null && image},
         updated_at = now()
-      where message_id = ${messageId}
+      where guild_id = ${guildId} and message_id = ${messageId}
     `;
   }
 
@@ -82,9 +88,9 @@ export class StarboardStore {
     return rows.length > 0;
   }
 
-  async remove(messageId: string): Promise<StarboardPost | null> {
+  async remove(guildId: string, messageId: string): Promise<StarboardPost | null> {
     const [row] = await this.sql<StarboardPost[]>`
-      delete from starboard_posts where message_id = ${messageId}
+      delete from starboard_posts where guild_id = ${guildId} and message_id = ${messageId}
       returning ${this.sql.unsafe(columns)}
     `;
     return row ? openPost(row) : null;

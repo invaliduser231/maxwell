@@ -64,7 +64,7 @@ export class Starboard {
       return;
     }
     if (!watches(config, channelId)) return;
-    const removed = await this.store.remove(messageId);
+    const removed = await this.store.remove(guildId, messageId);
     if (removed?.postId) await this.#deletePost(guildId, removed.postId);
   }
 
@@ -77,15 +77,16 @@ export class Starboard {
     const boardId = config.channelId;
     const emoji = normalizeEmoji(config.emoji);
     if (!boardId || !emoji || !watches(config, channelId)) return;
+    const { platform, log } = this.ctx.services;
+    if (!(await platform.channelInGuild(guildId, channelId).catch(() => false))) return;
     if (config.excludeNsfw && (await this.#isNsfw(guildId, channelId))) return;
 
-    const { platform, log } = this.ctx.services;
-    const existing = await this.store.get(messageId);
+    const existing = await this.store.get(guildId, messageId);
     const message = await platform.message(channelId, messageId).catch(() => null);
     if (!message) {
       if (existing) {
         if (existing.postId) await this.#deletePost(guildId, existing.postId);
-        await this.store.remove(messageId);
+        await this.store.remove(guildId, messageId);
       }
       return;
     }
@@ -103,7 +104,7 @@ export class Starboard {
       await this.store.upsert({ ...existing, stars, content: message.content });
       if (existing.postId && config.removeBelowThreshold) {
         await this.#deletePost(guildId, existing.postId);
-        await this.store.setPost(messageId, null);
+        await this.store.setPost(guildId, messageId, null);
       } else if (existing.postId) {
         await this.#editPost(
           guildId,
@@ -133,10 +134,14 @@ export class Starboard {
         return;
       } catch (error) {
         log.info({ err: error, guild: guildId }, 'starboard post gone, posting again');
-        await this.store.setPost(messageId, null);
+        await this.store.setPost(guildId, messageId, null);
       }
     }
 
+    if (!(await platform.channelInGuild(guildId, boardId).catch(() => false))) {
+      log.warn({ guild: guildId, channel: boardId }, 'starboard channel missing or not writable');
+      return;
+    }
     const missing = await platform
       .missingBotPermissions(guildId, boardId, ['ViewChannel', 'SendMessages', 'EmbedLinks'])
       .catch(() => null);
@@ -152,7 +157,7 @@ export class Starboard {
       embeds: [await this.#embed(guildId, message, attached)],
       files: attached && bytes ? [{ name: imageName(attached), data: bytes }] : undefined,
     });
-    await this.store.setPost(messageId, postId, attached !== null);
+    await this.store.setPost(guildId, messageId, postId, attached !== null);
   }
 
   async #editPost(

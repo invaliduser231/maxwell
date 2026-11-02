@@ -41,13 +41,13 @@ describe.skipIf(!url)('StarboardStore', () => {
     const row = await store.upsert(input(1, 5));
     expect(row.stars).toBe(5);
     expect(row.postId).toBeNull();
-    await store.setPost(id(1), id(101), true);
+    await store.setPost(guild, id(1), id(101), true);
     expect((await store.byPost(id(101)))?.postImage).toBe(true);
   });
 
   it('ranks posted messages by stars', async () => {
     await store.upsert(input(2, 9, '300000000000000002'));
-    await store.setPost(id(2), id(102));
+    await store.setPost(guild, id(2), id(102));
     await store.upsert(input(3, 20));
     const top = await store.top(guild);
     expect(top.map((row) => row.messageId)).toEqual([id(2), id(1)]);
@@ -58,12 +58,14 @@ describe.skipIf(!url)('StarboardStore', () => {
 
   it('clears a post when the board message disappears', async () => {
     expect(await store.clearPost(id(101))).toBe(true);
-    expect((await store.get(id(1)))?.postId).toBeNull();
+    expect((await store.get(guild, id(1)))?.postId).toBeNull();
   });
 
   it('removes rows', async () => {
-    expect((await store.remove(id(3)))?.stars).toBe(20);
-    expect(await store.remove(id(3))).toBeNull();
+    expect(await store.remove('900000000000000099', id(3))).toBeNull();
+    expect(await store.get('900000000000000099', id(3))).toBeNull();
+    expect((await store.remove(guild, id(3)))?.stars).toBe(20);
+    expect(await store.remove(guild, id(3))).toBeNull();
     expect((await store.byAuthor(guild, '300000000000000001')).map((row) => row.messageId)).toEqual(
       [id(1)],
     );
