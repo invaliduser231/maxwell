@@ -3,7 +3,16 @@ import { defineModule } from './types.js';
 
 const id = z.string().regex(/^\d{1,21}$/);
 
-export const menuTypes = ['normal', 'unique', 'add', 'temporary'] as const;
+export const menuTypes = [
+  'normal',
+  'unique',
+  'add',
+  'temporary',
+  'verify',
+  'remove',
+  'binding',
+  'limit',
+] as const;
 
 export type MenuType = (typeof menuTypes)[number];
 
@@ -22,6 +31,7 @@ export const roleMenu = z.object({
     .min(1)
     .max(60 * 24 * 365)
     .default(60 * 24),
+  limit: z.number().int().min(1).max(20).default(2),
   entries: z
     .array(
       z.object({
