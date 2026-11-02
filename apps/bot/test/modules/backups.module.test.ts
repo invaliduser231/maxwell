@@ -140,6 +140,27 @@ describe.skipIf(!url)('backups module', () => {
     expect(await store.list(guild)).toHaveLength(before);
   });
 
+  it('saves a snapshot after an automatic restore only', async () => {
+    overrides = { snapshotBeforeRestore: false };
+    const [latest] = await store.list(guild);
+    const before = (await store.list(guild)).length;
+    await jobs.get('backups.restore')?.(
+      job({ snapshotId: latest?.id, scope: 'pick', channels: ['510000000000000001'] }),
+    );
+    expect(await store.list(guild)).toHaveLength(before);
+    await jobs.get('backups.restore')?.(
+      job({
+        snapshotId: latest?.id,
+        scope: 'pick',
+        channels: ['510000000000000001'],
+        automatic: true,
+      }),
+    );
+    const after = await store.list(guild);
+    expect(after).toHaveLength(before + 1);
+    expect(after[0]?.label).toBe('After an automatic restore');
+  });
+
   it('ignores a pick with nothing in it', async () => {
     overrides = {};
     const before = (await store.list(guild)).length;

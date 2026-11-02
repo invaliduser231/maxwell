@@ -41,6 +41,7 @@ export const audit = {
   auditRestorePick: (count: number, number: number) =>
     `Restored ${count} ${count === 1 ? 'item' : 'items'} from snapshot #${number}`,
   beforeRestore: 'Before restore',
+  afterRestore: 'After an automatic restore',
   auditRoleDeleted: (name: string) => `Role ${name} was deleted`,
   auditChannelDeleted: (name: string) => `Channel #${name} was deleted`,
   auditImport: (name: string) => `Imported the Discord template ${name}`,

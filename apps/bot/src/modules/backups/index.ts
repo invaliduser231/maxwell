@@ -192,6 +192,9 @@ export default defineBotModule({
           await service.take(guildId, 'manual', by, audit.beforeRestore);
         }
         await service.restore(guildId, snapshot, scope, by);
+        if (job.payload.automatic === true) {
+          await service.take(guildId, 'manual', by, audit.afterRestore);
+        }
       });
     });
 
