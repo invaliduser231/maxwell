@@ -135,10 +135,14 @@ function Stats({
   );
 }
 
-const TOGGLES: ['snapshotBeforeRestore' | 'includeModules' | 'undoDeletions', Key][] = [
+const TOGGLES: [
+  'snapshotBeforeRestore' | 'includeModules' | 'undoDeletions' | 'memberRoles',
+  Key,
+][] = [
   ['snapshotBeforeRestore', 'Snapshot before every restore'],
   ['includeModules', 'Include Maxwell settings'],
   ['undoDeletions', 'Offer undo for deleted roles and channels'],
+  ['memberRoles', 'Give restored roles back to their members'],
 ];
 
 function Snapshots({

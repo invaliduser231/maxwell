@@ -23,6 +23,8 @@ export const backups = {
   'Include Maxwell settings': 'Maxwell-Einstellungen mitsichern',
   'Offer undo for deleted roles and channels':
     'Rückgängig für gelöschte Rollen und Kanäle anbieten',
+  'Give restored roles back to their members':
+    'Wiederhergestellte Rollen den Mitgliedern zurückgeben',
   'Taking snapshot': 'Snapshot läuft',
   'Snapshot saved': 'Snapshot gespeichert',
   'Snapshot now': 'Jetzt sichern',
