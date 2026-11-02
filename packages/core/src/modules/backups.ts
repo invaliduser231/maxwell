@@ -7,6 +7,7 @@ export const backupsConfig = z.object({
   maxManual: z.number().int().min(1).max(50).default(10),
   includeModules: z.boolean().default(true),
   undoDeletions: z.boolean().default(true),
+  memberRoles: z.boolean().default(true),
   snapshotBeforeRestore: z.boolean().default(true),
 });
 
@@ -619,6 +620,20 @@ export default defineModule({
 
         create index backups_templates_guild on backups_templates (guild_id);
         create index backups_templates_popular on backups_templates (uses desc, id desc);
+      `,
+    },
+    {
+      id: '5-member-roles',
+      up: `
+        create table backups_member_roles (
+          guild_id bigint not null,
+          role_id bigint not null,
+          user_id bigint not null,
+          deleted_at timestamptz,
+          primary key (guild_id, role_id, user_id)
+        );
+
+        create index backups_member_roles_user on backups_member_roles (guild_id, user_id);
       `,
     },
   ],

@@ -368,6 +368,120 @@ export class BackupStore {
     `;
     return snapshots.length + imports.length;
   }
+
+  async setMemberRoles(
+    guildId: string,
+    members: readonly { userId: string; roleIds: readonly string[] }[],
+    liveRoleIds: readonly string[],
+  ): Promise<void> {
+    if (members.length === 0) return;
+    const users = members.map((member) => member.userId);
+    const pairs = members.flatMap((member) =>
+      [...new Set(member.roleIds)].map((roleId) => ({ role_id: roleId, user_id: member.userId })),
+    );
+    await this.sql.begin(async (tx) => {
+      await tx`
+        delete from backups_member_roles
+        where guild_id = ${guildId} and user_id = any(${users}::bigint[])
+          and deleted_at is null and role_id = any(${[...liveRoleIds]}::bigint[])
+      `;
+      if (pairs.length === 0) return;
+      await tx`
+        insert into backups_member_roles (guild_id, role_id, user_id)
+        select ${guildId}, x.role_id, x.user_id
+        from jsonb_to_recordset(${tx.json(pairs as never)}) as x(role_id bigint, user_id bigint)
+        on conflict (guild_id, role_id, user_id) do update set deleted_at = null
+      `;
+    });
+  }
+
+  async forgetMemberRoles(guildId: string, userId: string): Promise<number> {
+    const rows = await this.sql`
+      delete from backups_member_roles
+      where guild_id = ${guildId} and user_id = ${userId}
+      returning 1
+    `;
+    return rows.length;
+  }
+
+  async keepMembers(guildId: string, userIds: readonly string[]): Promise<number> {
+    const rows = await this.sql`
+      delete from backups_member_roles
+      where guild_id = ${guildId} and not (user_id = any(${[...userIds]}::bigint[]))
+      returning 1
+    `;
+    return rows.length;
+  }
+
+  async markRolesDeleted(guildId: string, roleIds: readonly string[]): Promise<number> {
+    const rows = await this.sql`
+      update backups_member_roles set deleted_at = now()
+      where guild_id = ${guildId} and deleted_at is null
+        and role_id = any(${[...roleIds]}::bigint[])
+      returning 1
+    `;
+    return rows.length;
+  }
+
+  async markMissingRoles(guildId: string, liveRoleIds: readonly string[]): Promise<number> {
+    const rows = await this.sql`
+      update backups_member_roles set deleted_at = now()
+      where guild_id = ${guildId} and deleted_at is null
+        and not (role_id = any(${[...liveRoleIds]}::bigint[]))
+      returning 1
+    `;
+    return rows.length;
+  }
+
+  async roleMembers(guildId: string, roleId: string): Promise<string[]> {
+    const rows = await this.sql<{ userId: string }[]>`
+      select user_id as "userId" from backups_member_roles
+      where guild_id = ${guildId} and role_id = ${roleId}
+      order by user_id
+    `;
+    return rows.map((row) => String(row.userId));
+  }
+
+  async moveRoleMembers(guildId: string, from: string, to: string): Promise<number> {
+    const rows = await this.sql`
+      with moved as (
+        delete from backups_member_roles
+        where guild_id = ${guildId} and role_id = ${from}
+        returning user_id
+      )
+      insert into backups_member_roles (guild_id, role_id, user_id)
+      select ${guildId}, ${to}, user_id from moved
+      on conflict (guild_id, role_id, user_id) do update set deleted_at = null
+      returning 1
+    `;
+    return rows.length;
+  }
+
+  async memberRolesOf(guildId: string, userId: string): Promise<string[]> {
+    const rows = await this.sql<{ roleId: string }[]>`
+      select role_id as "roleId" from backups_member_roles
+      where guild_id = ${guildId} and user_id = ${userId}
+      order by role_id
+    `;
+    return rows.map((row) => String(row.roleId));
+  }
+
+  async clearMemberRoles(guildId: string): Promise<number> {
+    const rows = await this.sql`
+      delete from backups_member_roles where guild_id = ${guildId} returning 1
+    `;
+    return rows.length;
+  }
+
+  async pruneDeletedRoles(guildId: string, before: Date): Promise<number> {
+    const rows = await this.sql`
+      delete from backups_member_roles
+      where guild_id = ${guildId} and deleted_at < ${before}
+      returning 1
+    `;
+    return rows.length;
+  }
+
   async publishTemplate(
     guildId: string,
     input: { title: string; description: string; guildName: string | null; data: TemplateData },
