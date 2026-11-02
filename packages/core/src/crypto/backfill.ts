@@ -2,7 +2,7 @@ import type { Sql } from '../db/sql.js';
 import type { Logger } from '../log.js';
 import { type DataCipher, dataCipher, isSealed } from './data.js';
 
-export type SealKind = 'text' | 'json' | 'samples' | 'name';
+export type SealKind = 'text' | 'json' | 'samples' | 'name' | 'reason' | 'undo';
 
 export interface SealColumn {
   name: string;
@@ -18,6 +18,7 @@ export interface SealTarget {
   table: string;
   key: SealKey[];
   guild: string;
+  where?: string;
   columns: SealColumn[];
 }
 
@@ -160,6 +161,17 @@ export const sealTargets: SealTarget[] = [
       { name: 'note', kind: 'text' },
     ],
   },
+  {
+    table: 'audit_entries',
+    key: [{ name: 'id', type: 'bigint' }],
+    guild: 'guild_id',
+    where: `module = 'moderation' and action like 'case.%'`,
+    columns: [
+      { name: 'before', kind: 'reason' },
+      { name: 'after', kind: 'reason' },
+      { name: 'undo', kind: 'undo' },
+    ],
+  },
 ];
 
 const SEALED_PATTERN = '^enc:v1:[A-Za-z0-9+/]+={0,2}$';
@@ -183,6 +195,10 @@ function pending(column: SealColumn): string {
       ))`;
     case 'name':
       return `(jsonb_typeof(${col} -> 'name') = 'string' and ${col} ->> 'name' !~ '${SEALED_PATTERN}')`;
+    case 'reason':
+      return `(jsonb_typeof(${col} -> 'reason') = 'string' and ${col} ->> 'reason' !~ '${SEALED_PATTERN}')`;
+    case 'undo':
+      return `(jsonb_typeof(${col} -> 'payload' -> 'reason') = 'string' and ${col} -> 'payload' ->> 'reason' !~ '${SEALED_PATTERN}')`;
   }
 }
 
@@ -221,6 +237,20 @@ export function sealValue(
             name: sealField(cipher, guildId, (value as { name?: unknown }).name),
           }
         : value;
+    case 'reason':
+      return value && typeof value === 'object' && !Array.isArray(value)
+        ? {
+            ...value,
+            reason: sealField(cipher, guildId, (value as { reason?: unknown }).reason),
+          }
+        : value;
+    case 'undo':
+      return value && typeof value === 'object' && !Array.isArray(value)
+        ? {
+            ...value,
+            payload: sealValue(cipher, guildId, 'reason', (value as { payload?: unknown }).payload),
+          }
+        : value;
   }
 }
 
@@ -257,7 +287,8 @@ export function pgSealSource(sql: Sql): SealSource {
           (${target.guild})::text as "guildId",
           ${target.columns.map((column) => quote(column.name)).join(', ')}
         from ${quote(target.table)}
-        where (${target.columns.map(pending).join(' or ')}) ${cursor}
+        where (${target.columns.map(pending).join(' or ')})
+          ${target.where ? `and (${target.where})` : ''} ${cursor}
         order by ${keys.join(', ')}
         limit $${params.length}`,
         params,
@@ -275,10 +306,12 @@ export function pgSealSource(sql: Sql): SealSource {
         return `$${params.length}`;
       };
       const kinds = new Map(target.columns.map((column) => [column.name, column.kind]));
-      const encode = (name: string, value: unknown) =>
-        kinds.get(name) === 'text'
-          ? `${push(value)}::text`
-          : `${push(value === null ? null : JSON.stringify(value))}::jsonb`;
+      const encode = (name: string, value: unknown) => {
+        const kind = kinds.get(name);
+        if (kind === 'text') return `${push(value)}::text`;
+        if (kind === 'reason' || kind === 'undo') return `${push(value)}::jsonb`;
+        return `${push(value === null ? null : JSON.stringify(value))}::jsonb`;
+      };
       const sets = Object.entries(values).map(
         ([name, value]) => `${quote(name)} = ${encode(name, value)}`,
       );

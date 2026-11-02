@@ -4,7 +4,9 @@ import {
   type SealRow,
   type SealSource,
   type SealTarget,
+  sealRow,
   sealTable,
+  sealTargets,
   sealValue,
 } from '../src/crypto/backfill.js';
 import { DataCipher, isSealed } from '../src/crypto/data.js';
@@ -143,5 +145,45 @@ describe('sealValue', () => {
     expect(detail.score).toBe(3);
     expect(cipher.decrypt(guild, detail.name)).toBe('Lena');
     expect(sealValue(cipher, guild, 'name', { restored: true })).toEqual({ restored: true });
+  });
+
+  it('seals case reasons inside audit entries', () => {
+    const after = sealValue(cipher, guild, 'reason', { case: 4, reason: 'wrong member' }) as {
+      case: number;
+      reason: string;
+    };
+    expect(after.case).toBe(4);
+    expect(cipher.decrypt(guild, after.reason)).toBe('wrong member');
+    expect(sealValue(cipher, guild, 'reason', after)).toEqual(after);
+    expect(sealValue(cipher, guild, 'reason', { case: 4, reason: null })).toEqual({
+      case: 4,
+      reason: null,
+    });
+    const undo = sealValue(cipher, guild, 'undo', {
+      kind: 'moderation.reason',
+      payload: { number: 4, reason: 'old reason', unclaim: true },
+    }) as { kind: string; payload: { number: number; reason: string; unclaim: boolean } };
+    expect(undo.kind).toBe('moderation.reason');
+    expect(undo.payload.number).toBe(4);
+    expect(undo.payload.unclaim).toBe(true);
+    expect(cipher.decrypt(guild, undo.payload.reason)).toBe('old reason');
+    const voided = { kind: 'moderation.void', payload: { numbers: [4] } };
+    expect(JSON.stringify(sealValue(cipher, guild, 'undo', voided))).toBe(JSON.stringify(voided));
+  });
+
+  it('only rewrites the audit columns that hold a case reason', () => {
+    const audit = sealTargets.find((entry) => entry.table === 'audit_entries');
+    expect(audit?.where).toBe(`module = 'moderation' and action like 'case.%'`);
+    const values = sealRow(cipher, audit as SealTarget, {
+      key: ['1'],
+      guildId: guild,
+      values: {
+        before: null,
+        after: { case: 4, reason: 'wrong member' },
+        undo: { kind: 'moderation.void', payload: { numbers: [4] } },
+      },
+    });
+    expect(Object.keys(values)).toEqual(['after']);
+    expect(cipher.decrypt(guild, (values.after as { reason: string }).reason)).toBe('wrong member');
   });
 });

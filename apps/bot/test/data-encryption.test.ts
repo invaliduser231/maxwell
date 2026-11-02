@@ -1,9 +1,12 @@
 import { randomBytes } from 'node:crypto';
 import {
+  AuditStore,
   configureDataKey,
   connect,
   isSealed,
+  ModuleStore,
   migrate,
+  type SealTarget,
   type Sql,
   sealExisting,
   sealTargets,
@@ -20,10 +23,19 @@ import { InboxStore } from '@maxwell/core/stores/inbox';
 import { ModerationStore } from '@maxwell/core/stores/moderation';
 import { StarboardStore } from '@maxwell/core/stores/starboard';
 import { TicketStore } from '@maxwell/core/stores/tickets';
+import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createLogger } from '../src/log.js';
+import { UndoRegistry } from '../src/runtime/undo.js';
 
 const url = process.env.TEST_DATABASE_URL;
+
+interface RawAudit {
+  id: string;
+  before: { reason?: unknown } | null;
+  after: { reason?: unknown } | null;
+  undo: { payload?: { reason?: unknown } } | null;
+}
 
 describe.skipIf(!url)('encrypted stores', () => {
   let sql: Sql;
@@ -33,6 +45,8 @@ describe.skipIf(!url)('encrypted stores', () => {
   const lena = '410000000000000001';
   const mod = '410000000000000009';
   const message = String(420000000000000000n + BigInt(Math.floor(Math.random() * 1e9)));
+  const ledger = String(BigInt(guild) + 1n);
+  const pages = String(BigInt(guild) + 2n);
 
   beforeAll(async () => {
     configureDataKey(randomBytes(32).toString('base64'));
@@ -61,6 +75,7 @@ describe.skipIf(!url)('encrypted stores', () => {
     ]) {
       await sql`delete from ${sql(table)} where guild_id = ${guild}`;
     }
+    await sql`delete from audit_entries where guild_id in (${ledger}, ${pages})`;
     await sql.end();
     configureDataKey(process.env.DATA_KEY || null);
   });
@@ -283,5 +298,202 @@ describe.skipIf(!url)('encrypted stores', () => {
 
     const again = await sealExisting(sql, { targets });
     expect(again.every((entry) => entry.sealed === 0)).toBe(true);
+  });
+
+  it('keeps case reasons in the audit log encrypted', async () => {
+    const audit = new AuditStore(sql);
+    const undo = new UndoRegistry(audit, new ModuleStore(sql, audit));
+    const restored: unknown[] = [];
+    undo.handle('moderation.reason', async (_entry, payload) => {
+      restored.push(payload.reason);
+    });
+    const id = await audit.record({
+      guildId: ledger,
+      actor: { id: mod },
+      module: 'moderation',
+      action: 'case.reason',
+      summary: 'Changed the reason of case #7',
+      before: { reason: 'Posted a phishing link' },
+      after: { reason: 'scam DMs to new members' },
+      undo: {
+        kind: 'moderation.reason',
+        payload: { number: 7, reason: 'Posted a phishing link', unclaim: false },
+      },
+    });
+    const voided = await audit.record({
+      guildId: ledger,
+      actor: { id: mod },
+      module: 'moderation',
+      action: 'case.void',
+      summary: 'Voided case #7',
+      after: { case: 7, reason: 'wrong member' },
+      undo: { kind: 'moderation.void', payload: { numbers: [7] } },
+    });
+    const lock = await audit.record({
+      guildId: ledger,
+      actor: { id: mod },
+      module: 'moderation',
+      action: 'lock',
+      summary: 'Locked #general',
+      after: { channelId: message, reason: 'phishing wave' },
+      undo: null,
+    });
+
+    const raw = await sql<RawAudit[]>`
+      select id::text as id, before, after, undo from audit_entries
+      where guild_id = ${ledger} and action like 'case.%'
+    `;
+    expect(raw).toHaveLength(2);
+    expect(JSON.stringify(raw)).not.toMatch(/phishing link|scam DMs|wrong member/i);
+    const edit = raw.find((row) => row.id === id);
+    expect(isSealed(edit?.before?.reason)).toBe(true);
+    expect(isSealed(edit?.after?.reason)).toBe(true);
+    expect(isSealed(edit?.undo?.payload?.reason)).toBe(true);
+
+    const entry = await audit.get(ledger, id);
+    expect(entry?.before).toEqual({ reason: 'Posted a phishing link' });
+    expect(entry?.after).toEqual({ reason: 'scam DMs to new members' });
+    expect(entry?.undo).toEqual({
+      kind: 'moderation.reason',
+      payload: { number: 7, reason: 'Posted a phishing link', unclaim: false },
+    });
+    const listed = await audit.list(ledger, { module: 'moderation' });
+    expect(listed.map((row) => row.id)).toEqual([lock, voided, id]);
+    expect(listed[1]?.after).toEqual({ case: 7, reason: 'wrong member' });
+    expect(listed[0]?.after).toEqual({ channelId: message, reason: 'phishing wave' });
+
+    const search = async (term: string, limit?: number, before?: string) =>
+      (await audit.list(ledger, { search: term, limit, before })).map((row) => row.id);
+    expect(await search('PHISHING')).toEqual([lock, id]);
+    expect(await search('PHISHING', 1)).toEqual([lock]);
+    expect(await search('PHISHING', 1, lock)).toEqual([id]);
+    expect(await search('scam dms')).toEqual([id]);
+    expect(await search('wrong member')).toEqual([voided]);
+    expect(await search('"reason": "scam')).toEqual([id]);
+    expect(await search('case #7')).toEqual([voided, id]);
+    expect(await search('enc:v1')).toEqual([]);
+
+    expect(await undo.undo(ledger, id, { id: mod })).toBe('done');
+    expect(restored).toEqual(['Posted a phishing link']);
+  });
+
+  it('finds encrypted reasons further back than one page', async () => {
+    const audit = new AuditStore(sql);
+    const record = (number: number, reason: string) =>
+      audit.record({
+        guildId: pages,
+        actor: { id: mod },
+        module: 'moderation',
+        action: 'case.warn',
+        summary: `Warned @lena (#${number})`,
+        after: { case: number, userId: lena, reason, durationSeconds: null },
+        undo: { kind: 'warn', payload: { number, userId: lena } },
+      });
+    const needle = await record(1, 'needle in the haystack');
+    for (let number = 2; number <= 205; number++) await record(number, `spam ${number}`);
+    const found = await audit.list(pages, { search: 'NEEDLE', limit: 5 });
+    expect(found.map((row) => row.id)).toEqual([needle]);
+    expect(found[0]?.after).toEqual({
+      case: 1,
+      userId: lena,
+      reason: 'needle in the haystack',
+      durationSeconds: null,
+    });
+    const cases = (rows: { after: unknown }[]) =>
+      rows.map((row) => (row.after as { case: number }).case);
+    const first = await audit.list(pages, { search: 'spam', limit: 3 });
+    expect(cases(first)).toEqual([205, 204, 203]);
+    const next = await audit.list(pages, { search: 'spam', limit: 3, before: first[2]?.id });
+    expect(cases(next)).toEqual([202, 201, 200]);
+    expect(await audit.list(pages, { search: 'spam', before: needle })).toEqual([]);
+    expect(cases(await audit.list(pages, { search: 'spam 2', limit: 200 }))).toEqual([
+      205, 204, 203, 202, 201, 200, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 2,
+    ]);
+    expect(cases(await audit.list(pages, { search: 'spam 2', limit: 7 }))).toEqual([
+      205, 204, 203, 202, 201, 200, 29,
+    ]);
+
+    const single = postgres(url as string, { max: 1, onnotice: () => {} });
+    try {
+      const lone = new AuditStore(single);
+      const [deep, few, plain] = await Promise.all([
+        lone.list(pages, { search: 'needle' }),
+        lone.list(pages, { search: 'spam 2', limit: 3 }),
+        lone.list(pages, { limit: 1 }),
+      ]);
+      expect(deep.map((row) => row.id)).toEqual([needle]);
+      expect(cases(few)).toEqual([205, 204, 203]);
+      expect(cases(plain)).toEqual([205]);
+    } finally {
+      await single.end();
+    }
+  });
+
+  it('encrypts case reasons already in the audit log', async () => {
+    const insert = async (action: string, before: unknown, after: unknown, undo: unknown) => {
+      const [row] = await sql<{ id: string }[]>`
+        insert into audit_entries (guild_id, actor_id, module, action, summary, before, after, undo)
+        values (
+          ${ledger}, ${mod}, 'moderation', ${action}, 'legacy',
+          ${before === null ? null : sql.json(before as never)},
+          ${sql.json(after as never)},
+          ${undo === null ? null : sql.json(undo as never)}
+        )
+        returning id::text as id
+      `;
+      return row?.id ?? '';
+    };
+    const edited = await insert(
+      'case.reason',
+      { reason: 'old wording' },
+      { reason: 'new wording' },
+      { kind: 'moderation.reason', payload: { number: 9, reason: 'old wording', unclaim: true } },
+    );
+    const cleared = await insert(
+      'case.clear',
+      null,
+      { cases: [10, 11], reason: 'appeal accepted' },
+      { kind: 'moderation.void', payload: { numbers: [10, 11] } },
+    );
+    const locked = await insert('lock', null, { channelId: message, reason: 'raid' }, null);
+
+    const [audit] = sealTargets.filter((target) => target.table === 'audit_entries');
+    const target: SealTarget = {
+      ...(audit as SealTarget),
+      where: `${audit?.where} and guild_id = ${ledger}`,
+    };
+    const progress = await sealExisting(sql, { targets: [target], batchSize: 1 });
+    expect(progress).toEqual([{ table: 'audit_entries', scanned: 2, sealed: 2, batches: 2 }]);
+
+    const raw = await sql<RawAudit[]>`
+      select id::text as id, before, after, undo from audit_entries
+      where id = any(${[edited, cleared, locked]}::bigint[])
+    `;
+    const rowOf = (id: string) => raw.find((row) => row.id === id);
+    expect(isSealed(rowOf(edited)?.before?.reason)).toBe(true);
+    expect(isSealed(rowOf(edited)?.after?.reason)).toBe(true);
+    expect(isSealed(rowOf(edited)?.undo?.payload?.reason)).toBe(true);
+    expect(isSealed(rowOf(cleared)?.after?.reason)).toBe(true);
+    expect(rowOf(cleared)?.undo).toEqual({
+      kind: 'moderation.void',
+      payload: { numbers: [10, 11] },
+    });
+    expect(rowOf(locked)?.after).toEqual({ channelId: message, reason: 'raid' });
+
+    const store = new AuditStore(sql);
+    const entry = await store.get(ledger, edited);
+    expect(entry?.before).toEqual({ reason: 'old wording' });
+    expect(entry?.after).toEqual({ reason: 'new wording' });
+    expect(entry?.undo?.payload).toEqual({ number: 9, reason: 'old wording', unclaim: true });
+    expect((await store.get(ledger, cleared))?.after).toEqual({
+      cases: [10, 11],
+      reason: 'appeal accepted',
+    });
+    expect((await store.list(ledger, { search: 'appeal accepted' })).map((row) => row.id)).toEqual([
+      cleared,
+    ]);
+
+    const again = await sealExisting(sql, { targets: [target] });
+    expect(again).toEqual([{ table: 'audit_entries', scanned: 0, sealed: 0, batches: 0 }]);
   });
 });
