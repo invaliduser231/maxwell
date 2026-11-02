@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState, useTransition } from 'react';
-import { logout, setLanguage } from '@/lib/actions';
+import { setLanguage } from '@/lib/actions';
 import { useT } from './i18n';
 import { Avatar } from './ui';
 
@@ -117,7 +117,7 @@ export function AccountMenu({ user }: { user: { name: string; avatarUrl: string 
             ))}
           </div>
           {user ? (
-            <form action={logout} className="mx-account-foot">
+            <form action="/auth/logout" method="post" className="mx-account-foot">
               <button type="submit" role="menuitem" className="mx-popover-item mx-account-out">
                 <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
                   <path

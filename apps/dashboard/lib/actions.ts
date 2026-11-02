@@ -3,14 +3,13 @@
 import { canUndo, enqueue, moduleByKey } from '@maxwell/core';
 import { revalidatePath, updateTag } from 'next/cache';
 import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { guildAccess, levelOf } from './access';
 import { db } from './db';
 import { editor } from './guard';
 import { isLang, LANG_COOKIE } from './i18n';
 import { publicTag } from './public-page';
-import { destroySession, getSession, secureCookies } from './session';
+import { getSession, secureCookies } from './session';
 
 export type Result<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -232,9 +231,4 @@ export async function setLanguage(lang: string): Promise<void> {
     secure: secureCookies(),
   });
   revalidatePath('/', 'layout');
-}
-
-export async function logout(): Promise<void> {
-  await destroySession();
-  redirect('/login');
 }
