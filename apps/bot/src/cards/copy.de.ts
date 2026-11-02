@@ -25,6 +25,20 @@ const de: CardCopy = {
     same: 'Wie letzte Woche',
     versus: (change: string) => `${change} zur Vorwoche`,
   },
+  activity: {
+    title: (days: number) => `Letzte ${days} Tage`,
+    range: (from: string, to: string) => `${from} bis ${to}`,
+    messages: 'Nachrichten',
+    active: 'Aktive Mitglieder',
+    members: 'Veränderung',
+    voice: 'Stunden im Voice',
+    perDay: 'Nachrichten pro Tag',
+    peak: (count: string) => `Stärkster Tag: ${count}`,
+    empty: 'Keine Nachrichten gezählt',
+    flow: 'Beitritte und Austritte',
+    joined: (count: string) => `${count} beigetreten`,
+    left: (count: string) => `${count} gegangen`,
+  },
 };
 
 export default de;
