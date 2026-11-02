@@ -44,6 +44,7 @@ const icons: Record<string, string> = {
   giveaways: 'M42 66h76v16H42zM48 82v40h64V82M80 66v56',
   events: 'M42 50h76v68H42zM42 70h76M60 40v18M100 40v18',
   starboard: 'M80 38l12 26 28 3-21 19 6 28-25-14-25 14 6-28-21-19 28-3z',
+  counters: 'M48 48h64v64H48zM64 70h8v20M84 70h12l-12 20h12',
   economy: 'M80 40a40 40 0 1 0 0 80 40 40 0 1 0 0-80zM80 58v44',
   collection: 'M50 50h44v64H50zM66 40h44v64',
   games: 'M44 44h72v72H44zM64 64h2M96 96h2M80 80h2',
@@ -108,6 +109,7 @@ export const pageGroups: PageGroup[] = [
       page('giveaways', 'Giveaways', 'north'),
       page('events', 'Events and polls', 'north'),
       page('starboard', 'Starboard', 'north'),
+      page('counters', 'Counters', 'north'),
     ],
   },
   {

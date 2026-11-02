@@ -6,6 +6,7 @@ import { cards } from './de/cards';
 import { collection } from './de/collection';
 import { commands } from './de/commands';
 import { common } from './de/common';
+import { counters } from './de/counters';
 import { economy } from './de/economy';
 import { errors } from './de/errors';
 import { events } from './de/events';
@@ -77,6 +78,7 @@ export const messages = {
   ...suggestions,
   ...welcome,
   ...starboard,
+  ...counters,
   ...voice,
   ...logs,
   ...shield,
