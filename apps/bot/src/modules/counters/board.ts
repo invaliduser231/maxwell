@@ -60,10 +60,15 @@ export class CounterBoard {
     };
   }
 
-  async refresh(guildId: string, now = new Date()): Promise<number> {
+  async refresh(guildId: string, now = new Date(), requested = false): Promise<number> {
     const config = await this.#active(guildId);
     if (!config) return 0;
     const { platform, log } = this.ctx.services;
+    const counts = platform.counts(guildId);
+    if (!requested && (counts?.members == null || counts.online == null)) {
+      platform.requestCounts([guildId]);
+      await this.wait(COUNTS_WAIT);
+    }
     return inGuild(guildId, async () => {
       const values = await this.values(guildId, now);
       const live = new Map(
@@ -108,7 +113,7 @@ export class CounterBoard {
     let renamed = 0;
     for (const guildId of due) {
       try {
-        renamed += await this.refresh(guildId, now);
+        renamed += await this.refresh(guildId, now, true);
       } catch (error) {
         log.warn({ err: error, guild: guildId }, 'counter refresh failed');
       }

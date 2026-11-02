@@ -108,6 +108,7 @@ describe('counter board', () => {
   let requested: string[][];
   let updates: { patch: Partial<CountersConfig>; actor: { id: string | null } }[];
   let board: CounterBoard;
+  let counts: { members: number | null; online: number | null } | null;
 
   const channel = (id: string, name: string, type = 2): ChannelRef => ({
     id,
@@ -136,6 +137,7 @@ describe('counter board', () => {
 
   beforeEach(() => {
     enabled = true;
+    counts = { members: 1234, online: 50 };
     renames = [];
     requested = [];
     updates = [];
@@ -165,7 +167,7 @@ describe('counter board', () => {
         platform: {
           roles: async (id: string) => [id, '1', '2', '3'].map(role),
           channels: async () => channels,
-          counts: () => ({ members: 1234, online: 50 }),
+          counts: () => counts,
           voiceMembers: (_guild: string, channelId: string) =>
             channelId === '510000000000000003' ? ['1', '2'] : [],
           requestCounts: (ids: string[]) => requested.push([...ids]),
@@ -191,6 +193,15 @@ describe('counter board', () => {
     expect(await board.refresh(guild, new Date(start.getTime() + 60_000))).toBe(0);
     expect(await board.refresh(guild, new Date(start.getTime() + RENAME_GAP))).toBe(1);
     expect(renames.at(-1)?.name).toBe('People: 1,234');
+  });
+
+  it('asks for counts first when the gateway has not sent any yet', async () => {
+    counts = null;
+    await board.refresh(guild);
+    expect(requested).toEqual([[guild]]);
+    counts = { members: 1234, online: 50 };
+    await board.refresh(guild);
+    expect(requested).toHaveLength(1);
   });
 
   it('does nothing while the module is off', async () => {
