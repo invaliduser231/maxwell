@@ -19,7 +19,7 @@ import { ChannelType, useGuild } from '@/components/guild';
 import { useT } from '@/components/i18n';
 import { useDraft } from '@/components/module-shell';
 import { CloseIcon, Empty, Grid, Panel } from '@/components/ui';
-import type { Key } from '@/lib/i18n';
+import type { Key, Translator } from '@/lib/i18n';
 
 const KINDS = [ChannelType.Voice, ChannelType.Category, ChannelType.Text];
 
@@ -33,7 +33,7 @@ const labels: Record<CounterType, Key> = {
   countdown: 'Countdown',
 };
 
-const templates: Record<CounterType, string> = {
+const templates: Record<CounterType, Key> = {
   members: 'Members: {count}',
   online: 'Online: {count}',
   goal: 'Goal: {count} / {goal}',
@@ -56,8 +56,8 @@ function inMonth(): string {
   return date.toISOString().slice(0, 10);
 }
 
-function retype(item: Counter, type: CounterType): Counter {
-  const template = item.template === templates[item.type] ? templates[type] : item.template;
+function retype(item: Counter, type: CounterType, t: Translator): Counter {
+  const template = item.template === t(templates[item.type]) ? t(templates[type]) : item.template;
   return {
     ...item,
     type,
@@ -113,7 +113,7 @@ export function CountersForm() {
               {
                 channelId,
                 type: 'members',
-                template: templates.members,
+                template: t(templates.members),
                 goal: null,
                 until: null,
               },
@@ -173,7 +173,7 @@ export function CountersForm() {
                           label={t('What {name} counts', { name })}
                           value={item.type}
                           options={typeOptions}
-                          onChange={(type) => setItem(index, retype(item, type))}
+                          onChange={(type) => setItem(index, retype(item, type, t))}
                         />
                         {item.type === 'goal' ? (
                           <NumberInput

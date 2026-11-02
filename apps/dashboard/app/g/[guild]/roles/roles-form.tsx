@@ -310,6 +310,7 @@ function MenuEditor({ index, onRemoved }: { index: number; onRemoved: () => void
                 value={menu.limit}
                 min={1}
                 max={20}
+                suffix={menu.limit === 1 ? t('role') : t('roles')}
                 onChange={(limit) => patch({ limit })}
               />
             ) : null}

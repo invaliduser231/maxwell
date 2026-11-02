@@ -1,5 +1,12 @@
 export const counters = {
   Counters: 'Zähler',
+  'Members: {count}': 'Mitglieder: {count}',
+  'Online: {count}': 'Online: {count}',
+  'Goal: {count} / {goal}': 'Ziel: {count} / {goal}',
+  'In voice: {count}': 'Im Voice: {count}',
+  'Channels: {count}': 'Kanäle: {count}',
+  'Roles: {count}': 'Rollen: {count}',
+  '{count} days to go': 'Noch {count} Tage',
   Online: 'Online',
   'Member goal': 'Mitgliederziel',
   'In voice': 'Im Voice',

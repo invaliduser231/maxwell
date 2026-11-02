@@ -25,6 +25,8 @@ export const roles = {
   'Up to {n} role.': 'Höchstens {n} Rolle.',
   'Up to {n} roles.': 'Höchstens {n} Rollen.',
   'Roles per member': 'Rollen pro Mitglied',
+  role: 'Rolle',
+  roles: 'Rollen',
   Temporary: 'Befristet',
   'Right away': 'Sofort',
   'After {span}': '{span} später',
