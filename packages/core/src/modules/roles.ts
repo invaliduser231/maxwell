@@ -3,6 +3,8 @@ import { defineModule } from './types.js';
 
 const id = z.string().regex(/^\d{1,21}$/);
 
+export const ACTIVITY_DAYS = 90;
+
 export const menuTypes = [
   'normal',
   'unique',
@@ -75,6 +77,16 @@ export const rolesConfig = z.object({
     )
     .max(10)
     .default([]),
+  activityRoles: z
+    .array(
+      z.object({
+        roleId: id,
+        messages: z.number().int().min(1).max(100_000),
+        days: z.number().int().min(1).max(ACTIVITY_DAYS),
+      }),
+    )
+    .max(5)
+    .default([]),
   sticky: z
     .object({
       enabled: z.boolean().default(false),
@@ -141,6 +153,28 @@ export default defineModule({
           guild_id bigint not null,
           user_id bigint not null,
           role_id bigint not null,
+          granted_at timestamptz not null default now(),
+          primary key (guild_id, role_id, user_id)
+        );
+      `,
+    },
+    {
+      id: '2-activity',
+      up: `
+        create table roles_activity (
+          guild_id bigint not null,
+          user_id bigint not null,
+          day date not null,
+          messages integer not null default 0,
+          primary key (guild_id, user_id, day)
+        );
+
+        create index roles_activity_day on roles_activity (guild_id, day);
+
+        create table roles_activity_granted (
+          guild_id bigint not null,
+          role_id bigint not null,
+          user_id bigint not null,
           granted_at timestamptz not null default now(),
           primary key (guild_id, role_id, user_id)
         );

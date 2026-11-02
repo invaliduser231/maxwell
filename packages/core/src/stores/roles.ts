@@ -29,6 +29,13 @@ export interface MemberRecord {
   stickyRoleIds: string[];
 }
 
+export interface ActivityCount {
+  guildId: string;
+  userId: string;
+  day: string;
+  messages: number;
+}
+
 export class RolesStore {
   constructor(private readonly sql: Sql) {}
 
@@ -278,7 +285,108 @@ export class RolesStore {
     await this.sql.begin(async (tx) => {
       await tx`delete from roles_members where guild_id = ${guildId} and user_id = ${userId}`;
       await tx`delete from roles_time_granted where guild_id = ${guildId} and user_id = ${userId}`;
+      await tx`delete from roles_activity where guild_id = ${guildId} and user_id = ${userId}`;
+      await tx`
+        delete from roles_activity_granted where guild_id = ${guildId} and user_id = ${userId}
+      `;
     });
+  }
+
+  async addActivity(rows: readonly ActivityCount[]): Promise<number> {
+    if (rows.length === 0) return 0;
+    const items = rows.map((row) => ({
+      guild_id: row.guildId,
+      user_id: row.userId,
+      day: row.day,
+      messages: row.messages,
+    }));
+    const written = await this.sql`
+      insert into roles_activity (guild_id, user_id, day, messages)
+      select x.guild_id, x.user_id, x.day, x.messages
+      from jsonb_to_recordset(${this.sql.json(items as never)})
+        as x(guild_id bigint, user_id bigint, day date, messages integer)
+      on conflict (guild_id, user_id, day)
+        do update set messages = roles_activity.messages + excluded.messages
+      returning 1
+    `;
+    return written.length;
+  }
+
+  async activeMembers(
+    guildId: string,
+    since: string,
+    minMessages: number,
+    limit = 50_000,
+  ): Promise<string[]> {
+    const rows = await this.sql<{ userId: string }[]>`
+      select user_id as "userId" from roles_activity
+      where guild_id = ${guildId} and day >= ${since}::date
+      group by user_id
+      having sum(messages) >= ${minMessages}
+      order by user_id
+      limit ${limit}
+    `;
+    return rows.map((row) => String(row.userId));
+  }
+
+  async activityGranted(guildId: string, roleId: string): Promise<string[]> {
+    const rows = await this.sql<{ userId: string }[]>`
+      select user_id as "userId" from roles_activity_granted
+      where guild_id = ${guildId} and role_id = ${roleId}
+      order by user_id
+    `;
+    return rows.map((row) => String(row.userId));
+  }
+
+  async markActivityGranted(guildId: string, roleId: string, userId: string): Promise<void> {
+    await this.sql`
+      insert into roles_activity_granted (guild_id, role_id, user_id)
+      values (${guildId}, ${roleId}, ${userId})
+      on conflict do nothing
+    `;
+  }
+
+  async dropActivityGrant(guildId: string, roleId: string, userId: string): Promise<void> {
+    await this.sql`
+      delete from roles_activity_granted
+      where guild_id = ${guildId} and role_id = ${roleId} and user_id = ${userId}
+    `;
+  }
+
+  async keepActivityRoles(guildId: string, roleIds: readonly string[]): Promise<number> {
+    const rows = await this.sql`
+      delete from roles_activity_granted
+      where guild_id = ${guildId} and not (role_id = any(${[...roleIds]}::bigint[]))
+      returning 1
+    `;
+    return rows.length;
+  }
+
+  async pruneActivity(guildId: string, before: string): Promise<number> {
+    const rows = await this.sql`
+      delete from roles_activity where guild_id = ${guildId} and day < ${before}::date
+      returning 1
+    `;
+    return rows.length;
+  }
+
+  async activityFor(
+    guildId: string,
+    userId: string,
+  ): Promise<{ days: { day: string; messages: number }[]; roleIds: string[] }> {
+    const [days, grants] = await Promise.all([
+      this.sql<{ day: string; messages: number }[]>`
+        select to_char(day, 'YYYY-MM-DD') as day, messages from roles_activity
+        where guild_id = ${guildId} and user_id = ${userId}
+        order by day
+      `,
+      this.sql<{ roleId: string }[]>`
+        select role_id as "roleId" from roles_activity_granted
+        where guild_id = ${guildId} and user_id = ${userId}
+        order by role_id
+      `,
+    ]);
+    return { days: [...days], roleIds: grants.map((row) => String(row.roleId)) };
   }
 
   async wakeJobs(prefix: string, at: Date): Promise<number> {
