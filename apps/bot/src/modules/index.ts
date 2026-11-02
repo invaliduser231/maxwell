@@ -4,6 +4,7 @@ import backups from './backups/index.js';
 import cards from './cards/index.js';
 import collection from './collection/index.js';
 import customCommands from './commands/index.js';
+import counters from './counters/index.js';
 import economy from './economy/index.js';
 import eventsModule from './events/index.js';
 import feeds from './feeds/index.js';
@@ -42,6 +43,7 @@ export const botModules: BotModule[] = [
   giveaways,
   eventsModule,
   starboard,
+  counters,
   economy,
   collection,
   games,

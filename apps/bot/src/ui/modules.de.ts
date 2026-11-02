@@ -25,6 +25,7 @@ const de: ModuleCopy = {
     name: 'Starboard',
     description: 'Hebt die Nachrichten mit den meisten Sternen hervor.',
   },
+  counters: { name: 'Zähler', description: 'Kanalnamen, die mitzählen.' },
   economy: { name: 'Economy', description: 'Joules, der Shop und tägliche Belohnungen.' },
   collection: { name: 'Sammlung', description: 'Sammle deine Community.' },
   games: { name: 'Spiele', description: 'Quiz, Zählen und andere kleine Spiele.' },
