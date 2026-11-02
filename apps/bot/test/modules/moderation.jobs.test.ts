@@ -4,9 +4,19 @@ import { ShieldStore } from '@maxwell/core/stores/shield';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ChannelTools } from '../../src/modules/moderation/channels.js';
 import { registerJobs } from '../../src/modules/moderation/jobs.js';
+import { massBan, postMassBanSummary } from '../../src/modules/moderation/massban.js';
 import type { ActInput, ModerationService } from '../../src/modules/moderation/service.js';
 import type { MemberRef, RoleRef } from '../../src/platform/types.js';
 import type { JobHandler } from '../../src/runtime/scheduler.js';
+
+vi.mock('../../src/modules/moderation/massban.js', () => ({
+  massBan: vi.fn(async (_moderation: unknown, input: { userIds: string[] }) => ({
+    banned: input.userIds.map((userId, index) => ({ userId, number: index + 1 })),
+    skipped: [],
+    failed: [],
+  })),
+  postMassBanSummary: vi.fn(async () => {}),
+}));
 
 const guild = '900000000000000001';
 const self = '100000000000000001';
@@ -53,6 +63,7 @@ function setup(owners: string[] = []) {
   const acted: ActInput[] = [];
   const warnings: { data: Record<string, unknown>; message: string }[] = [];
   const lookups: string[] = [];
+  const scheduled: { kind: string; payload: Record<string, unknown> }[] = [];
   const platform = {
     selfId: self,
     member: async (_g: string, id: string) => {
@@ -81,7 +92,10 @@ function setup(owners: string[] = []) {
       config: { OWNER_IDS: owners },
     },
     job: (kind: string, handler: JobHandler) => void handlers.set(kind, handler),
-    schedule: async () => null,
+    schedule: async (kind: string, options: { payload: Record<string, unknown> }) => {
+      scheduled.push({ kind, payload: options.payload });
+      return null;
+    },
     on: () => {},
     undo: () => {},
   };
@@ -95,11 +109,11 @@ function setup(owners: string[] = []) {
     },
   } as unknown as ModerationService;
   registerJobs(moderation, {} as ChannelTools);
-  const handler = handlers.get('action') as JobHandler;
-  const run = (payload: Record<string, unknown>) => {
+  const run = (payload: Record<string, unknown>, kind = 'action') => {
+    const handler = handlers.get(kind) as JobHandler;
     const job: Job = {
       id: '1',
-      kind: 'moderation.action',
+      kind: `moderation.${kind}`,
       guildId: guild,
       payload,
       runAt: new Date(),
@@ -107,11 +121,13 @@ function setup(owners: string[] = []) {
     };
     return handler(job);
   };
-  return { run, acted, warnings, lookups };
+  return { run, acted, warnings, lookups, scheduled };
 }
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.mocked(massBan).mockClear();
+  vi.mocked(postMassBanSummary).mockClear();
 });
 
 describe('moderation action job', () => {
@@ -219,5 +235,41 @@ describe('moderation action job', () => {
         source: 'security',
       }),
     ]);
+  });
+});
+
+describe('mass ban job', () => {
+  const many = Array.from({ length: 60 }, (_, index) =>
+    String(600000000000000000n + BigInt(index)),
+  );
+
+  it('acts as the dashboard user, not the payload moderator', async () => {
+    const { run, scheduled } = setup();
+    await run({ userIds: many, moderatorId: senior, by: junior }, 'massban');
+    expect(vi.mocked(massBan).mock.calls[0]?.[1]).toMatchObject({ moderatorId: junior });
+    expect(scheduled[0]?.payload).toMatchObject({ moderatorId: junior, by: junior });
+  });
+
+  it('keeps running continuations queued without a dashboard user', async () => {
+    const { run } = setup();
+    await run({ userIds: [plain], moderatorId: junior, batch: 'b1', total: 51 }, 'massban');
+    expect(vi.mocked(massBan).mock.calls[0]?.[1]).toMatchObject({ moderatorId: junior });
+    expect(vi.mocked(postMassBanSummary).mock.calls[0]?.[1]).toMatchObject({
+      moderatorId: junior,
+    });
+  });
+
+  it('refuses a fresh mass ban without a dashboard user', async () => {
+    const { run, warnings } = setup();
+    await run({ userIds: [plain], moderatorId: junior }, 'massban');
+    expect(massBan).not.toHaveBeenCalled();
+    expect(warnings.map((entry) => entry.message)).toEqual(['mass ban without a known moderator']);
+  });
+
+  it('still rejects a payload without a moderator', async () => {
+    const { run, warnings } = setup();
+    await run({ userIds: [plain], by: junior }, 'massban');
+    expect(massBan).not.toHaveBeenCalled();
+    expect(warnings.map((entry) => entry.message)).toEqual(['invalid mass ban payload']);
   });
 });

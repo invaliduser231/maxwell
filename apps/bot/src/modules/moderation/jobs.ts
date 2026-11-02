@@ -36,6 +36,7 @@ export const actionPayload = z.object({
 export const massBanPayload = z.object({
   userIds: z.array(snowflake).min(1).max(MASS_BAN_MAX),
   moderatorId: snowflake,
+  by: snowflake.optional(),
   reason: z.string().max(1_500).nullable().default(null),
   deleteMessages: z.boolean().default(false),
   shield: z.boolean().default(false),
@@ -217,6 +218,11 @@ export function registerJobs(moderation: ModerationService, tools: ChannelTools)
       return;
     }
     const input = parsed.data;
+    const actor = input.by ?? (input.batch !== null ? input.moderatorId : undefined);
+    if (!actor) {
+      log.warn({ guild: guildId }, 'mass ban without a known moderator');
+      return;
+    }
     const config = await moderation.config(guildId);
     const batch = input.batch ?? job.id;
     const chunk = input.userIds.slice(0, MASS_BAN_CHUNK);
@@ -224,7 +230,7 @@ export function registerJobs(moderation: ModerationService, tools: ChannelTools)
     const result = await massBan(moderation, {
       guildId,
       userIds: chunk,
-      moderatorId: input.moderatorId,
+      moderatorId: actor,
       reason: input.reason,
       deleteMessageSeconds: input.deleteMessages ? deleteSecondsFor(config) : null,
       source: 'dashboard',
@@ -239,14 +245,24 @@ export function registerJobs(moderation: ModerationService, tools: ChannelTools)
     if (rest.length > 0) {
       await ctx.schedule('massban', {
         guildId,
-        payload: { ...input, userIds: rest, batch, total, banned, skipped, failed },
+        payload: {
+          ...input,
+          by: actor,
+          moderatorId: actor,
+          userIds: rest,
+          batch,
+          total,
+          banned,
+          skipped,
+          failed,
+        },
         dedupeKey: `moderation.massban:${batch}:${rest.length}`,
       });
       return;
     }
     await postMassBanSummary(
       moderation,
-      { guildId, moderatorId: input.moderatorId, reason: input.reason },
+      { guildId, moderatorId: actor, reason: input.reason },
       { total, banned },
     );
     log.info({ guild: guildId, banned: banned.length, skipped, failed }, 'mass ban finished');
