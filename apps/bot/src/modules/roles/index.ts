@@ -1,10 +1,14 @@
 import definition from '@maxwell/core/modules/roles';
 import { RolesStore } from '@maxwell/core/stores/roles';
 import { defineBotModule } from '../../runtime/module.js';
+import { nextSlot } from '../insights/recurring.js';
+import { ActivityRoles } from './activity.js';
 import { AutomodHolds } from './held.js';
 import { Members } from './members.js';
 import { Menus } from './menus.js';
 import { rolesPrivacy } from './privacy.js';
+
+const FLUSH = 5 * 60_000;
 
 function actorOf(payload: Record<string, unknown>): { id: string | null } {
   return { id: typeof payload.by === 'string' ? payload.by : null };
@@ -17,7 +21,8 @@ export default defineBotModule({
     const store = new RolesStore(services.sql);
     const holds = new AutomodHolds(services.sql, services.settings, services.log);
     const menus = new Menus(ctx, store);
-    const members = new Members(ctx, store, holds);
+    const activity = new ActivityRoles(ctx, store, holds);
+    const members = new Members(ctx, store, holds, activity);
 
     ctx.on('reaction', (reaction) => menus.onReaction(reaction, true));
     ctx.on('reactionRemove', (reaction) => menus.onReaction(reaction, false));
@@ -46,6 +51,23 @@ export default defineBotModule({
     ctx.job('sticky.restore', (job) => members.restoreDelayed(job));
 
     ctx.job('time.sweep', (job) => members.sweep(job));
+    ctx.job('activity.flush', async () => {
+      try {
+        await activity.flush();
+      } finally {
+        await ctx.schedule('activity.flush', nextSlot('roles.activity.flush', FLUSH));
+      }
+    });
+    ctx.on(
+      'ready',
+      async () => {
+        await ctx.schedule('activity.flush', nextSlot('roles.activity.flush', FLUSH));
+      },
+      { always: true },
+    );
+    ctx.onShutdown(async () => {
+      await activity.flush();
+    });
 
     ctx.undo('menu.unpublish', async (entry, payload) => {
       const { menuId, channelId, messageId } = payload;

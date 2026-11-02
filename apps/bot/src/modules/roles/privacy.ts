@@ -3,17 +3,29 @@ import type { PrivacyHandler } from '../../runtime/privacy.js';
 import type { Members } from './members.js';
 
 export function rolesPrivacy(
-  store: Pick<RolesStore, 'member' | 'timeGranted' | 'temporaryFor' | 'forgetMember'>,
+  store: Pick<
+    RolesStore,
+    'member' | 'timeGranted' | 'temporaryFor' | 'activityFor' | 'forgetMember'
+  >,
   members: Pick<Members, 'forgetCached'>,
 ): PrivacyHandler {
   return {
     async export(guildId, userId) {
-      const [member, timeRoles, temporary] = await Promise.all([
+      const [member, timeRoles, temporary, activity] = await Promise.all([
         store.member(guildId, userId),
         store.timeGranted(guildId, userId),
         store.temporaryFor(guildId, userId),
+        store.activityFor(guildId, userId),
       ]);
-      if (!member && timeRoles.length === 0 && temporary.length === 0) return null;
+      if (
+        !member &&
+        timeRoles.length === 0 &&
+        temporary.length === 0 &&
+        activity.days.length === 0 &&
+        activity.roleIds.length === 0
+      ) {
+        return null;
+      }
       return {
         membership: member
           ? {
@@ -30,6 +42,8 @@ export function rolesPrivacy(
           roleId: row.roleId,
           expiresAt: row.expiresAt.toISOString(),
         })),
+        activity: activity.days,
+        activityRoles: activity.roleIds,
       };
     },
     async forget(guildId, userId) {

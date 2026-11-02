@@ -10,6 +10,7 @@ import type {
   MemberUpdate,
 } from '../../platform/types.js';
 import type { ModuleContext } from '../../runtime/module.js';
+import type { ActivityRoles } from './activity.js';
 import { Recent } from './cache.js';
 import { audit, reasons } from './copy.js';
 import {
@@ -43,7 +44,7 @@ export function autoroleIds(config: RolesConfig, bot: boolean): string[] {
 }
 
 export function tracksMembers(config: RolesConfig): boolean {
-  return config.sticky.enabled || config.timeRoles.length > 0;
+  return config.sticky.enabled || config.timeRoles.length > 0 || config.activityRoles.length > 0;
 }
 
 export function nextSweep(guildId: string, now: number): number {
@@ -72,6 +73,7 @@ export class Members {
     private readonly ctx: Ctx,
     private readonly store: RolesStore,
     private readonly holds: Holds,
+    private readonly activity: ActivityRoles | null = null,
   ) {}
 
   async onJoin(join: MemberJoin): Promise<void> {
@@ -155,6 +157,7 @@ export class Members {
     const config = await this.ctx.config(guildId);
     if (!tracksMembers(config)) return;
     await this.scheduleSweep(guildId);
+    if (config.activityRoles.length > 0) this.activity?.count(message);
 
     if (config.sticky.enabled) {
       const gateRole = await this.holds.gateRole(guildId);
@@ -240,6 +243,7 @@ export class Members {
     if (!tracksMembers(config)) return;
     try {
       await this.#timeRoles(guildId, config);
+      if (config.activityRoles.length > 0) await this.activity?.sweep(guildId, config);
       await this.store.pruneLeft(guildId, new Date(Date.now() - config.sticky.retentionDays * DAY));
     } finally {
       await this.scheduleSweep(guildId);

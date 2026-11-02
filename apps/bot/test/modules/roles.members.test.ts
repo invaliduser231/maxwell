@@ -285,6 +285,10 @@ describe('roles privacy', () => {
       })),
       timeGranted: vi.fn(async () => [{ roleId: timeRole, grantedAt: new Date(0) }]),
       temporaryFor: vi.fn(async () => []),
+      activityFor: vi.fn(async () => ({
+        days: [{ day: '2026-11-01', messages: 4 }],
+        roleIds: [timeRole],
+      })),
       forgetMember: vi.fn(async () => {}),
     };
     const members = { forgetCached: vi.fn() };
@@ -293,6 +297,8 @@ describe('roles privacy', () => {
       membership: { joinedAt: new Date(0).toISOString(), leftAt: null, stickyRoleIds: [kept] },
       timeRoles: [{ roleId: timeRole, grantedAt: new Date(0).toISOString() }],
       temporaryRoles: [],
+      activity: [{ day: '2026-11-01', messages: 4 }],
+      activityRoles: [timeRole],
     });
     await handler.forget?.(guildId, userId);
     expect(store.forgetMember).toHaveBeenCalledWith(guildId, userId);
@@ -305,6 +311,7 @@ describe('roles privacy', () => {
         member: async () => null,
         timeGranted: async () => [],
         temporaryFor: async () => [],
+        activityFor: async () => ({ days: [], roleIds: [] }),
         forgetMember: async () => {},
       },
       { forgetCached() {} },

@@ -39,6 +39,8 @@ export const reasons = {
   timeRole: 'Time in the server',
   sticky: 'Sticky role from before',
   stickyUndo: 'Sticky roles undone',
+  activityRole: 'Active in the community',
+  activityRoleEnded: 'No longer active enough',
 };
 
 export const audit = {
