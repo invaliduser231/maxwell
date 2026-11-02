@@ -26,6 +26,7 @@ export default defineBotModule({
 
     ctx.on('reaction', (reaction) => menus.onReaction(reaction, true));
     ctx.on('reactionRemove', (reaction) => menus.onReaction(reaction, false));
+    ctx.on('ownReactionRemove', (reaction) => menus.onOwnReactionRemove(reaction));
     ctx.on('messageRemove', (removal) => menus.onMessageRemove(removal.id));
     ctx.on('roleDelete', (change) => menus.onRoleDelete(change.guildId, change.roleId));
     ctx.on('memberJoin', (join) => members.onJoin(join));

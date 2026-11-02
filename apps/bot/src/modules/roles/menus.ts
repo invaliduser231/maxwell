@@ -52,11 +52,7 @@ export class Menus {
 
   onReaction(reaction: ReactionEvent, added: boolean): Promise<void> {
     const guildId = reaction.guildId;
-    if (!guildId) return Promise.resolve();
-    if (reaction.userId === this.ctx.services.platform.selfId) {
-      return added ? Promise.resolve() : this.#heal(guildId, reaction);
-    }
-    if (reaction.bot) return Promise.resolve();
+    if (!guildId || reaction.bot) return Promise.resolve();
     return this.#lanes.run(
       `${guildId}:${reaction.userId}`,
       () => this.#handle(guildId, reaction, added),
@@ -64,7 +60,9 @@ export class Menus {
     );
   }
 
-  async #heal(guildId: string, reaction: ReactionEvent): Promise<void> {
+  async onOwnReactionRemove(reaction: ReactionEvent): Promise<void> {
+    const guildId = reaction.guildId;
+    if (!guildId) return;
     const link = await this.#link(reaction.messageId);
     if (!link || link.guildId !== guildId) return;
     if (!link.emojis.some((emoji) => sameEmoji(emoji, reaction.emoji))) return;

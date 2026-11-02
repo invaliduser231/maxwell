@@ -451,13 +451,13 @@ describe('menu healing', () => {
 
   it('puts back its own reaction when someone clears it', async () => {
     const { menus, calls } = setup();
-    await menus.onReaction(removed('\u{1F534}'), false);
+    await menus.onOwnReactionRemove(removed('\u{1F534}'));
     expect(calls).toEqual(['react \u{1F534}']);
   });
 
   it('leaves reactions alone that are no longer on the menu', async () => {
     const { menus, calls } = setup();
-    await menus.onReaction(removed('\u{1F600}'), false);
+    await menus.onOwnReactionRemove(removed('\u{1F600}'));
     expect(calls).toEqual([]);
   });
 

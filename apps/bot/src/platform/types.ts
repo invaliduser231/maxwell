@@ -279,6 +279,7 @@ export interface PlatformEvents {
   messageBulkRemove(removal: BulkRemoval): void;
   reaction(reaction: ReactionEvent): void;
   reactionRemove(reaction: ReactionEvent): void;
+  ownReactionRemove(reaction: ReactionEvent): void;
   memberJoin(join: MemberJoin): void;
   memberLeave(leave: MemberLeave): void;
   memberUpdate(update: MemberUpdate): void;

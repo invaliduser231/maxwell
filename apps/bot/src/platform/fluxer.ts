@@ -164,7 +164,10 @@ export class FluxerPlatform implements Platform {
       this.#emit('reaction', toReaction(payload, this.#isBot(payload.userId)));
     });
     client.on(Events.MessageReactionRemove, (payload) => {
-      if (payload.userId === client.user?.id) return;
+      if (payload.userId === client.user?.id) {
+        this.#emit('ownReactionRemove', toReaction(payload, true));
+        return;
+      }
       this.#emit('reactionRemove', toReaction(payload, this.#isBot(payload.userId)));
     });
     client.on(Events.GuildAuditLogEntryCreate, (entry) => {
