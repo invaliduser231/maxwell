@@ -98,7 +98,7 @@ export class FluxerPlatform implements Platform {
       ignoredEvents,
       waitForGuilds: true,
       gatewayDebug: false,
-      cache: { messages: 200 },
+      cache: { messages: 200, guilds: 0, channels: 0 },
       defaultAllowedMentions: { parse: [], repliedUser: false },
       defaultReplyPing: false,
     });
@@ -620,8 +620,20 @@ export class FluxerPlatform implements Platform {
   }
 
   async channelInGuild(guildId: string, channelId: string): Promise<boolean> {
-    const guild = await this.#client.guilds.resolve(snowflake(guildId));
-    return guild.channels.has(channelId);
+    if (this.#client.guilds.get(snowflake(guildId))?.channels.has(channelId)) return true;
+    if (!SNOWFLAKE.test(channelId)) return false;
+    try {
+      const channel = await this.#client.rest.get<{ guild_id?: string | null }>(
+        Routes.channel(channelId),
+      );
+      return channel.guild_id === guildId;
+    } catch (error) {
+      const cause = typeof error === 'object' && error !== null ? (error as Error).cause : null;
+      if ([403, 404].some((status) => isStatus(error, status) || isStatus(cause, status))) {
+        return false;
+      }
+      throw error;
+    }
   }
 
   async welcomeChannel(guildId: string): Promise<string | null> {
