@@ -25,6 +25,8 @@ describe.skipIf(!url)('moderation inbox flows', () => {
   const lena = '410000000000000002';
   const tom = '410000000000000003';
   const mod = '410000000000000009';
+  const owner = '410000000000000010';
+  const admin = '410000000000000031';
   const config = moderationConfig.parse({ inboxChannelId: '900', reportEmoji: '🚩' });
 
   const sent: { channel: string; out: Outgoing }[] = [];
@@ -73,7 +75,10 @@ describe.skipIf(!url)('moderation inbox flows', () => {
       selfId: '100000000000000001',
       user: async (id: string) => user(id),
       guild: async () => ({ id: guild, name: 'Lab', memberCount: 10, iconUrl: null }),
-      member: async () => null,
+      member: async (_g: string, id: string) =>
+        id === admin ? { userId: id, roles: [], timeoutUntil: null } : null,
+      roles: async () => [],
+      hasPermissions: async (_g: string, id: string) => id === admin,
       message: async (_channel: string, id: string) => (id === message.id ? message : null),
       send: async (channel: string, out: Outgoing) => {
         sent.push({ channel, out });
@@ -97,7 +102,11 @@ describe.skipIf(!url)('moderation inbox flows', () => {
       log: createLogger('silent', false),
       guilds: { prefix: async () => '!' },
       settings: { enabled: async () => true },
-      config: { FLUXER_WEB_URL: 'https://fluxer.app', DASHBOARD_URL: 'https://dash.example' },
+      config: {
+        FLUXER_WEB_URL: 'https://fluxer.app',
+        DASHBOARD_URL: 'https://dash.example',
+        OWNER_IDS: [owner],
+      },
     } as unknown as Services;
     const ctx = {
       key: 'moderation',
@@ -375,5 +384,34 @@ describe.skipIf(!url)('moderation inbox flows', () => {
     const shared = await new ShieldStore(sql).get(guild, target);
     expect(shared?.source).toBe('manual');
     expect(shared?.reportedBy).toBe(mod);
+  });
+
+  it('refuses inbox actions on administrators unless a bot owner resolves', async () => {
+    const report = await inbox.store.report({
+      guildId: guild,
+      subjectId: admin,
+      reporterId: lena,
+      channelId: null,
+      messageId: null,
+      excerpt: null,
+      body: 'abuse',
+    });
+    const resolve = (by: string) =>
+      inbox.resolve(guild, {
+        number: report.item.number,
+        status: 'resolved',
+        action: 'ban',
+        durationSeconds: null,
+        reason: null,
+        deleteMessage: false,
+        shield: false,
+        note: null,
+        by,
+      });
+    expect(await resolve(mod)).toBeNull();
+    expect(bans).not.toContain(admin);
+    expect((await inbox.store.get(guild, report.item.number))?.status).toBe('open');
+    expect((await resolve(owner))?.outcome).toBe('ban');
+    expect(bans).toContain(admin);
   });
 });

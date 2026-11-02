@@ -18,6 +18,7 @@ import { sameEmoji } from '../roles/emoji.js';
 import { copy as securityCopy } from '../security/copy.js';
 import { storedReasons } from '../security/risk.js';
 import { jumpUrl } from '../starboard/render.js';
+import { checkTarget } from './access.js';
 import { excerptOf } from './commands/actions.js';
 import { inboxAudit, inboxCopy } from './inbox-copy.js';
 import { ActionError, type ModerationService } from './service.js';
@@ -360,6 +361,22 @@ export class ModInbox {
 
     let caseNumber: number | null = null;
     let outcome = 'none';
+    if (input.action && !this.services.config.OWNER_IDS.includes(input.by)) {
+      const { problem } = await checkTarget(platform, {
+        guildId: item.guildId,
+        actorId: input.by,
+        targetId: item.subjectId,
+        needsMember: false,
+        botAction: false,
+      });
+      if (problem === 'admin' || problem === 'higher') {
+        log.warn(
+          { guild: item.guildId, inbox: item.number, action: input.action, problem },
+          'inbox action refused',
+        );
+        return null;
+      }
+    }
     if (input.action) {
       try {
         const result = await this.moderation.act({
