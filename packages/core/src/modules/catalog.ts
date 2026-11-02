@@ -3,6 +3,7 @@ import backups from './backups.js';
 import cards from './cards.js';
 import collection from './collection.js';
 import commands from './commands.js';
+import counters from './counters.js';
 import economy from './economy.js';
 import events from './events.js';
 import feeds from './feeds.js';
@@ -41,6 +42,7 @@ export const catalog: readonly ModuleDefinition[] = [
   giveaways,
   events,
   starboard,
+  counters,
   economy,
   collection,
   games,
