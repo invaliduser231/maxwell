@@ -10,6 +10,7 @@ import { defineBotModule } from '../../runtime/module.js';
 import { backupCommand } from './commands.js';
 import { audit } from './copy.js';
 import { applyImport, type ImportDeps, previewImport } from './importer.js';
+import { MemberRoleBackup } from './members.js';
 import {
   channelUndoPatch,
   mapOverwrites,
@@ -92,7 +93,8 @@ export default defineBotModule({
     const { platform, log } = services;
     const store = new BackupStore(services.sql);
     const expected = new Expected();
-    const service = new BackupService(ctx, store, expected);
+    const members = new MemberRoleBackup(ctx, store);
+    const service = new BackupService(ctx, store, expected, members);
     const watch = new DeletionWatch(ctx, store, expected);
     const running = new Set<string>();
 
@@ -129,16 +131,21 @@ export default defineBotModule({
     ctx.privacy({
       export: async (guildId, userId) => {
         const { snapshots, imports } = await store.createdBy(guildId, userId);
-        if (snapshots.length === 0 && imports.length === 0) return null;
-        return { snapshotsTaken: snapshots, templateImports: imports };
+        const roles = await store.memberRolesOf(guildId, userId);
+        if (snapshots.length === 0 && imports.length === 0 && roles.length === 0) return null;
+        return { snapshotsTaken: snapshots, templateImports: imports, savedRoles: roles };
       },
       forget: async (guildId, userId) => {
         await store.forgetCreator(guildId, userId);
+        await store.forgetMemberRoles(guildId, userId);
       },
     });
 
     ctx.on('auditLog', (entry) => watch.onAuditLog(entry));
     ctx.on('roleDelete', (change) => watch.onRoleDelete(change));
+    ctx.on('roleDelete', (change) => members.onRoleDelete(change));
+    ctx.on('memberUpdate', (update) => members.onUpdate(update));
+    ctx.on('memberLeave', (leave) => members.onLeave(leave));
     ctx.on('channelDelete', (change) => watch.onChannelDelete(change));
 
     ctx.job('daily', async () => {
@@ -259,6 +266,11 @@ export default defineBotModule({
           .editRole(guildId, id, { position: role.position }, audit.recreateReason)
           .catch((error) => log.warn({ err: error, guild: guildId }, 'role position failed'));
       }
+      await members
+        .giveBack(guildId, role.id, id, audit.recreateReason)
+        .catch((error) =>
+          log.warn({ err: error, guild: guildId }, 'giving back member roles failed'),
+        );
       const latest = await store.latest(guildId);
       if (!latest) return;
       const live = new Set((await platform.channels(guildId)).map((channel) => channel.id));

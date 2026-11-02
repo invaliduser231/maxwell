@@ -9,6 +9,7 @@ import type {
 import { ChannelKind, type ChannelRef } from '../../platform/types.js';
 import type { ModuleContext } from '../../runtime/module.js';
 import { audit } from './copy.js';
+import type { MemberRoleBackup } from './members.js';
 import {
   executeRestore,
   planRestore,
@@ -42,6 +43,7 @@ export class BackupService {
     private readonly ctx: ModuleContext<typeof backupsConfig>,
     private readonly store: BackupStore,
     private readonly expected: Expected,
+    private readonly members: MemberRoleBackup,
   ) {}
 
   async modules(guildId: string): Promise<Record<string, SnapshotModule>> {
@@ -64,6 +66,11 @@ export class BackupService {
       retentionDays: config.retentionDays,
       maxManual: config.maxManual,
     });
+    await this.members
+      .sync(guildId, config.retentionDays)
+      .catch((error) =>
+        this.ctx.services.log.warn({ err: error, guild: guildId }, 'member role sync failed'),
+      );
     if (kind === 'manual') {
       await this.ctx.record(guildId, by, 'snapshot', audit.auditSnapshot(meta.number), {
         after: {
@@ -125,6 +132,15 @@ export class BackupService {
       plan,
       audit.restoreReason(snapshot.number),
     );
+    let members = 0;
+    for (const role of result.roles) {
+      members += await this.members
+        .giveBack(guildId, role.from, role.id, audit.restoreReason(snapshot.number))
+        .catch((error) => {
+          log.warn({ err: error, guild: guildId }, 'giving back member roles failed');
+          return 0;
+        });
+    }
 
     const touched =
       result.roles.length +
@@ -143,6 +159,7 @@ export class BackupService {
           channels: result.channels,
           edits: result.edits.map((edit) => ({ id: edit.state.id, fields: edit.fields })),
           modules: result.modules,
+          members,
           failed: result.failed,
           skipped: plan.skipped,
         },

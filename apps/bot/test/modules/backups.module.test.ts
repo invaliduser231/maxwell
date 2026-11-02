@@ -22,6 +22,7 @@ describe.skipIf(!url)('backups module', () => {
   const created: RoleInput[] = [];
   const jobs = new Map<string, JobHandler>();
   const records: AuditInput[] = [];
+  const given: { userId: string; roleId: string }[] = [];
   let overrides: Record<string, unknown> = {};
 
   const roles: RoleRef[] = [
@@ -76,6 +77,10 @@ describe.skipIf(!url)('backups module', () => {
         roles: async () => roles,
         channels: async () => channels,
         hasPermissions: async () => false,
+        memberRoles: async () => null,
+        addRole: async (_guild: string, userId: string, roleId: string) => {
+          given.push({ userId, roleId });
+        },
         createRole: async (_guild: string, input: RoleInput) => {
           created.push(input);
           return String(610_000_000_000_000_000n + BigInt(created.length));
@@ -105,6 +110,7 @@ describe.skipIf(!url)('backups module', () => {
   afterAll(async () => {
     await sql`delete from backups_snapshots where guild_id = ${guild}`;
     await sql`delete from backups_imports where guild_id = ${guild}`;
+    await store.clearMemberRoles(guild);
     await sql.end();
   });
 
@@ -140,6 +146,36 @@ describe.skipIf(!url)('backups module', () => {
     const [latest] = await store.list(guild);
     await jobs.get('backups.restore')?.(job({ snapshotId: latest?.id, scope: 'pick' }));
     expect(await store.list(guild)).toHaveLength(before);
+  });
+
+  it('gives a restored role back to the members who had it', async () => {
+    const deleted = '440000000000000077';
+    await store.setMemberRoles(guild, [{ userId: user, roleIds: [deleted] }], [deleted]);
+    await store.markRolesDeleted(guild, [deleted]);
+    const source = await store.insert(guild, 'daily', {
+      version: 2,
+      roles: [
+        {
+          id: deleted,
+          name: 'Regulars',
+          color: 0,
+          position: 0,
+          permissions: '0',
+          hoist: false,
+          mentionable: false,
+        },
+      ],
+      channels: [],
+      modules: {},
+    });
+    await jobs.get('backups.restore')?.(
+      job({ snapshotId: source.id, scope: 'role', id: deleted, by: user }),
+    );
+    const id = String(610_000_000_000_000_000n + BigInt(created.length));
+    expect(created.at(-1)?.name).toBe('Regulars');
+    expect(given).toEqual([{ userId: user, roleId: id }]);
+    expect(await store.roleMembers(guild, id)).toEqual([user]);
+    expect(records.at(-1)?.after).toMatchObject({ members: 1 });
   });
 
   it('lets bot operators import dangerous permissions other editors lack', async () => {

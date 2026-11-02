@@ -8,5 +8,5 @@ assets/previews
 next-env.d.ts
 *.tsbuildinfo
 deploy/*.local.yaml
-backups/
+/backups/
 backup-key/
