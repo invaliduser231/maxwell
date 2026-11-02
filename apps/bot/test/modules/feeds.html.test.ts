@@ -1,6 +1,6 @@
 import vm from 'node:vm';
 import { describe, expect, it } from 'vitest';
-import { htmlToText, parseFeed } from '../../src/modules/feeds/parse.js';
+import { firstImage, htmlToText, parseFeed } from '../../src/modules/feeds/parse.js';
 import { decodeEntities } from '../../src/modules/feeds/xml.js';
 
 function legacyStrip(html: string): string {
@@ -120,4 +120,63 @@ describe('htmlToText', () => {
     expect(performance.now() - started).toBeLessThan(1000);
     expect(item?.summary.length).toBe(600);
   }, 30_000);
+});
+
+function legacyFirstImage(html: string): string | null {
+  const match = /<img[^>]+src=["']([^"']+)["']/i.exec(html);
+  return match?.[1] && /^https:\/\//i.test(match[1]) ? decodeEntities(match[1]) : null;
+}
+
+describe('firstImage', () => {
+  it('matches the old pattern', () => {
+    const parts = [
+      '<img',
+      '<IMG',
+      '<iMg',
+      ' ',
+      'src=',
+      'SRC=',
+      'Src=',
+      '"',
+      "'",
+      '>',
+      'https://a.example/x.png',
+      'http://b.example',
+      'a',
+      '&amp;',
+      'alt=',
+      '\n',
+      'İ',
+      '<p>',
+      'src',
+      '<im',
+      'g',
+    ];
+    let state = 7;
+    const next = () => {
+      state = (state * 1103515245 + 12345) & 0x7fffffff;
+      return state / 0x80000000;
+    };
+    const inputs = Array.from({ length: 20_000 }, () =>
+      Array.from(
+        { length: Math.floor(next() * 30) },
+        () => parts[Math.floor(next() * parts.length)],
+      ).join(''),
+    ).concat([
+      '<img src="https://a.example/1.png"><img src="https://a.example/2.png">',
+      '<img alt="x" src="http://a.example/1.png">',
+      '<img src="https://a.example/a>b.png">',
+      '<img data-src="https://a.example/lazy.png" src="https://a.example/real.png">',
+      "<img<img src='https://a.example/q.png'",
+    ]);
+    expect(inputs.filter((input) => firstImage(input) !== legacyFirstImage(input))).toEqual([]);
+  });
+
+  it('stays linear on hostile markup', () => {
+    for (const unit of ['<img ', '<img src="', ' src="', 'src=src=', "<img src='a"]) {
+      const started = performance.now();
+      firstImage(unit.repeat(200_000));
+      expect(performance.now() - started).toBeLessThan(500);
+    }
+  });
 });

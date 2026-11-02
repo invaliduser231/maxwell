@@ -100,9 +100,39 @@ function deepText(node: XmlNode | undefined): string {
   return [node.text, ...node.children.map(deepText)].join(' ');
 }
 
-function firstImage(html: string): string | null {
-  const match = /<img[^>]+src=["']([^"']+)["']/i.exec(html);
-  return match?.[1] && /^https:\/\//i.test(match[1]) ? decodeEntities(match[1]) : null;
+export function firstImage(html: string): string | null {
+  const opens = /<img/gi;
+  let open = opens.exec(html);
+  while (open) {
+    const start = open.index + 4;
+    const close = html.indexOf('>', start);
+    const end = close === -1 ? html.length : close;
+    const source = lastSource(html, start + 1, end);
+    if (source !== null) return /^https:\/\//i.test(source) ? decodeEntities(source) : null;
+    if (close === -1) return null;
+    opens.lastIndex = close + 1;
+    open = opens.exec(html);
+  }
+  return null;
+}
+
+function lastSource(html: string, from: number, end: number): string | null {
+  const finder = /src=/gi;
+  finder.lastIndex = from;
+  const found: number[] = [];
+  let hit = finder.exec(html);
+  while (hit && hit.index < end) {
+    found.push(hit.index);
+    hit = finder.exec(html);
+  }
+  for (let index = found.length - 1; index >= 0; index--) {
+    const quote = (found[index] as number) + 4;
+    if (html[quote] !== '"' && html[quote] !== "'") continue;
+    let stop = quote + 1;
+    while (stop < html.length && html[stop] !== '"' && html[stop] !== "'") stop++;
+    if (stop < html.length && stop > quote + 1) return html.slice(quote + 1, stop);
+  }
+  return null;
 }
 
 function parseDate(value: string): Date | null {
