@@ -222,6 +222,10 @@ export class RaidShield {
   ): Promise<void> {
     const { platform, guilds, log } = this.ctx.services;
     if (!config.logChannelId) return;
+    if (!(await platform.channelInGuild(guildId, config.logChannelId).catch(() => false))) {
+      log.warn({ guild: guildId }, 'raid alert failed');
+      return;
+    }
     const until = incident.endsAt ? timestamp(incident.endsAt, 't') : '';
     const prefix = await guilds.prefix(guildId);
     const alertRole = config.raid.alertRoleId;
@@ -250,7 +254,12 @@ export class RaidShield {
       });
     }
     const config = await this.ctx.config(guildId);
-    if (config.logChannelId) {
+    if (
+      config.logChannelId &&
+      (await this.ctx.services.platform
+        .channelInGuild(guildId, config.logChannelId)
+        .catch(() => false))
+    ) {
       const held = (await this.store.held(guildId)).length;
       await this.ctx.services.platform
         .send(config.logChannelId, { content: copy.lockdownEnded(held), silent: true })

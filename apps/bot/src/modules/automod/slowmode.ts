@@ -283,7 +283,7 @@ export class AdaptiveSlowmode {
       throw error;
     }
     await this.store.save({ ...next, changedAt: new Date(next.changedAt) });
-    await this.#log(logChannelId, line);
+    await this.#log(next.guildId, logChannelId, line);
   }
 
   async #restore(hold: Hold, logChannelId: string | null): Promise<void> {
@@ -295,6 +295,7 @@ export class AdaptiveSlowmode {
         audit.slowmodeReason,
       );
       await this.#log(
+        hold.guildId,
         logChannelId,
         copy.slowmode.restored(
           mention.channel(hold.channelId),
@@ -310,8 +311,12 @@ export class AdaptiveSlowmode {
     await this.store.remove(hold.guildId, hold.channelId);
   }
 
-  async #log(channelId: string | null, line: string): Promise<void> {
+  async #log(guildId: string, channelId: string | null, line: string): Promise<void> {
     if (!channelId) return;
+    if (!(await this.ctx.services.platform.channelInGuild(guildId, channelId).catch(() => false))) {
+      this.ctx.services.log.warn({ guild: guildId }, 'automod log channel unusable');
+      return;
+    }
     await this.ctx.services.platform
       .send(channelId, { content: line, silent: true })
       .catch((error) => this.ctx.services.log.warn({ err: error }, 'automod log channel unusable'));

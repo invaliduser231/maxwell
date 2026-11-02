@@ -73,6 +73,7 @@ describe.skipIf(!url)('moderation inbox flows', () => {
     let next = 0;
     const platform = {
       selfId: '100000000000000001',
+      channelInGuild: async () => true,
       user: async (id: string) => user(id),
       guild: async () => ({ id: guild, name: 'Lab', memberCount: 10, iconUrl: null }),
       member: async (_g: string, id: string) =>

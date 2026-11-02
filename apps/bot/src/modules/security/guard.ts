@@ -112,6 +112,10 @@ export class Guard {
     const { platform, log } = this.ctx.services;
     const alertRole = message.ping ? config.alertRoleId : null;
     try {
+      if (!(await platform.channelInGuild(guildId, channelId))) {
+        log.warn({ guild: guildId }, 'security log failed');
+        return null;
+      }
       const messageId = await platform.send(channelId, {
         content:
           lines(alertRole ? mention.role(alertRole) : null, message.content ?? null) || undefined,

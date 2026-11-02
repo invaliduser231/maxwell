@@ -418,6 +418,7 @@ function harness(overrides: Record<string, unknown> = {}) {
   const memberRoles = new Map<string, string[]>([['1', ['800000000000000002']]]);
   const platform = {
     selfId: '1',
+    channelInGuild: async () => true,
     member: vi.fn(async (_g: string, userId: string) => ({
       guildId,
       user: {

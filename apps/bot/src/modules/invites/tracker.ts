@@ -157,6 +157,10 @@ export class InviteTracker {
       timestamp: row.joinedAt,
     };
 
+    if (!(await platform.channelInGuild(row.guildId, config.logChannelId).catch(() => false))) {
+      log.warn({ guild: row.guildId }, 'invite log channel unusable');
+      return;
+    }
     await platform.send(config.logChannelId, { embeds: [embed], silent: true }).catch((error) => {
       log.warn({ err: error, guild: row.guildId }, 'invite log channel unusable');
     });

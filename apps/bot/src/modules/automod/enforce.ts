@@ -266,7 +266,12 @@ export class Enforcer {
       footer: copy.logFooter(user.id, message.id),
       timestamp: message.createdAt,
     };
-    await this.ctx.services.platform
+    const { platform } = this.ctx.services;
+    if (!(await platform.channelInGuild(guildId, config.logChannelId).catch(() => false))) {
+      this.ctx.services.log.warn({ guild: guildId }, 'automod log channel unusable');
+      return;
+    }
+    await platform
       .send(config.logChannelId, { embeds: [embed], silent: true })
       .catch((error) =>
         this.ctx.services.log.warn({ err: error, guild: guildId }, 'automod log channel unusable'),

@@ -137,6 +137,7 @@ function harness() {
   const config = securityConfig.parse({ logChannelId: '500000000000000001' });
   const platform = {
     selfId: '1',
+    channelInGuild: async () => true,
     send: vi.fn(async () => '990000000000000001'),
     member: vi.fn(async (_g: string, userId: string) => ({
       guildId,

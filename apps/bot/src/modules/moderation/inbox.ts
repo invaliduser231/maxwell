@@ -155,6 +155,10 @@ export class ModInbox {
       }
       const config = await this.moderation.config(item.guildId);
       if (!config.inboxChannelId) return;
+      if (!(await platform.channelInGuild(item.guildId, config.inboxChannelId))) {
+        log.warn({ guild: item.guildId, module: 'moderation' }, 'inbox channel unusable');
+        return;
+      }
       const messageId = await platform.send(config.inboxChannelId, { embeds: [embed] });
       await this.store.setNotice(item.guildId, item.number, config.inboxChannelId, messageId);
     } catch (error) {

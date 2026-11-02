@@ -294,6 +294,9 @@ export class Verifier {
     let fallback: string | null = null;
     if (!sentDm) {
       fallback = settings.channelId ?? (await this.guard.gate(guildId)).channelId;
+      if (fallback && !(await platform.channelInGuild(guildId, fallback).catch(() => false))) {
+        fallback = null;
+      }
       if (fallback) {
         const prefix = await guilds.prefix(guildId);
         const sent = await platform

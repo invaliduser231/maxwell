@@ -150,6 +150,7 @@ function setup(initial: SlowmodeHold[] = [], live = 0) {
     enabled: async () => true,
     services: {
       platform: {
+        channelInGuild: async () => true,
         channels: async () => [{ id: CHANNEL, rateLimitPerUser: channel.value } as ChannelRef],
         editChannel: async (_id: string, input: { rateLimitPerUser?: number }) => {
           channel.value = input.rateLimitPerUser ?? channel.value;
