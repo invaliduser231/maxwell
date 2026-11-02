@@ -54,12 +54,13 @@ export interface Kept {
   left: string;
 }
 
-type Tab = 'menus' | 'auto' | 'time' | 'sticky';
+type Tab = 'menus' | 'auto' | 'time' | 'activity' | 'sticky';
 
 const tabs: { value: Tab; label: Key }[] = [
   { value: 'menus', label: 'Role menus' },
   { value: 'auto', label: 'Autoroles' },
   { value: 'time', label: 'Roles after time' },
+  { value: 'activity', label: 'Roles for activity' },
   { value: 'sticky', label: 'Sticky roles' },
 ];
 
@@ -700,6 +701,122 @@ function TimeRoles({ holders }: { holders: Record<string, number> }) {
   );
 }
 
+function ActivityRoles({ active }: { active: Record<string, number> }) {
+  const t = useT();
+  const { value, update, readOnly } = useDraft<RolesConfig>();
+  const { roles } = useGuild();
+  const roleOptions = useRoleOptions();
+  const available = roleOptions.filter(
+    (option) => !value.activityRoles.some((rule) => rule.roleId === option.value),
+  );
+  const setRule = (index: number, patch: Partial<RolesConfig['activityRoles'][number]>) =>
+    update((previous) => ({
+      ...previous,
+      activityRoles: previous.activityRoles.map((rule, at) =>
+        at === index ? { ...rule, ...patch } : rule,
+      ),
+    }));
+  const picker =
+    readOnly || available.length === 0 || value.activityRoles.length >= 5 ? null : (
+      <AddPicker
+        label={t('Add rule')}
+        options={available}
+        onPick={(roleId) =>
+          update((previous) => ({
+            ...previous,
+            activityRoles: [...previous.activityRoles, { roleId, messages: 50, days: 7 }],
+          }))
+        }
+      />
+    );
+
+  if (value.activityRoles.length === 0) {
+    return (
+      <Grid>
+        <Panel id="r-activity">
+          <Empty mood="sleeping">
+            <div className="mx-stack" style={{ alignItems: 'center' }}>
+              <span>{t('No rules yet.')}</span>
+              {picker}
+            </div>
+          </Empty>
+        </Panel>
+      </Grid>
+    );
+  }
+
+  return (
+    <Grid>
+      <Panel title={t('Rules')} id="r-activity" actions={picker}>
+        <div className="mx-scroll">
+          <table className="mx-table">
+            <thead>
+              <tr>
+                <th scope="col">{t('Role')}</th>
+                <th scope="col">{t('Messages')}</th>
+                <th scope="col">{t('Within')}</th>
+                <th scope="col">{t('Members now')}</th>
+                <th scope="col">
+                  <span className="mx-sr">{t('Remove')}</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {value.activityRoles.map((rule, index) => {
+                const role = roles.find((entry) => entry.id === rule.roleId);
+                const name = role?.name ?? t('Deleted role');
+                return (
+                  <tr key={rule.roleId}>
+                    <td>
+                      <Chip color={roleColor(role?.color ?? 0)}>{name}</Chip>
+                    </td>
+                    <td style={{ width: 180 }}>
+                      <NumberInput
+                        label={t('Messages for {name}', { name })}
+                        value={rule.messages}
+                        min={1}
+                        max={100_000}
+                        onChange={(messages) => setRule(index, { messages })}
+                      />
+                    </td>
+                    <td style={{ width: 180 }}>
+                      <NumberInput
+                        label={t('Days for {name}', { name })}
+                        value={rule.days}
+                        min={1}
+                        max={90}
+                        suffix={rule.days === 1 ? t('day') : t('days')}
+                        onChange={(days) => setRule(index, { days })}
+                      />
+                    </td>
+                    <td>{t.count(active[rule.roleId] ?? 0)}</td>
+                    <td style={{ width: 48, textAlign: 'right' }}>
+                      {readOnly ? null : (
+                        <RemoveButton
+                          label={t('Remove {name}', { name })}
+                          onClick={() =>
+                            update((previous) => ({
+                              ...previous,
+                              activityRoles: previous.activityRoles.filter((_, at) => at !== index),
+                            }))
+                          }
+                        />
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="mx-sub" style={{ padding: '0 20px 16px' }}>
+          {t('Maxwell checks every hour and takes the role back when someone gets quieter.')}
+        </p>
+      </Panel>
+    </Grid>
+  );
+}
+
 function Sticky({ kept }: { kept: Kept[] }) {
   const t = useT();
   const { value, set } = useDraft<RolesConfig>();
@@ -792,10 +909,12 @@ function Sticky({ kept }: { kept: Kept[] }) {
 export function RolesForm({
   posted,
   holders,
+  active,
   kept,
 }: {
   posted: Posted[];
   holders: Record<string, number>;
+  active: Record<string, number>;
   kept: Kept[];
 }) {
   const t = useT();
@@ -812,6 +931,7 @@ export function RolesForm({
       {tab === 'menus' ? <Menus posted={posted} /> : null}
       {tab === 'auto' ? <Autoroles /> : null}
       {tab === 'time' ? <TimeRoles holders={holders} /> : null}
+      {tab === 'activity' ? <ActivityRoles active={active} /> : null}
       {tab === 'sticky' ? <Sticky kept={kept} /> : null}
     </>
   );

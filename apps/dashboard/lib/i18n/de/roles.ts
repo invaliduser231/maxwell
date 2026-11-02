@@ -3,6 +3,13 @@ export const roles = {
   'Role menus': 'Rollenmenüs',
   Autoroles: 'Autorollen',
   'Roles after time': 'Rollen nach Zeit',
+  'Roles for activity': 'Rollen für Aktivität',
+  'Add rule': 'Regel hinzufügen',
+  'No rules yet.': 'Noch keine Regeln.',
+  'Messages for {name}': 'Nachrichten für {name}',
+  'Days for {name}': 'Tage für {name}',
+  'Maxwell checks every hour and takes the role back when someone gets quieter.':
+    'Maxwell prüft stündlich und nimmt die Rolle wieder weg, wenn jemand leiser wird.',
   'Sticky roles': 'Sticky Roles',
   Normal: 'Normal',
   'One of many': 'Eine von vielen',

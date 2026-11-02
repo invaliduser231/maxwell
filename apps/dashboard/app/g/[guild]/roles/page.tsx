@@ -15,10 +15,12 @@ export default async function RolesPage({ params }: { params: Promise<{ guild: s
   const loaded = await loadModule(guild, 'roles', rolesConfig);
   const store = new RolesStore(db().sql);
   const timeRoleIds = [...new Set(loaded.config.timeRoles.map((step) => step.roleId))];
+  const activityRoleIds = loaded.config.activityRoles.map((rule) => rule.roleId);
 
-  const [messages, counts, sticky, t] = await Promise.all([
+  const [messages, counts, granted, sticky, t] = await Promise.all([
     store.menuMessages(guild),
     Promise.all(timeRoleIds.map((roleId) => store.timeGrantedCount(guild, roleId))),
+    Promise.all(activityRoleIds.map((roleId) => store.activityGranted(guild, roleId))),
     store.stickyMembers(guild, 8),
     getT(),
   ]);
@@ -31,6 +33,9 @@ export default async function RolesPage({ params }: { params: Promise<{ guild: s
     channelId: message.channelId,
   }));
   const holders = Object.fromEntries(timeRoleIds.map((id, index) => [id, counts[index] ?? 0]));
+  const active = Object.fromEntries(
+    activityRoleIds.map((id, index) => [id, granted[index]?.length ?? 0]),
+  );
   const kept: Kept[] = sticky.map((member) => ({
     userId: member.userId,
     name: personOf(profiles, member.userId).name,
@@ -41,7 +46,7 @@ export default async function RolesPage({ params }: { params: Promise<{ guild: s
 
   return (
     <ModuleShell {...loaded.shell}>
-      <RolesForm posted={posted} holders={holders} kept={kept} />
+      <RolesForm posted={posted} holders={holders} active={active} kept={kept} />
     </ModuleShell>
   );
 }
