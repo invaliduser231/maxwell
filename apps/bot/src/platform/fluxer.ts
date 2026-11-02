@@ -21,6 +21,7 @@ import type {
   ChannelInput,
   ChannelRef,
   Embed,
+  GuildCounts,
   GuildRef,
   IncomingMessage,
   JoinSourceLookup,
@@ -522,6 +523,22 @@ export class FluxerPlatform implements Platform {
       `/channels/${snowflake(channelId)}/messages/${snowflake(messageId)}/reactions/${encodeURIComponent(emoji)}?${query}`,
     );
     return users.map((user) => user.id);
+  }
+
+  requestCounts(guildIds: readonly string[]): void {
+    const ids = guildIds.filter((id) => SNOWFLAKE.test(id));
+    if (ids.length === 0) return;
+    try {
+      this.#client.requestGuildCounts({ guildIds: ids });
+    } catch (error) {
+      this.#log.debug({ err: error }, 'guild counts request failed');
+    }
+  }
+
+  counts(guildId: string): GuildCounts | null {
+    const guild = this.#client.guilds.get(guildId);
+    if (!guild) return null;
+    return { members: guild.memberCount ?? null, online: guild.onlineCount ?? null };
   }
 
   voiceMembers(guildId: string, channelId: string): string[] {

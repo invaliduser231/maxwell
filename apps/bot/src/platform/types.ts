@@ -215,6 +215,11 @@ export interface InviteChange {
   inviterId: string | null;
 }
 
+export interface GuildCounts {
+  members: number | null;
+  online: number | null;
+}
+
 export interface GuildRef {
   id: string;
   name: string;
@@ -364,6 +369,8 @@ export interface Platform {
     after?: string,
   ): Promise<string[]>;
   voiceMembers(guildId: string, channelId: string): string[];
+  requestCounts(guildIds: readonly string[]): void;
+  counts(guildId: string): GuildCounts | null;
 
   user(userId: string): Promise<UserRef | null>;
   guild(guildId: string): Promise<GuildRef | null>;
