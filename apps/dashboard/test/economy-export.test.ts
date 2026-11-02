@@ -57,6 +57,13 @@ describe('economy export rows', () => {
     }
   });
 
+  it('keeps semicolon separated formulas in one cell', () => {
+    assert.equal(
+      transactionRow(transaction({ note: 'thanks;=HYPERLINK("https://x.example")' })),
+      `${head},admin,"thanks;=HYPERLINK(""https://x.example"")",,${tail}`,
+    );
+  });
+
   it('quotes carriage returns', () => {
     assert.equal(
       transactionRow(transaction({ note: '\r=1', ref: 'a\rb' })),

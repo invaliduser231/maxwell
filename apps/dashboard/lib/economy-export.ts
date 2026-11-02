@@ -4,7 +4,7 @@ const FORMULA = /^[-+=@\t\r]/;
 
 function cell(value: string | number | null): string {
   const text = value === null ? '' : String(value);
-  return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+  return /[",;\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
 function text(value: string | null): string {
