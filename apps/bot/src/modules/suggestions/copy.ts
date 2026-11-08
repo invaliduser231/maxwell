@@ -3,6 +3,7 @@ import { mention } from '../../commands/mentions.js';
 import { localized } from '../../i18n/localized.js';
 import { bold, count, truncate } from '../../ui/format.js';
 import de from './copy.de.js';
+import es from './copy.es.js';
 
 export const fallbackVotes = { up: '👍', down: '👎' };
 
@@ -48,4 +49,4 @@ const en = {
 
 export type SuggestionsCopy = typeof en;
 
-export const copy = localized(en, { de });
+export const copy = localized(en, { de, es });

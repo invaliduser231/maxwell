@@ -2,6 +2,7 @@ import { mention } from '../../commands/mentions.js';
 import { localized } from '../../i18n/localized.js';
 import { bold, code, count, lines, orList, subtext, timestamp } from '../../ui/format.js';
 import de from './copy.de.js';
+import es from './copy.es.js';
 
 export const audit = {
   accept: (form: string) => `Accepted a ${form} submission`,
@@ -90,4 +91,4 @@ const en = {
 
 export type FormsCopy = typeof en;
 
-export const formsCopy = localized(en, { de });
+export const formsCopy = localized(en, { de, es });

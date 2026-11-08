@@ -1,5 +1,6 @@
 import { localized } from '../i18n/localized.js';
 import de from './copy.de.js';
+import es from './copy.es.js';
 import { code } from './format.js';
 
 const en = {
@@ -44,4 +45,4 @@ const en = {
 
 export type UiCopy = typeof en;
 
-export const uiCopy = localized(en, { de });
+export const uiCopy = localized(en, { de, es });

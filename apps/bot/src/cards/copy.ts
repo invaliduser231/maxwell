@@ -1,5 +1,6 @@
 import { localized } from '../i18n/localized.js';
 import de from './copy.de.js';
+import es from './copy.es.js';
 
 const en = {
   level: 'Level',
@@ -44,4 +45,4 @@ const en = {
 
 export type CardCopy = typeof en;
 
-export const cardCopy = localized(en, { de });
+export const cardCopy = localized(en, { de, es });

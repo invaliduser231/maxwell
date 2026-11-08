@@ -2,6 +2,7 @@ import type { InboxKind } from '@maxwell/core/modules/moderation';
 import { localized } from '../../i18n/localized.js';
 import { count, plural } from '../../ui/format.js';
 import de from './inbox-copy.de.js';
+import es from './inbox-copy.es.js';
 
 const en = {
   command:
@@ -76,7 +77,7 @@ const en = {
 
 export type InboxCopy = typeof en;
 
-export const inboxCopy = localized(en, { de });
+export const inboxCopy = localized(en, { de, es });
 
 const kinds: Record<InboxKind, string> = {
   report: 'report',

@@ -3,6 +3,7 @@ import { formatDuration } from '../../commands/duration.js';
 import { localized } from '../../i18n/localized.js';
 import { subtext } from '../../ui/format.js';
 import de from './copy.de.js';
+import es from './copy.es.js';
 
 const en = {
   menuHint(type: MenuType, minutes: number, limit = 1): string | null {
@@ -29,7 +30,7 @@ const en = {
 
 export type RolesCopy = typeof en;
 
-export const copy = localized(en, { de });
+export const copy = localized(en, { de, es });
 
 export const reasons = {
   menu: 'Role menu',

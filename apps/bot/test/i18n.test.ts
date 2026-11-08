@@ -10,6 +10,7 @@ import {
   withLanguage,
 } from '../src/i18n/language.js';
 import { catalogOf, localized, translate } from '../src/i18n/localized.js';
+import { humanDuration } from '../src/modules/moderation/text.js';
 import { andList, count, ordinal } from '../src/ui/format.js';
 import { withPageFooter } from '../src/ui/paginator.js';
 
@@ -19,7 +20,7 @@ function translationFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) return translationFiles(path);
-    return entry.name.endsWith('.de.ts') ? [path] : [];
+    return /\.(de|es)\.ts$/.test(entry.name) ? [path] : [];
   });
 }
 
@@ -121,23 +122,34 @@ describe('formats in German', () => {
   });
 });
 
+describe('formats in Spanish', () => {
+  it('formats lists, ordinals and durations', () => {
+    withLanguage('es', () => {
+      expect(andList(['a', 'b', 'c'])).toBe('a, b y c');
+      expect(ordinal(3)).toBe('3.º');
+      expect(humanDuration(26 * 3_600_000)).toBe('1 día y 2 horas');
+    });
+  });
+});
+
 describe('translation files', () => {
   for (const file of translationFiles(root)) {
     const name = file.slice(root.length + 1);
+    const lang = file.endsWith('.es.ts') ? 'es' : 'de';
     it(`${name} matches its English source`, async () => {
-      const source = file.replace(/\.de\.ts$/, '.ts');
+      const source = file.replace(/\.(de|es)\.ts$/, '.ts');
       const english = (await import(pathToFileURL(source).href)) as Record<string, unknown>;
-      const german = ((await import(pathToFileURL(file).href)) as { default: unknown }).default;
+      const translated = ((await import(pathToFileURL(file).href)) as { default: unknown }).default;
       const catalogs = Object.values(english)
         .map(catalogOf)
         .filter((catalog) => catalog !== null);
-      const owner = catalogs.find((catalog) => catalog.translations.de === german);
+      const owner = catalogs.find((catalog) => catalog.translations[lang] === translated);
       expect(owner, 'English file must wrap this translation with localized()').toBeDefined();
       if (!owner) return;
-      expect(shape(german)).toEqual(shape(owner.en));
+      expect(shape(translated)).toEqual(shape(owner.en));
     });
 
-    it(`${name} only holds German text`, async () => {
+    it(`${name} holds no English text`, async () => {
       const german = ((await import(pathToFileURL(file).href)) as { default: unknown }).default;
       const texts: string[] = [];
       const walk = (value: unknown): void => {

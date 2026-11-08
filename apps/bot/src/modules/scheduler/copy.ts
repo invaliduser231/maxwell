@@ -4,6 +4,7 @@ import type { Permission } from '../../platform/types.js';
 import { code, escapeMarkdown, lines, plural, subtext, timestamp } from '../../ui/format.js';
 import { andList, permissionNames } from '../../ui/voice.js';
 import de from './copy.de.js';
+import es from './copy.es.js';
 
 export const stateErrors = {
   channel: 'The channel is gone or I cannot see it.',
@@ -59,4 +60,4 @@ const en = {
 
 export type SchedulerCopy = typeof en;
 
-export const copy = localized(en, { de });
+export const copy = localized(en, { de, es });

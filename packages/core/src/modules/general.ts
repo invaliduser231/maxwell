@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { defineModule } from './types.js';
 
-export const languages = ['en', 'de'] as const;
+export const languages = ['en', 'de', 'es'] as const;
 
 export type Language = (typeof languages)[number];
 

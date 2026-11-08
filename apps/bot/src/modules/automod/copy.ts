@@ -1,6 +1,7 @@
 import { localized } from '../../i18n/localized.js';
 import { code } from '../../ui/format.js';
 import de from './copy.de.js';
+import es from './copy.es.js';
 import type { Brand } from './phishing.js';
 import type { AutomodRuleKey, HoldReason } from './types.js';
 
@@ -130,7 +131,7 @@ const en = {
 
 export type AutomodCopy = typeof en;
 
-export const copy = localized(en, { de });
+export const copy = localized(en, { de, es });
 
 export const audit = {
   reason: (rule: string) => `AutoMod: ${rule}`,

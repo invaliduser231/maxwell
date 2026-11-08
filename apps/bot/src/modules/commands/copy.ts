@@ -1,5 +1,6 @@
 import { localized } from '../../i18n/localized.js';
 import de from './copy.de.js';
+import es from './copy.es.js';
 
 const en = {
   notHere: 'That command does not work here.',
@@ -12,7 +13,7 @@ const en = {
 
 export type CommandsCopy = typeof en;
 
-export const copy = localized(en, { de });
+export const copy = localized(en, { de, es });
 
 export const reasons = {
   role: (name: string) => `Custom command ${name}`,

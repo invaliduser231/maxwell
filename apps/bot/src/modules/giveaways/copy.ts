@@ -3,6 +3,7 @@ import { localized } from '../../i18n/localized.js';
 import { bold, count, plural, timestamp } from '../../ui/format.js';
 import { andList } from '../../ui/voice.js';
 import de from './copy.de.js';
+import es from './copy.es.js';
 import type { Unmet } from './draw.js';
 
 export const fallbackEmoji = '🎉';
@@ -98,4 +99,4 @@ const en = {
 
 export type GiveawaysCopy = typeof en;
 
-export const copy = localized(en, { de });
+export const copy = localized(en, { de, es });

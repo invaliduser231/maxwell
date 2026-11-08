@@ -102,11 +102,11 @@ export function parseCardRefs(text: string): string[] {
 }
 
 export function splitTrade(text: string): { give: string[]; want: string[] } | null {
-  const parts = text.split(/\b(?:for|gegen)\b/i);
+  const parts = text.split(/\b(?:for|gegen|por)\b/i);
   if (parts.length > 2) return null;
   const give = parseCardRefs(parts[0] ?? '');
   const want = parseCardRefs(parts[1] ?? '');
-  const tokens = text.split(/[\s,]+/).filter((part) => part && !/^(?:for|gegen)$/i.test(part));
+  const tokens = text.split(/[\s,]+/).filter((part) => part && !/^(?:for|gegen|por)$/i.test(part));
   if (tokens.length !== give.length + want.length) return null;
   return { give, want };
 }

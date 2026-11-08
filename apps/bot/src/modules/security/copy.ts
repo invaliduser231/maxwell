@@ -4,6 +4,7 @@ import { localized } from '../../i18n/localized.js';
 import { andList, bold, code, lines, plural, subtext } from '../../ui/format.js';
 import type { TargetColor } from './captcha.js';
 import de from './copy.de.js';
+import es from './copy.es.js';
 import type { RiskReason } from './risk.js';
 
 function span(hours: number): string {
@@ -281,7 +282,7 @@ const en = {
 
 export type SecurityCopy = typeof en;
 
-export const copy = localized(en, { de });
+export const copy = localized(en, { de, es });
 
 export const reasons = {
   gate: 'Security check',

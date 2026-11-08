@@ -2,6 +2,7 @@ import { mention } from '../../commands/mentions.js';
 import { localized } from '../../i18n/localized.js';
 import { code, count, ordinal, timestamp } from '../../ui/format.js';
 import de from './copy.de.js';
+import es from './copy.es.js';
 import { type Currency, money } from './wallets.js';
 
 const en = {
@@ -91,7 +92,7 @@ const en = {
 
 export type EconomyCopy = typeof en;
 
-export const copy = localized(en, { de });
+export const copy = localized(en, { de, es });
 
 export const auditText = {
   gave: (amount: number, userId: string, c: Currency) => `Gave ${amount} ${c.name} to ${userId}`,

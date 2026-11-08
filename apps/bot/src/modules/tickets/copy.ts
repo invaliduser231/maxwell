@@ -3,6 +3,7 @@ import { localized } from '../../i18n/localized.js';
 import { bold, code, lines, subtext, timestamp } from '../../ui/format.js';
 import type { TicketTarget } from './config.js';
 import de from './copy.de.js';
+import es from './copy.es.js';
 import { padNumber } from './naming.js';
 
 type Kind = TicketTarget['kind'];
@@ -122,7 +123,7 @@ const en = {
 
 export type TicketsCopy = typeof en;
 
-export const ticketsCopy = localized(en, { de });
+export const ticketsCopy = localized(en, { de, es });
 
 export const ticketsAudit = {
   reason: 'Maxwell tickets',

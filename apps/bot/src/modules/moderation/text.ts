@@ -1,28 +1,32 @@
-import { language } from '../../i18n/language.js';
+import { type Language, language } from '../../i18n/language.js';
 
-const units: [number, [string, string], [string, string]][] = [
-  [365 * 86_400_000, ['year', 'years'], ['Jahr', 'Jahre']],
-  [7 * 86_400_000, ['week', 'weeks'], ['Woche', 'Wochen']],
-  [86_400_000, ['day', 'days'], ['Tag', 'Tage']],
-  [3_600_000, ['hour', 'hours'], ['Stunde', 'Stunden']],
-  [60_000, ['minute', 'minutes'], ['Minute', 'Minuten']],
-  [1_000, ['second', 'seconds'], ['Sekunde', 'Sekunden']],
+type Unit = Record<Language, [string, string]>;
+
+const units: [number, Unit][] = [
+  [365 * 86_400_000, { en: ['year', 'years'], de: ['Jahr', 'Jahre'], es: ['año', 'años'] }],
+  [7 * 86_400_000, { en: ['week', 'weeks'], de: ['Woche', 'Wochen'], es: ['semana', 'semanas'] }],
+  [86_400_000, { en: ['day', 'days'], de: ['Tag', 'Tage'], es: ['día', 'días'] }],
+  [3_600_000, { en: ['hour', 'hours'], de: ['Stunde', 'Stunden'], es: ['hora', 'horas'] }],
+  [60_000, { en: ['minute', 'minutes'], de: ['Minute', 'Minuten'], es: ['minuto', 'minutos'] }],
+  [1_000, { en: ['second', 'seconds'], de: ['Sekunde', 'Sekunden'], es: ['segundo', 'segundos'] }],
 ];
 
+const joiners: Record<Language, string> = { en: ' ', de: ' und ', es: ' y ' };
+
 export function humanDuration(ms: number): string {
-  const german = language() === 'de';
+  const lang = language();
   let left = Math.max(Math.round(ms / 1_000) * 1_000, 1_000);
   const out: string[] = [];
-  for (const [size, en, de] of units) {
+  for (const [size, names] of units) {
     const value = Math.floor(left / size);
     if (value > 0) {
-      const [one, many] = german ? de : en;
+      const [one, many] = names[lang];
       out.push(`${value} ${value === 1 ? one : many}`);
       left -= value * size;
     }
     if (out.length === 2) break;
   }
-  return out.join(german ? ' und ' : ' ');
+  return out.join(joiners[lang]);
 }
 
 export function renderTemplate(template: string, vars: Record<string, string>): string {

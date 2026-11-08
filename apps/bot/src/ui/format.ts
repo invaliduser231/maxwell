@@ -23,13 +23,13 @@ export function plural(value: number, one: string, many = `${one}s`): string {
 
 export function andList(items: readonly string[]): string {
   if (items.length <= 1) return items.join('');
-  const and = language() === 'de' ? 'und' : 'and';
+  const and = { en: 'and', de: 'und', es: 'y' }[language()];
   return `${items.slice(0, -1).join(', ')} ${and} ${items.at(-1)}`;
 }
 
 export function orList(items: readonly string[]): string {
   if (items.length <= 1) return items.join('');
-  const or = language() === 'de' ? 'oder' : 'or';
+  const or = { en: 'or', de: 'oder', es: 'o' }[language()];
   return `${items.slice(0, -1).join(', ')} ${or} ${items.at(-1)}`;
 }
 
@@ -39,6 +39,7 @@ export function date(value: Date | number, options: Intl.DateTimeFormatOptions =
 
 export function ordinal(value: number): string {
   if (language() === 'de') return `${value}.`;
+  if (language() === 'es') return `${value}.º`;
   const tens = value % 100;
   if (tens >= 11 && tens <= 13) return `${value}th`;
   const suffix = ['th', 'st', 'nd', 'rd'][value % 10] ?? 'th';

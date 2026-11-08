@@ -1,6 +1,7 @@
 import { localized } from '../../i18n/localized.js';
 import { subtext } from '../../ui/format.js';
 import de from './copy.de.js';
+import es from './copy.es.js';
 
 const en = {
   unknownServer: 'the server',
@@ -9,7 +10,7 @@ const en = {
 
 export type WelcomeCopy = typeof en;
 
-export const copy = localized(en, { de });
+export const copy = localized(en, { de, es });
 
 export const reasons = {
   accepted: 'Accepted the rules',

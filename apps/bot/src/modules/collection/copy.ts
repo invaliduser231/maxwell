@@ -2,6 +2,7 @@ import { mention } from '../../commands/mentions.js';
 import { localized } from '../../i18n/localized.js';
 import { andList, code, count, plural, timestamp } from '../../ui/format.js';
 import de from './copy.de.js';
+import es from './copy.es.js';
 
 const en = {
   commands: {
@@ -131,7 +132,7 @@ const en = {
 
 export type CollectionCopy = typeof en;
 
-export const copy = localized(en, { de });
+export const copy = localized(en, { de, es });
 
 export const auditText = {
   granted: (name: string, userId: string, n: number) =>

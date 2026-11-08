@@ -13,6 +13,7 @@ import {
 } from '../../ui/format.js';
 import { andList } from '../../ui/voice.js';
 import de from './copy.de.js';
+import es from './copy.es.js';
 import type { PollProblem, WhenProblem } from './parse.js';
 
 export const audit = {
@@ -155,4 +156,4 @@ const en = {
 
 export type EventsCopy = typeof en;
 
-export const copy = localized(en, { de });
+export const copy = localized(en, { de, es });

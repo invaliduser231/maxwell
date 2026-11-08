@@ -4,7 +4,7 @@ import { type Language, languages } from '@maxwell/core/modules/general';
 export type { Language };
 export { languages };
 
-const locales: Record<Language, string> = { en: 'en-US', de: 'de-DE' };
+const locales: Record<Language, string> = { en: 'en-US', de: 'de-DE', es: 'es-ES' };
 
 const store = new AsyncLocalStorage<Language>();
 

@@ -46,8 +46,16 @@ const no = new Set([
   'não',
   'nao',
 ]);
-const skipWords = new Set(['skip', '-', 'überspringen']);
-const cancelWords = new Set(['cancel', 'stop', 'quit', 'abbrechen', 'abbruch']);
+const skipWords = new Set(['skip', '-', 'überspringen', 'omitir', 'saltar']);
+const cancelWords = new Set([
+  'cancel',
+  'stop',
+  'quit',
+  'abbrechen',
+  'abbruch',
+  'cancelar',
+  'salir',
+]);
 const TEXT_LIMIT = 1_000;
 
 export function isCancel(input: string): boolean {

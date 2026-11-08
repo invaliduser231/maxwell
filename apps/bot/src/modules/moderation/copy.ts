@@ -7,6 +7,7 @@ import { withLanguage } from '../../i18n/language.js';
 import { localized } from '../../i18n/localized.js';
 import { code, count, ordinal, plural } from '../../ui/format.js';
 import de from './copy.de.js';
+import es from './copy.es.js';
 import { humanDuration } from './text.js';
 
 const escalationNouns: Record<EscalationAction, string> = {
@@ -260,7 +261,7 @@ const en = {
 
 export type ModerationCopy = typeof en;
 
-export const copy = localized(en, { de });
+export const copy = localized(en, { de, es });
 
 const englishTitles: Record<CaseAction, string> = en.actions;
 

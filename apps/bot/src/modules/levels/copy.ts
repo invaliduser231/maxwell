@@ -2,6 +2,7 @@ import { mention } from '../../commands/mentions.js';
 import { localized } from '../../i18n/localized.js';
 import { code, count, plural } from '../../ui/format.js';
 import de from './copy.de.js';
+import es from './copy.es.js';
 
 const en = {
   rankDescription: "Your level and rank, or someone else's.",
@@ -54,7 +55,7 @@ const en = {
 
 export type LevelsCopy = typeof en;
 
-export const copy = localized(en, { de });
+export const copy = localized(en, { de, es });
 
 export function levelUpTemplate(template: string, reward: boolean): string {
   if (reward) return template === en.levelUpReward ? copy.levelUpReward : template;

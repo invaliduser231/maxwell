@@ -79,6 +79,7 @@ describe('trade parsing', () => {
     expect(parseCardRefs('#012 7')).toEqual(['12', '7']);
     expect(splitTrade('#12 #14 for #33')).toEqual({ give: ['12', '14'], want: ['33'] });
     expect(splitTrade('for #33')).toEqual({ give: [], want: ['33'] });
+    expect(splitTrade('#12 por #33')).toEqual({ give: ['12'], want: ['33'] });
     expect(splitTrade('#12')).toEqual({ give: ['12'], want: [] });
   });
 
