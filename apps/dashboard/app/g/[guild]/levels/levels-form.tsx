@@ -91,15 +91,67 @@ function factorLabel(t: Translator, value: string): string {
     : `${Number(value).toLocaleString(t.locale, { maximumFractionDigits: 2 })}x`;
 }
 
-function rowsOf(input: unknown): unknown[] | null {
-  if (Array.isArray(input)) return input;
-  if (input && typeof input === 'object') {
-    const record = input as Record<string, unknown>;
-    for (const key of ['members', 'users', 'entries', 'data']) {
-      if (Array.isArray(record[key])) return record[key] as unknown[];
+const SNOWFLAKE = /^\d{15,21}$/;
+const ID_KEYS = ['id', 'user_id', 'userid', 'userId', 'member_id', 'memberId', 'memberid', 'user'];
+const XP_KEYS = ['xp', 'exp', 'experience', 'totalXp', 'total_xp', 'totalxp', 'totalExp'];
+const LEVEL_KEYS = ['level', 'lvl'];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function idOf(record: Record<string, unknown>): string {
+  for (const key of ID_KEYS) {
+    const value = record[key];
+    if (typeof value === 'string' || typeof value === 'number') return String(value).trim();
+    if (isRecord(value) && (typeof value.id === 'string' || typeof value.id === 'number')) {
+      return String(value.id).trim();
     }
   }
-  return null;
+  return '';
+}
+
+function keyedRows(record: Record<string, unknown>, parent: string): unknown[] | null {
+  const entries = Object.entries(record);
+  if (entries.length === 0 || !entries.every(([key]) => SNOWFLAKE.test(key))) return null;
+  const numbersAreXp = /xp|exp|level/i.test(parent);
+  return entries.map(([id, value]) =>
+    isRecord(value) ? { ...value, id } : numbersAreXp ? { id, xp: value } : { id },
+  );
+}
+
+function candidates(input: unknown, depth = 0, out: unknown[][] = [], parent = ''): unknown[][] {
+  if (depth > 4) return out;
+  if (Array.isArray(input)) {
+    out.push(input);
+    for (const item of input.slice(0, 5)) {
+      if (Array.isArray(item) || (isRecord(item) && !idOf(item))) {
+        candidates(item, depth + 1, out, parent);
+      }
+    }
+    return out;
+  }
+  if (!isRecord(input)) return out;
+  const keyed = keyedRows(input, parent);
+  if (keyed) {
+    out.push(keyed);
+    return out;
+  }
+  for (const [key, value] of Object.entries(input)) candidates(value, depth + 1, out, key);
+  return out;
+}
+
+function rowsOf(input: unknown): unknown[] | null {
+  let best: unknown[] | null = null;
+  let bestCount = 0;
+  for (const list of candidates(input)) {
+    const count = list.filter((item) => isRecord(item) && readRecord(item)).length;
+    if (count > bestCount) {
+      best = list;
+      bestCount = count;
+    }
+  }
+  return best ?? (Array.isArray(input) ? input : null);
 }
 
 function toNumber(value: unknown): number | null {
@@ -109,29 +161,37 @@ function toNumber(value: unknown): number | null {
     : null;
 }
 
+function firstNumber(record: Record<string, unknown>, keys: readonly string[]): number | null {
+  for (const key of keys) {
+    const value = toNumber(record[key]);
+    if (value !== null) return value;
+  }
+  return null;
+}
+
 function readRecord(record: Record<string, unknown>): ImportRow | null {
-  const id = String(record.id ?? record.user_id ?? record.userId ?? record.userid ?? '').trim();
-  if (!/^\d{15,21}$/.test(id)) return null;
-  const xp = toNumber(record.xp ?? record.exp ?? record.experience);
+  const id = idOf(record);
+  if (!SNOWFLAKE.test(id)) return null;
+  const xp = firstNumber(record, XP_KEYS);
   if (xp !== null) return { id, xp: Math.min(xp, 1_000_000_000_000) };
-  const level = toNumber(record.level ?? record.lvl);
+  const level = firstNumber(record, LEVEL_KEYS);
   if (level !== null) return { id, level: Math.min(level, 1000) };
   return null;
 }
 
 function parseCsv(text: string): Record<string, unknown>[] | null {
   const lines = text.split(/\r?\n/).filter((line) => line.trim() !== '');
-  const header = lines[0]
-    ?.split(/[,;\t]/)
-    .map((cell) => cell.trim().replace(/^"|"$/g, '').toLowerCase());
-  if (!header?.some((cell) => ['id', 'user_id', 'userid'].includes(cell))) return null;
+  const header = lines[0]?.split(/[,;\t]/).map((cell) => cell.trim().replace(/^"|"$/g, ''));
+  const ids = ID_KEYS.map((key) => key.toLowerCase());
+  if (!header?.some((cell) => ids.includes(cell.toLowerCase()))) return null;
   return lines.slice(1).map((line) => {
     const cells = line.split(/[,;\t]/).map((cell) => cell.trim().replace(/^"|"$/g, ''));
     return Object.fromEntries(header.map((key, i) => [key, cells[i] ?? '']));
   });
 }
 
-function parseImportFile(text: string): { rows: ImportRow[]; skipped: number } | null {
+function parseImportFile(file: string): { rows: ImportRow[]; skipped: number } | null {
+  const text = file.charCodeAt(0) === 0xfeff ? file.slice(1) : file;
   let records: unknown[] | null = null;
   try {
     records = rowsOf(JSON.parse(text));
@@ -142,8 +202,7 @@ function parseImportFile(text: string): { rows: ImportRow[]; skipped: number } |
   const seen = new Map<string, ImportRow>();
   let skipped = 0;
   for (const item of records) {
-    const row =
-      item && typeof item === 'object' ? readRecord(item as Record<string, unknown>) : null;
+    const row = isRecord(item) ? readRecord(item) : null;
     if (!row) {
       skipped++;
       continue;
