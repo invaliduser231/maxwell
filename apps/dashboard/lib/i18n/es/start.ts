@@ -1,0 +1,24 @@
+export const start = {
+  'Choose a community': 'Elige una comunidad',
+  Show: 'Mostrar',
+  'With Maxwell': 'Con Maxwell',
+  Without: 'Sin Maxwell',
+  'Open dashboard': 'Abrir panel',
+  'Invite Maxwell': 'Invitar a Maxwell',
+  'No communities here.': 'No hay comunidades aquí.',
+  'Sign in': 'Iniciar sesión',
+  'Sign-in was cancelled.': 'Se canceló el inicio de sesión.',
+  'That sign-in link expired. Try again.':
+    'Ese enlace de inicio de sesión caducó. Inténtalo de nuevo.',
+  'Fluxer did not let me in. Try again in a moment.':
+    'Fluxer no me dejó entrar. Inténtalo de nuevo en un momento.',
+  'Sign in with Fluxer': 'Iniciar sesión con Fluxer',
+  'Sign-in is not set up yet.': 'El inicio de sesión aún no está configurado.',
+  'Development login': 'Acceso de desarrollo',
+  Privacy: 'Privacidad',
+  'Nothing here': 'Aquí no hay nada',
+  'The page is gone, or you have no access to it.':
+    'La página ya no existe o no tienes acceso a ella.',
+  'Something broke': 'Algo se rompió',
+  'Try again': 'Intentar de nuevo',
+} as const;

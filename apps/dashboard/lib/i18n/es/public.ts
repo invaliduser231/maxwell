@@ -1,0 +1,18 @@
+export const publicPage = {
+  '{name} on Fluxer.': '{name} en Fluxer.',
+  'Join on Fluxer': 'Unirse en Fluxer',
+  'Upcoming events': 'Próximos eventos',
+  'No events planned.': 'No hay eventos programados.',
+  '{n} join': '{n} ingreso',
+  '{n} joins': '{n} ingresos',
+  'Invite link': 'Enlace de invitación',
+  'That is not a Fluxer invite link.': 'Ese no es un enlace de invitación de Fluxer.',
+  'Or pick a recent invite': 'O elige una invitación reciente',
+  'Show the public page': 'Mostrar la página pública',
+  'On the page': 'En la página',
+  'Top 10 by XP': 'Top 10 por XP',
+  'Turn on Levels to show it': 'Activa Niveles para mostrarlo',
+  'The next 5': 'Los próximos 5',
+  'Turn on Events and polls to show it': 'Activa Eventos y encuestas para mostrarlo',
+  'Members hide themselves': 'Los miembros se ocultan',
+} as const;

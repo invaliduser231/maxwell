@@ -17,6 +17,7 @@ import { removeMaxwell, resetSettings, saveAvatar, savePrefix, saveProfile } fro
 const languageNames: Record<GeneralConfig['language'], string> = {
   en: 'English',
   de: 'Deutsch',
+  es: 'Español',
 };
 
 const retention: { value: string; label: Key }[] = [

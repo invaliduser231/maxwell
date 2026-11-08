@@ -1,0 +1,25 @@
+export const counters = {
+  Counters: 'Contadores',
+  'Members: {count}': 'Miembros: {count}',
+  'Online: {count}': 'En línea: {count}',
+  'Goal: {count} / {goal}': 'Meta: {count} / {goal}',
+  'In voice: {count}': 'En voz: {count}',
+  'Channels: {count}': 'Canales: {count}',
+  'Roles: {count}': 'Roles: {count}',
+  '{count} days to go': 'Faltan {count} días',
+  Online: 'En línea',
+  'Member goal': 'Meta de miembros',
+  'In voice': 'En voz',
+  Countdown: 'Cuenta atrás',
+  'Add counter': 'Añadir contador',
+  Counts: 'Cuenta',
+  Goal: 'Meta',
+  Date: 'Fecha',
+  'No counters yet.': 'Todavía no hay contadores.',
+  '{command} creates a locked voice channel for one.':
+    '{command} crea un canal de voz bloqueado para eso.',
+  'What {name} counts': 'Qué cuenta {name}',
+  'Name of {name}': 'Nombre de {name}',
+  'Use {count} for the number. Goals also know {goal} and {left}.':
+    'Usa {count} para el número. Las metas también admiten {goal} y {left}.',
+} as const;

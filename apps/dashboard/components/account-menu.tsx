@@ -8,6 +8,7 @@ import { Avatar } from './ui';
 const languages = [
   { code: 'de', label: 'Deutsch' },
   { code: 'en', label: 'English' },
+  { code: 'es', label: 'Español' },
 ] as const;
 
 export function AccountMenu({ user }: { user: { name: string; avatarUrl: string } | null }) {

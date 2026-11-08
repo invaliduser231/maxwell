@@ -13,6 +13,7 @@ import {
   type Translator,
 } from '.';
 import { messages } from './messages';
+import { messagesEs } from './messages-es';
 
 export const getLang = cache(async (): Promise<Lang> => {
   const stored = (await cookies()).get(LANG_COOKIE)?.value;
@@ -21,7 +22,9 @@ export const getLang = cache(async (): Promise<Lang> => {
 });
 
 export function tableFor(lang: Lang): Table | null {
-  return lang === 'de' ? messages : null;
+  if (lang === 'de') return messages;
+  if (lang === 'es') return messagesEs;
+  return null;
 }
 
 export const getT = cache(async (): Promise<Translator> => {

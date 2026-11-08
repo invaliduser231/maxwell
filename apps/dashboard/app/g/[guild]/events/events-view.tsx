@@ -107,6 +107,7 @@ const weekdayNames: Record<string, Key> = {
 
 function ordinal(t: Translator, day: number): string {
   if (t.lang === 'de') return `${day}.`;
+  if (t.lang === 'es') return String(day);
   const tail = day % 100;
   if (tail >= 11 && tail <= 13) return `${day}th`;
   return `${day}${['th', 'st', 'nd', 'rd'][day % 10] ?? 'th'}`;

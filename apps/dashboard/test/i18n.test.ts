@@ -5,10 +5,12 @@ import { describe, it } from 'node:test';
 import { pathToFileURL } from 'node:url';
 import { createTranslator, pickLang } from '../lib/i18n';
 import { messages } from '../lib/i18n/messages';
+import { messagesEs } from '../lib/i18n/messages-es';
 
-const dir = join(import.meta.dirname, '..', 'lib', 'i18n', 'de');
+const root = join(import.meta.dirname, '..', 'lib', 'i18n');
 
-async function catalogs(): Promise<[string, Record<string, string>][]> {
+async function catalogs(lang = 'de'): Promise<[string, Record<string, string>][]> {
+  const dir = join(root, lang);
   const files = readdirSync(dir).filter((name) => name.endsWith('.ts'));
   return Promise.all(
     files.map(async (name) => {
@@ -57,6 +59,41 @@ describe('german catalog', () => {
 
   it('uses no dashes, middle dots or emoji', () => {
     for (const [key, value] of Object.entries(messages)) {
+      assert.doesNotMatch(value, /[–—·•]|\p{Extended_Pictographic}/u, key);
+      assert.notEqual(value.trim(), '', key);
+    }
+  });
+});
+
+describe('spanish catalog', () => {
+  it('translates every german key', () => {
+    const missing = Object.keys(messages).filter((key) => !(key in messagesEs));
+    assert.deepEqual(missing, []);
+  });
+
+  it('keeps the placeholders of every key', () => {
+    for (const [key, value] of Object.entries(messagesEs)) {
+      assert.deepEqual(placeholders(value), placeholders(key), key);
+    }
+  });
+
+  it('gives a shared key the same text in every file', async () => {
+    const seen = new Map<string, { file: string; value: string }>();
+    const clashes: string[] = [];
+    for (const [file, table] of await catalogs('es')) {
+      for (const [key, value] of Object.entries(table)) {
+        const first = seen.get(key);
+        if (!first) seen.set(key, { file, value });
+        else if (first.value !== value) {
+          clashes.push(`${key}: ${first.file} "${first.value}", ${file} "${value}"`);
+        }
+      }
+    }
+    assert.deepEqual(clashes, []);
+  });
+
+  it('uses no dashes, middle dots or emoji', () => {
+    for (const [key, value] of Object.entries(messagesEs)) {
       assert.doesNotMatch(value, /[–—·•]|\p{Extended_Pictographic}/u, key);
       assert.notEqual(value.trim(), '', key);
     }

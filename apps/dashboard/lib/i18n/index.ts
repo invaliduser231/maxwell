@@ -1,6 +1,6 @@
 import type { messages } from './messages';
 
-export const languages = ['en', 'de'] as const;
+export const languages = ['en', 'de', 'es'] as const;
 export type Lang = (typeof languages)[number];
 export type Key = keyof typeof messages;
 export type Vars = Record<string, string | number>;
@@ -8,7 +8,7 @@ export type Table = Readonly<Record<string, string>>;
 
 export const LANG_COOKIE = 'mx_lang';
 
-const locales: Record<Lang, string> = { en: 'en-GB', de: 'de-DE' };
+const locales: Record<Lang, string> = { en: 'en-GB', de: 'de-DE', es: 'es-ES' };
 
 export function isLang(value: unknown): value is Lang {
   return typeof value === 'string' && (languages as readonly string[]).includes(value);

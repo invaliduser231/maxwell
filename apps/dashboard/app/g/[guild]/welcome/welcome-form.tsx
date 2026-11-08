@@ -51,6 +51,7 @@ const delays = [5, 10, 30, 60, 1440, 10080];
 
 function ordinal(t: Translator, value: number): string {
   if (t.lang === 'de') return `${t.count(value)}.`;
+  if (t.lang === 'es') return `${t.count(value)}.º`;
   const tens = value % 100;
   if (tens >= 11 && tens <= 13) return `${t.count(value)}th`;
   const suffix = ['th', 'st', 'nd', 'rd'][value % 10] ?? 'th';
