@@ -28,7 +28,7 @@ import { TwoStep } from '@/components/two-step';
 import { CloseIcon, Empty, Field, Fields, Grid, Panel, PanelBody, Row } from '@/components/ui';
 import type { Key, Translator } from '@/lib/i18n';
 import { Invite, Small, StatStrip } from '../economy/bits';
-import { addCard, removeCard, setCardActive } from './actions';
+import { addCard, editCard, removeCard, setCardActive } from './actions';
 import type { CardView } from './cards';
 
 interface Sample {
@@ -294,8 +294,11 @@ function CardsPanel({
   const [description, setDescription] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>(null);
+  const [changing, setChanging] = useState<CardView | null>(null);
   const [pending, start] = useTransition();
   const list = cards.filter((card) => card.deck === deck.id);
+  const imageUrl = (card: CardView) =>
+    `/g/${guildId}/collection/image/${card.id}?v=${card.image ?? ''}`;
   const tierOf = (id: string) => value.tiers.find((tier) => tier.id === id) ?? value.tiers[0];
 
   const pick = (file: File) => {
@@ -308,16 +311,45 @@ function CardsPanel({
     reader.readAsDataURL(file);
   };
 
+  const reset = () => {
+    setChanging(null);
+    setName('');
+    setDescription('');
+    setImage(null);
+  };
+
+  const change = (card: CardView) => {
+    setChanging(card);
+    setName(card.name);
+    setDescription(card.description);
+    setRarity(card.rarity);
+    setImage(null);
+    setStatus(null);
+  };
+
   const add = () =>
     start(async () => {
       const result = await addCard(guildId, { deck: deck.id, name, description, rarity, image });
       if (result.ok && result.data) {
         const card = result.data;
         setCards((previous) => [...previous, card]);
-        setName('');
-        setDescription('');
-        setImage(null);
+        reset();
         setStatus({ message: t('Added.'), error: false });
+      } else if (!result.ok) {
+        setStatus({ message: result.error, error: true });
+      }
+    });
+
+  const save = (card: CardView) =>
+    start(async () => {
+      const result = await editCard(guildId, card.id, { name, description, rarity, image });
+      if (result.ok && result.data) {
+        const updated = result.data;
+        setCards((previous) =>
+          previous.map((c) => (c.id === card.id ? { ...updated, owners: c.owners } : c)),
+        );
+        reset();
+        setStatus({ message: t('Saved.'), error: false });
       } else if (!result.ok) {
         setStatus({ message: result.error, error: true });
       }
@@ -367,7 +399,7 @@ function CardsPanel({
           <div key={card.id} className="mx-row">
             {card.image ? (
               <img
-                src={`/g/${guildId}/collection/image/${card.id}`}
+                src={imageUrl(card)}
                 alt=""
                 width={34}
                 height={44}
@@ -393,6 +425,18 @@ function CardsPanel({
               {tier?.name ?? card.rarity}
             </span>
             {readOnly ? null : (
+              <button
+                type="button"
+                className="mx-btn mx-btn-ghost"
+                aria-label={t('Edit {name}', { name: card.name })}
+                aria-pressed={changing?.id === card.id}
+                disabled={pending}
+                onClick={() => (changing?.id === card.id ? reset() : change(card))}
+              >
+                {t('Edit')}
+              </button>
+            )}
+            {readOnly ? null : (
               <TwoStep
                 label={t('Delete')}
                 confirm={t('Click again')}
@@ -401,8 +445,10 @@ function CardsPanel({
                 run={() =>
                   start(async () => {
                     const result = await removeCard(guildId, card.id);
-                    if (result.ok) setCards((previous) => previous.filter((c) => c.id !== card.id));
-                    else fail(result.error);
+                    if (result.ok) {
+                      setCards((previous) => previous.filter((c) => c.id !== card.id));
+                      if (changing?.id === card.id) reset();
+                    } else fail(result.error);
                   })
                 }
               />
@@ -462,23 +508,39 @@ function CardsPanel({
                     }}
                   />
                 </label>
-                {image ? (
+                {image || changing?.image ? (
                   <img
-                    src={image}
-                    alt={t('New card')}
+                    src={image ?? (changing ? imageUrl(changing) : '')}
+                    alt={changing ? changing.name : t('New card')}
                     width={34}
                     height={44}
                     style={{ borderRadius: 5, objectFit: 'cover' }}
                   />
                 ) : null}
-                <button
-                  type="button"
-                  className="mx-btn mx-btn-primary"
-                  disabled={pending || !name.trim()}
-                  onClick={add}
-                >
-                  {t('Add card')}
-                </button>
+                {changing ? (
+                  <>
+                    <button
+                      type="button"
+                      className="mx-btn mx-btn-primary"
+                      disabled={pending || !name.trim()}
+                      onClick={() => save(changing)}
+                    >
+                      {t('Save card')}
+                    </button>
+                    <button type="button" className="mx-btn" disabled={pending} onClick={reset}>
+                      {t('Cancel')}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="mx-btn mx-btn-primary"
+                    disabled={pending || !name.trim()}
+                    onClick={add}
+                  >
+                    {t('Add card')}
+                  </button>
+                )}
                 <StatusText status={status} />
               </div>
             </>

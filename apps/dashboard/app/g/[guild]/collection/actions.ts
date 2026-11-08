@@ -22,6 +22,28 @@ const cardInput = z.object({
   image: z.string().nullable(),
 });
 
+type Image = { type: string; data: Buffer };
+
+function readImage(value: string | null): Image | null | 'invalid' {
+  if (!value) return null;
+  const match = IMAGE.exec(value);
+  const data = match?.[2] ? Buffer.from(match[2], 'base64') : null;
+  if (!match?.[1] || !data || data.length === 0 || data.length > MAX_IMAGE) return 'invalid';
+  return { type: match[1], data };
+}
+
+async function storeImage(guildId: string, image: Image): Promise<string> {
+  const assetKey = `card-${randomUUID().slice(0, 12)}`;
+  await db().sql.begin(async (tx) => {
+    await tx`insert into guilds (id) values (${guildId}) on conflict (id) do nothing`;
+    await tx`
+      insert into guild_assets (guild_id, key, content_type, data)
+      values (${guildId}, ${assetKey}, ${image.type}, ${image.data})
+    `;
+  });
+  return assetKey;
+}
+
 export async function addCard(guildId: string, input: unknown): Promise<Result<CardView>> {
   const check = await editor(guildId, 'collection');
   if ('error' in check) return { ok: false, error: check.error };
@@ -34,25 +56,9 @@ export async function addCard(guildId: string, input: unknown): Promise<Result<C
   if (!config.tiers.some((tier) => tier.id === parsed.data.rarity)) {
     return { ok: false, error: 'Pick a rarity.' };
   }
-  let image: { type: string; data: Buffer } | null = null;
-  if (parsed.data.image) {
-    const match = IMAGE.exec(parsed.data.image);
-    const data = match?.[2] ? Buffer.from(match[2], 'base64') : null;
-    if (!match?.[1] || !data || data.length === 0 || data.length > MAX_IMAGE) {
-      return { ok: false, error: 'Use a PNG, JPEG or WebP under 1 MB.' };
-    }
-    image = { type: match[1], data };
-  }
-  const assetKey = image ? `card-${randomUUID().slice(0, 12)}` : null;
-  if (image && assetKey) {
-    await sql.begin(async (tx) => {
-      await tx`insert into guilds (id) values (${guildId}) on conflict (id) do nothing`;
-      await tx`
-        insert into guild_assets (guild_id, key, content_type, data)
-        values (${guildId}, ${assetKey}, ${image.type}, ${image.data})
-      `;
-    });
-  }
+  const image = readImage(parsed.data.image);
+  if (image === 'invalid') return { ok: false, error: 'Use a PNG, JPEG or WebP under 1 MB.' };
+  const assetKey = image ? await storeImage(guildId, image) : null;
   const store = new CollectionStore(sql);
   const card = await store.createCard(guildId, {
     deck: deck.id,
@@ -72,6 +78,51 @@ export async function addCard(guildId: string, input: unknown): Promise<Result<C
   });
   revalidatePath(`/g/${guildId}/collection`);
   return { ok: true, data: cardView({ ...card, owners: 0 }) };
+}
+
+export async function editCard(
+  guildId: string,
+  id: string,
+  input: unknown,
+): Promise<Result<CardView>> {
+  const check = await editor(guildId, 'collection');
+  if ('error' in check) return { ok: false, error: check.error };
+  if (!cardId.safeParse(id).success) return { ok: false, error: 'That card is gone.' };
+  const parsed = cardInput.omit({ deck: true }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: 'Give the card a name.' };
+  const { sql, modules, audit } = db();
+  const config = await modules.get(guildId, 'collection', collectionConfig);
+  if (!config.tiers.some((tier) => tier.id === parsed.data.rarity)) {
+    return { ok: false, error: 'Pick a rarity.' };
+  }
+  const image = readImage(parsed.data.image);
+  if (image === 'invalid') return { ok: false, error: 'Use a PNG, JPEG or WebP under 1 MB.' };
+  const store = new CollectionStore(sql);
+  const card = await store.card(guildId, id);
+  if (!card || card.memberId) return { ok: false, error: 'That card is gone.' };
+  const assetKey = image ? await storeImage(guildId, image) : card.assetKey;
+  const updated = await store.updateCard(guildId, id, {
+    name: parsed.data.name,
+    description: parsed.data.description,
+    rarity: parsed.data.rarity,
+    assetKey,
+  });
+  if (!updated) return { ok: false, error: 'That card is gone.' };
+  if (image && card.assetKey?.startsWith('card-')) {
+    await sql`delete from guild_assets where guild_id = ${guildId} and key = ${card.assetKey}`;
+  }
+  await audit.record({
+    guildId,
+    actor: { id: check.access.user.id },
+    module: 'collection',
+    action: 'card.update',
+    summary: `Edited ${updated.name}`,
+    before: { name: card.name, description: card.description, rarity: card.rarity },
+    after: { name: updated.name, description: updated.description, rarity: updated.rarity },
+    undo: null,
+  });
+  revalidatePath(`/g/${guildId}/collection`);
+  return { ok: true, data: cardView({ ...updated, owners: 0 }) };
 }
 
 export async function setCardActive(guildId: string, id: string, active: boolean): Promise<Result> {

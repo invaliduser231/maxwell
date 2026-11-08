@@ -32,6 +32,8 @@ export const collection = {
   'Change image': 'Bild ändern',
   'New card': 'Neue Karte',
   'Add card': 'Karte hinzufügen',
+  'Save card': 'Karte speichern',
+  'Saved.': 'Gespeichert.',
   'Save to add cards.': 'Speichere, um Karten hinzuzufügen.',
   'Community deck': 'Community-Deck',
   '{members} opted in with {command}': '{members} mit {command} dabei',

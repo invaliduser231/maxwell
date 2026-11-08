@@ -7,7 +7,7 @@ export interface CardView {
   name: string;
   description: string;
   rarity: string;
-  image: boolean;
+  image: string | null;
   active: boolean;
   owners: number;
 }
@@ -20,7 +20,7 @@ export function cardView(card: DeckCard): CardView {
     name: card.name,
     description: card.description,
     rarity: card.rarity,
-    image: card.assetKey !== null,
+    image: card.assetKey,
     active: card.active,
     owners: card.owners,
   };
