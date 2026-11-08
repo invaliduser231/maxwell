@@ -1,5 +1,12 @@
+interface Person {
+  id: string;
+  username: string;
+  displayName: string;
+}
+
 export interface ResponseContext {
-  user: { id: string; username: string; displayName: string };
+  user: Person;
+  target?: Person | null;
   server: { id: string; name: string };
   channel: { id: string; name: string | null };
   args: string;
@@ -16,16 +23,22 @@ export function pick<T>(items: readonly T[], random: Random = Math.random): T | 
   return items[Math.min(Math.floor(random() * items.length), items.length - 1)];
 }
 
+function person(who: Person, sub: string | undefined): string | null {
+  if (!sub) return who.displayName;
+  if (sub === 'mention') return `<@${who.id}>`;
+  if (sub === 'name') return who.username;
+  if (sub === 'id') return who.id;
+  return null;
+}
+
 function variable(name: string, field: string | undefined, ctx: ResponseContext): string | null {
   const key = name.toLowerCase();
   const sub = field?.toLowerCase();
   switch (key) {
     case 'user':
-      if (!sub) return ctx.user.displayName;
-      if (sub === 'mention') return `<@${ctx.user.id}>`;
-      if (sub === 'name') return ctx.user.username;
-      if (sub === 'id') return ctx.user.id;
-      return null;
+      return person(ctx.user, sub);
+    case 'target':
+      return person(ctx.target ?? ctx.user, sub);
     case 'server':
       if (!sub || sub === 'name') return ctx.server.name;
       if (sub === 'id') return ctx.server.id;

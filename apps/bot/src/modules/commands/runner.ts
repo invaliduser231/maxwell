@@ -8,7 +8,8 @@ import {
 import { generalConfig } from '@maxwell/core/modules/general';
 import type { CommandStore, CommandTestResult } from '@maxwell/core/stores/commands';
 import { Cooldowns } from '../../commands/cooldowns.js';
-import type { IncomingMessage, OutgoingMessage } from '../../platform/types.js';
+import { userId as parseUserId } from '../../commands/mentions.js';
+import type { IncomingMessage, OutgoingMessage, UserRef } from '../../platform/types.js';
 import type { ModuleContext } from '../../runtime/module.js';
 import { code, truncate } from '../../ui/format.js';
 import { palette } from '../../ui/palette.js';
@@ -80,10 +81,32 @@ export function buildResponse(
   if (command.embed) {
     return {
       embeds: [{ color: command.color ?? palette.south, description: truncate(text, 4096) }],
-      mentionUsers: [context.user.id],
+      mentionUsers: mentioned(context),
     };
   }
-  return { content: truncate(text, 4000), mentionUsers: [context.user.id] };
+  return { content: truncate(text, 4000), mentionUsers: mentioned(context) };
+}
+
+function mentioned(context: ResponseContext): string[] {
+  return context.target && context.target.id !== context.user.id
+    ? [context.user.id, context.target.id]
+    : [context.user.id];
+}
+
+export function targetOf(
+  message: IncomingMessage,
+  args: string,
+  selfId: string | null,
+): string | null {
+  const fromMentions = message.mentionUsers.find((id) => id !== selfId);
+  if (fromMentions) return fromMentions;
+  const first = args.trim().split(/\s+/)[0] ?? '';
+  const fromArgs = parseUserId(first);
+  return fromArgs && fromArgs !== selfId ? fromArgs : null;
+}
+
+function changesRoles(command: CustomCommand): boolean {
+  return command.addRoles.length > 0 || command.removeRoles.length > 0;
 }
 
 export class CommandRunner {
@@ -174,9 +197,31 @@ export class CommandRunner {
       }
     }
 
-    const context = await this.#context(guildId, message, trigger);
+    let target: UserRef | null = null;
+    let targetRoles = message.memberRoles;
+    if (command.roleTarget === 'mention' && changesRoles(command)) {
+      if (
+        command.allowedRoles.length === 0 &&
+        !(await platform
+          .hasPermissions(guildId, message.author.id, null, ['ManageRoles'])
+          .catch(() => false))
+      ) {
+        if (isCommand) await noise(copy.notForYou);
+        return;
+      }
+      const targetId = targetOf(message, trigger.args, platform.selfId);
+      const member = targetId ? await platform.member(guildId, targetId).catch(() => null) : null;
+      if (!member) {
+        if (isCommand) await noise(copy.needsMember);
+        return;
+      }
+      target = member.user;
+      targetRoles = member.roles;
+    }
+
+    const context = { ...(await this.#context(guildId, message, trigger)), target };
     const response = buildResponse(command, context);
-    const roles = planRoles(command, message.memberRoles);
+    const roles = planRoles(command, targetRoles);
 
     if (response) {
       const send = command.reply
@@ -191,7 +236,14 @@ export class CommandRunner {
     }
 
     if (roles.added.length || roles.removed.length) {
-      await this.#applyRoles(guildId, message.author.id, command, roles);
+      const done = await this.#applyRoles(
+        guildId,
+        target?.id ?? message.author.id,
+        message.author.id,
+        command,
+        roles,
+      );
+      if (isCommand && done.added.length + done.removed.length === 0) await noise(copy.rolesFailed);
     }
 
     if (command.deleteTrigger) {
@@ -236,6 +288,7 @@ export class CommandRunner {
   async #applyRoles(
     guildId: string,
     userId: string,
+    actorId: string,
     command: CustomCommand,
     plan: RoleChange,
   ): Promise<RoleChange> {
@@ -259,7 +312,7 @@ export class CommandRunner {
       }
     }
     if (done.added.length || done.removed.length) {
-      const actor: Actor = { id: userId };
+      const actor: Actor = { id: actorId };
       await this.ctx.record(
         guildId,
         actor,

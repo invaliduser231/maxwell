@@ -64,9 +64,15 @@ const scopes: { value: 'user' | 'channel' | 'guild'; label: Key }[] = [
   { value: 'guild', label: 'Whole server' },
 ];
 
+const targets: { value: CustomCommand['roleTarget']; label: Key }[] = [
+  { value: 'author', label: 'Whoever uses it' },
+  { value: 'mention', label: 'The mentioned member' },
+];
+
 const variables = [
   '{user}',
   '{user.mention}',
+  '{target.mention}',
   '{server}',
   '{channel}',
   '{args}',
@@ -593,6 +599,25 @@ function Editor({
       <Section title={t('Roles')}>
         <Fields>
           <div className="mx-field">
+            <span className="mx-label">{t('Applies to')}</span>
+            <Seg
+              label={t('Applies to')}
+              value={command.roleTarget}
+              options={targets.map((target) => ({ ...target, label: t(target.label) }))}
+              onChange={(roleTarget) => onChange({ roleTarget })}
+            />
+            {command.roleTarget === 'mention' ? (
+              <span className="mx-hint">
+                {command.allowedRoles.length === 0
+                  ? t(
+                      '{prefix}{name} @member. Without roles under Who can use it, only members who can manage roles can use it.',
+                      { prefix, name: command.pattern || 'verify' },
+                    )
+                  : t('{prefix}{name} @member', { prefix, name: command.pattern || 'verify' })}
+              </span>
+            ) : null}
+          </div>
+          <div className="mx-field">
             <span className="mx-label">{t('Give')}</span>
             <RoleMulti
               value={command.addRoles}
@@ -730,6 +755,7 @@ export function CommandsForm({
       deleteTrigger: false,
       addRoles: [],
       removeRoles: [],
+      roleTarget: 'author',
       cooldown: 0,
       cooldownScope: 'user',
       allowedRoles: [],

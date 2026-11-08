@@ -6,9 +6,11 @@ const id = z.string().regex(/^\d{1,21}$/);
 export const triggerTypes = ['command', 'keyword', 'regex'] as const;
 export const keywordModes = ['word', 'contains', 'exact', 'startsWith'] as const;
 export const cooldownScopes = ['user', 'channel', 'guild'] as const;
+export const roleTargets = ['author', 'mention'] as const;
 
 export type TriggerType = (typeof triggerTypes)[number];
 export type KeywordMode = (typeof keywordModes)[number];
+export type RoleTarget = (typeof roleTargets)[number];
 
 export const COMMAND_LIMIT = 100;
 export const PATTERN_MAX = 200;
@@ -19,6 +21,10 @@ export const responseVariables = [
   'user.mention',
   'user.name',
   'user.id',
+  'target',
+  'target.mention',
+  'target.name',
+  'target.id',
   'server',
   'server.id',
   'channel',
@@ -43,6 +49,7 @@ export const customCommand = z.object({
   deleteTrigger: z.boolean().default(false),
   addRoles: z.array(id).max(10).default([]),
   removeRoles: z.array(id).max(10).default([]),
+  roleTarget: z.enum(roleTargets).default('author'),
   cooldown: z.number().int().min(0).max(86_400).default(0),
   cooldownScope: z.enum(cooldownScopes).default('user'),
   allowedRoles: z.array(id).max(50).default([]),

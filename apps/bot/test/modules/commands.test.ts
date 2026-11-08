@@ -12,6 +12,7 @@ import {
   buildResponse,
   cooldownKey,
   planRoles,
+  targetOf,
 } from '../../src/modules/commands/runner.js';
 import type { IncomingMessage } from '../../src/platform/types.js';
 
@@ -69,6 +70,14 @@ describe('renderResponse', () => {
   it('picks from random lists, including variables inside', () => {
     expect(renderResponse('{random:hi {user}|hey|yo}', context, () => 0)).toBe('hi Lena');
     expect(renderResponse('{random:hi {user}|hey|yo}', context, () => 0.99)).toBe('yo');
+  });
+
+  it('fills the target and falls back to the user', () => {
+    const target = { id: '300000000000000002', username: 'max', displayName: 'Max' };
+    expect(renderResponse('{target} {target.mention}', { ...context, target })).toBe(
+      'Max <@300000000000000002>',
+    );
+    expect(renderResponse('{target.name}', context)).toBe('lena');
   });
 
   it('leaves unknown variables alone and does not expand member input', () => {
@@ -197,6 +206,16 @@ describe('execution rules', () => {
     expect(cooldownKey(command({ cooldownScope: 'guild' }), message())).toBe(
       '100000000000000001:c1:guild',
     );
+  });
+
+  it('finds the member a command points at', () => {
+    const self = '500000000000000001';
+    const other = '300000000000000002';
+    expect(targetOf(message({ mentionUsers: [self, other] }), '', self)).toBe(other);
+    expect(targetOf(message(), `<@${other}> thanks`, self)).toBe(other);
+    expect(targetOf(message(), other, self)).toBe(other);
+    expect(targetOf(message(), `<@${self}>`, self)).toBeNull();
+    expect(targetOf(message(), 'nobody', self)).toBeNull();
   });
 
   it('plans only the role changes that do something', () => {

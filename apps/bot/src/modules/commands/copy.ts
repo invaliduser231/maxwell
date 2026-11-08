@@ -4,6 +4,8 @@ import de from './copy.de.js';
 const en = {
   notHere: 'That command does not work here.',
   notForYou: 'That command is for certain roles only.',
+  needsMember: 'Mention the member.',
+  rolesFailed: 'I could not change those roles. My role has to be above them.',
   sampleUser: 'Member',
   sampleServer: 'Server',
 };

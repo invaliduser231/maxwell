@@ -60,6 +60,12 @@ export const commands = {
   Take: 'Nehmen',
   Limits: 'Grenzen',
   'Who can use it': 'Wer ihn nutzen darf',
+  'Applies to': 'Gilt für',
+  'Whoever uses it': 'Wer ihn nutzt',
+  'The mentioned member': 'Erwähntes Mitglied',
+  '{prefix}{name} @member': '{prefix}{name} @mitglied',
+  '{prefix}{name} @member. Without roles under Who can use it, only members who can manage roles can use it.':
+    '{prefix}{name} @mitglied. Ohne Rollen unter Wer ihn nutzen darf können ihn nur Mitglieder nutzen, die Rollen verwalten dürfen.',
   Where: 'Wo',
   'Every channel': 'Jeder Kanal',
   Cooldown: 'Cooldown',
