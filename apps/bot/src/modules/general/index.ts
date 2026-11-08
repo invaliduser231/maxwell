@@ -17,9 +17,9 @@ export default defineBotModule({
   commands: [...generalCommands, ...privacyCommands],
   setup(ctx) {
     const { services } = ctx;
-    const { platform, guilds, log, config, votes } = services;
+    const { platform, guilds, log, votes } = services;
 
-    ctx.on('ready', () => platform.setStatus(`${config.DEFAULT_PREFIX}help`), { always: true });
+    ctx.on('ready', () => platform.setStatus('Mention me for help'), { always: true });
     ctx.on('guildAvailable', (guild) => guilds.joined(guild.id).then(() => undefined), {
       always: true,
     });
