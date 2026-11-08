@@ -75,6 +75,7 @@ Maxwell receives messages and events from the communities it is in, such as mess
 - **Forms, suggestions, events, polls and giveaways:** answers, suggestions, votes, sign-ups, entries and winners.
 - **Starboard:** the author and content of starred messages.
 - **Scheduler:** reminders with their text until they are delivered or removed.
+- **Away notes:** when a member uses the afk command, the note and since when, until they write again.
 - **Insights:** message counts per channel and hour and per member and day, joins and leaves, voice time per channel and moderation actions per moderator. Deleted after 365 days by default (admins can choose 30 to 730). If admins pick a channel for the weekly digest, Maxwell posts these numbers there once a week as totals for the whole community, without naming members. Members can look up their own numbers with a command. Moderators can look up other members, and people who manage the community can list the most active members; the answer is posted in the channel where they ask.
 - **Backups:** the structure of the community (roles, channels, permissions) and who made a snapshot. Daily snapshots are deleted after 14 days by default (1 to 90). Unless admins turn it off, also which member has which role, so a restored role can be given back; this is deleted when the member leaves, and for deleted roles after the same 14 days.
 - **Templates:** a published template contains only the structure (roles, channels, permissions) and, if the admins choose, the name of the community.

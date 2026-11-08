@@ -12,6 +12,7 @@ const en = {
     vote: 'Vote for Maxwell on fluxerlist and unlock every locked module for you.',
     mydata: 'Sends you everything Maxwell stores about you in this community.',
     forgetme: 'Deletes your levels, currency, cards and other data in this community.',
+    afk: 'Marks you as away. Mentions of you get your note until you write again.',
   },
   ping: {
     first: 'Pong.',
@@ -59,6 +60,14 @@ const en = {
       EmbedLinks: 'anything richer than plain text',
       AddReactions: 'reactions',
     },
+  },
+  afk: {
+    set: (reason: string) => (reason ? `You are away: ${reason}` : 'You are away.'),
+    back: (duration: string) => `Welcome back. You were away for ${duration}.`,
+    away: (who: string, reason: string, since: string) =>
+      reason
+        ? `${who} has been away for ${since}: ${reason}`
+        : `${who} has been away for ${since}.`,
   },
   privacy: {
     exported: 'Everything I store about you in that community.',

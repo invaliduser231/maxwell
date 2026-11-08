@@ -11,6 +11,7 @@ const de: GeneralCopy = {
     vote: 'Stimm auf fluxerlist für Maxwell ab und schalte alle gesperrten Module für dich frei.',
     mydata: 'Schickt dir alles, was Maxwell in dieser Community über dich speichert.',
     forgetme: 'Löscht deine Levels, Währung, Karten und andere Daten in dieser Community.',
+    afk: 'Meldet dich ab. Wer dich erwähnt, sieht deine Notiz, bis du wieder schreibst.',
   },
   ping: {
     first: 'Pong.',
@@ -59,6 +60,12 @@ const de: GeneralCopy = {
       EmbedLinks: 'alles außer reinem Text',
       AddReactions: 'Reaktionen',
     },
+  },
+  afk: {
+    set: (reason: string) => (reason ? `Du bist weg: ${reason}` : 'Du bist weg.'),
+    back: (duration: string) => `Willkommen zurück. Du warst ${duration} weg.`,
+    away: (who: string, reason: string, since: string) =>
+      reason ? `${who} ist seit ${since} weg: ${reason}` : `${who} ist seit ${since} weg.`,
   },
   privacy: {
     exported: 'Alles, was ich in dieser Community über dich speichere.',

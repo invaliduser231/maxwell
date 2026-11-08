@@ -1,6 +1,8 @@
 import { RetentionStore } from '@maxwell/core';
 import general from '@maxwell/core/modules/general';
+import { AfkStore } from '@maxwell/core/stores/afk';
 import { defineBotModule } from '../../runtime/module.js';
+import { AfkTracker, afkCommand } from './afk.js';
 import { generalCommands } from './commands.js';
 import { greet } from './onboarding.js';
 import { privacyCommands } from './privacy.js';
@@ -18,6 +20,16 @@ export default defineBotModule({
   setup(ctx) {
     const { services } = ctx;
     const { platform, guilds, log, votes } = services;
+
+    const afk = new AfkTracker(services, new AfkStore(services.sql));
+    ctx.on('message', (message) => afk.onMessage(message), { always: true });
+    ctx.privacy({
+      export: async (guildId, userId) => {
+        const [entry] = await new AfkStore(services.sql).get(guildId, [userId]);
+        return entry ? { afk: { reason: entry.reason, since: entry.since.toISOString() } } : null;
+      },
+      forget: (guildId, userId) => afk.forget(guildId, userId),
+    });
 
     ctx.on('ready', () => platform.setStatus('Mention me for help'), { always: true });
     ctx.on('guildAvailable', (guild) => guilds.joined(guild.id).then(() => undefined), {
@@ -68,5 +80,7 @@ export default defineBotModule({
       },
       { always: true },
     );
+
+    return [afkCommand(afk)];
   },
 });

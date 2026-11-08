@@ -51,5 +51,18 @@ export default defineModule({
   defaultEnabled: true,
   toggleable: false,
   config: generalConfig,
-  migrations: [],
+  migrations: [
+    {
+      id: '1-afk',
+      up: `
+        create table general_afk (
+          guild_id bigint not null,
+          user_id bigint not null,
+          reason text not null default '',
+          since timestamptz not null default now(),
+          primary key (guild_id, user_id)
+        );
+      `,
+    },
+  ],
 });
