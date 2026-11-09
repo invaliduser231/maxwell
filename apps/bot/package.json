@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch --conditions=source --env-file-if-exists=../../.env src/main.ts",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node -e \"require('node:fs').cpSync('src/locales', 'dist/locales', { recursive: true })\"",
     "start": "node dist/main.js",
     "migrate": "tsx --conditions=source --env-file-if-exists=../../.env src/db/cli.ts",
     "test": "vitest run",
@@ -12,11 +12,12 @@
   },
   "dependencies": {
     "@fluxerjs/core": "3.3.0",
+    "@maxwell/core": "workspace:*",
     "@napi-rs/canvas": "1.0.11",
+    "intl-messageformat": "12.1.4",
     "pino": "10.4.0",
     "postgres": "3.4.9",
-    "zod": "4.6.7",
-    "@maxwell/core": "workspace:*"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

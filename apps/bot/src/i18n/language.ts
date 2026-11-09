@@ -24,8 +24,8 @@ export function language(): Language {
   return store.getStore() ?? 'en';
 }
 
-export function locale(): string {
-  return locales[language()];
+export function locale(lang: Language = language()): string {
+  return locales[lang];
 }
 
 export function withLanguage<T>(next: Language, run: () => T): T {
