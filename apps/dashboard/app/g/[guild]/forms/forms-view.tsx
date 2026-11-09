@@ -174,8 +174,10 @@ function FormList({
             >
               <span className="mx-row-title mx-ellipsis">{form.name || t('Untitled form')}</span>
               <span className="mx-sub">
-                {t.plural(form.questions.length, '{n} question', '{n} questions')},{' '}
-                {t.plural(total, '{n} response', '{n} responses')}
+                {t('{n, plural, one {# question} other {# questions}}', {
+                  n: form.questions.length,
+                })}
+                , {t('{n, plural, one {# response} other {# responses}}', { n: total })}
                 {form.enabled ? '' : `, ${t('paused')}`}
               </span>
             </button>
@@ -262,7 +264,7 @@ function FormSettings({
               options={withCurrent(
                 translate(t, cooldowns),
                 form.cooldownHours,
-                t.plural(form.cooldownHours, '{n} hour', '{n} hours'),
+                t('{n, plural, one {# hour} other {# hours}}', { n: form.cooldownHours }),
               )}
               onChange={(next) => patch({ cooldownHours: Number(next) })}
             />

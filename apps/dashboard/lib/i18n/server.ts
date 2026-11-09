@@ -12,8 +12,7 @@ import {
   type Table,
   type Translator,
 } from '.';
-import { messages } from './messages';
-import { messagesEs } from './messages-es';
+import { areas } from './messages';
 
 export const getLang = cache(async (): Promise<Lang> => {
   const stored = (await cookies()).get(LANG_COOKIE)?.value;
@@ -21,15 +20,24 @@ export const getLang = cache(async (): Promise<Lang> => {
   return pickLang((await headers()).get('accept-language'));
 });
 
-export function tableFor(lang: Lang): Table | null {
-  if (lang === 'de') return messages;
-  if (lang === 'es') return messagesEs;
-  return null;
+async function loadArea(lang: Lang, area: string): Promise<Table> {
+  try {
+    const loaded = (await import(`@/locales/${lang}/${area}.json`)) as { default: Table };
+    return loaded.default;
+  } catch {
+    return {};
+  }
 }
+
+export const tableFor = cache(async (lang: Lang): Promise<Table | null> => {
+  if (lang === 'en') return null;
+  const parts = await Promise.all(areas.map((area) => loadArea(lang, area)));
+  return Object.assign({}, ...parts) as Table;
+});
 
 export const getT = cache(async (): Promise<Translator> => {
   const lang = await getLang();
-  return createTranslator(lang, tableFor(lang));
+  return createTranslator(lang, await tableFor(lang));
 });
 
 export function titled(key: Key): () => Promise<Metadata> {

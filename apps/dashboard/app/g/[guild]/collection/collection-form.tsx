@@ -124,7 +124,7 @@ function newSet(t: Translator, sets: readonly CardSet[]): CardSet {
 }
 
 function cardCount(t: Translator, count: number): string {
-  return t.plural(count, '{n} card', '{n} cards');
+  return t('{n, plural, one {# card} other {# cards}}', { n: count });
 }
 
 function SampleCard({ sample, tiers }: { sample: Sample; tiers: RarityTier[] }) {
@@ -416,7 +416,7 @@ function CardsPanel({
             <div className="mx-row-main">
               <span className="mx-row-title">{card.name}</span>
               <span className="mx-sub">
-                {`#${card.number}, ${t.plural(card.owners, '{n} owner', '{n} owners')}`}
+                {`#${card.number}, ${t('{n, plural, one {# owner} other {# owners}}', { n: card.owners })}`}
                 {card.active ? '' : `, ${t('retired')}`}
               </span>
             </div>
@@ -603,7 +603,7 @@ function DecksPanel({
       <Row
         title={t('Community deck')}
         sub={t('{members} opted in with {command}', {
-          members: t.plural(members, '{n} member', '{n} members'),
+          members: t('{n, plural, one {# member} other {# members}}', { n: members }),
           command: `${prefix}cards optin`,
         })}
         leading={<span aria-hidden="true" style={thumb(legendary)} />}
@@ -799,7 +799,7 @@ function DropsPanel({ prefix }: { prefix: string }) {
               '**A card dropped**\n-# First to type `{command}` gets it. Gone in {span}.',
               {
                 command: `${prefix}claim`,
-                span: t.plural(drops.claimMinutes, '{n} minute', '{n} minutes'),
+                span: t('{n, plural, one {# minute} other {# minutes}}', { n: drops.claimMinutes }),
               },
             )}
           />
@@ -1269,7 +1269,9 @@ export function CollectionForm({
                 ? t('{percent}% of members', {
                     percent: Math.round((overview.collectors / memberCount) * 100),
                   })
-                : t.plural(overview.members, '{n} member card', '{n} member cards'),
+                : t('{n, plural, one {# member card} other {# member cards}}', {
+                    n: overview.members,
+                  }),
           },
           {
             label: t('Trades, 7 days'),

@@ -1,103 +1,108 @@
 import assert from 'node:assert/strict';
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
-import { pathToFileURL } from 'node:url';
-import { createTranslator, pickLang } from '../lib/i18n';
-import { messages } from '../lib/i18n/messages';
-import { messagesEs } from '../lib/i18n/messages-es';
+import { IntlMessageFormat } from 'intl-messageformat';
+import { createTranslator, languages, pickLang, type Table } from '../lib/i18n';
+import { areas } from '../lib/i18n/messages';
 
-const root = join(import.meta.dirname, '..', 'lib', 'i18n');
+const root = join(import.meta.dirname, '..', 'locales');
 
-async function catalogs(lang = 'de'): Promise<[string, Record<string, string>][]> {
-  const dir = join(root, lang);
-  const files = readdirSync(dir).filter((name) => name.endsWith('.ts'));
-  return Promise.all(
-    files.map(async (name) => {
-      const module = (await import(pathToFileURL(join(dir, name)).href)) as Record<
-        string,
-        Record<string, string>
-      >;
-      return [name, Object.values(module)[0] ?? {}] as [string, Record<string, string>];
-    }),
-  );
+function table(lang: string, area: string): Record<string, string> | null {
+  try {
+    return JSON.parse(readFileSync(join(root, lang, `${area}.json`), 'utf8'));
+  } catch {
+    return null;
+  }
 }
 
-function placeholders(text: string): string[] {
-  return [...text.matchAll(/\{(\w+)\}/g)].map((match) => match[1] ?? '').sort();
+function merged(lang: string): Table {
+  return Object.assign({}, ...areas.map((area) => table(lang, area) ?? {}));
 }
 
-describe('german catalog', () => {
-  it('keeps the placeholders of every key', () => {
-    for (const [key, value] of Object.entries(messages)) {
-      assert.deepEqual(placeholders(value), placeholders(key), key);
+function argumentNames(text: string): Set<string> {
+  const names = new Set<string>();
+  const walk = (elements: readonly unknown[]): void => {
+    for (const element of elements) {
+      if (!element || typeof element !== 'object') continue;
+      const node = element as {
+        type?: number;
+        value?: unknown;
+        options?: Record<string, { value: unknown[] }>;
+        children?: unknown[];
+      };
+      if (node.type !== 0 && typeof node.value === 'string') names.add(node.value);
+      for (const option of Object.values(node.options ?? {})) walk(option.value);
+      if (node.children) walk(node.children);
+    }
+  };
+  walk(new IntlMessageFormat(text, 'en', undefined, { ignoreTag: true }).getAst());
+  return names;
+}
+
+describe('catalog files', () => {
+  it('has a file for every area and nothing else', () => {
+    const files = readdirSync(join(root, 'en')).map((name) => name.replace(/\.json$/, ''));
+    assert.deepEqual(files.sort(), [...areas].sort());
+  });
+
+  it('uses the English text as key and value', () => {
+    for (const area of areas) {
+      for (const [key, value] of Object.entries(table('en', area) ?? {})) {
+        assert.equal(value, key, `${area}: ${key}`);
+      }
     }
   });
 
-  it('gives a shared key the same text in every file', async () => {
-    const seen = new Map<string, { file: string; value: string }>();
-    const clashes: string[] = [];
-    for (const [file, table] of await catalogs()) {
-      for (const [key, value] of Object.entries(table)) {
-        const first = seen.get(key);
-        if (!first) seen.set(key, { file, value });
-        else if (first.value !== value) {
-          clashes.push(`${key}: ${first.file} "${first.value}", ${file} "${value}"`);
+  for (const lang of languages.filter((code) => code !== 'en')) {
+    describe(lang, () => {
+      it('only holds keys the English files know', () => {
+        for (const area of areas) {
+          const english = table('en', area) ?? {};
+          for (const key of Object.keys(table(lang, area) ?? {})) {
+            assert.ok(key in english, `${area}: ${key}`);
+          }
         }
-      }
-    }
-    assert.deepEqual(clashes, []);
-  });
+      });
 
-  it('spreads every file into the table', async () => {
-    for (const [file, table] of await catalogs()) {
-      for (const key of Object.keys(table)) {
-        assert.ok(key in messages, `${key} from ${file}`);
-      }
-    }
-  });
-
-  it('uses no dashes, middle dots or emoji', () => {
-    for (const [key, value] of Object.entries(messages)) {
-      assert.doesNotMatch(value, /[–—·•]|\p{Extended_Pictographic}/u, key);
-      assert.notEqual(value.trim(), '', key);
-    }
-  });
-});
-
-describe('spanish catalog', () => {
-  it('translates every german key', () => {
-    const missing = Object.keys(messages).filter((key) => !(key in messagesEs));
-    assert.deepEqual(missing, []);
-  });
-
-  it('keeps the placeholders of every key', () => {
-    for (const [key, value] of Object.entries(messagesEs)) {
-      assert.deepEqual(placeholders(value), placeholders(key), key);
-    }
-  });
-
-  it('gives a shared key the same text in every file', async () => {
-    const seen = new Map<string, { file: string; value: string }>();
-    const clashes: string[] = [];
-    for (const [file, table] of await catalogs('es')) {
-      for (const [key, value] of Object.entries(table)) {
-        const first = seen.get(key);
-        if (!first) seen.set(key, { file, value });
-        else if (first.value !== value) {
-          clashes.push(`${key}: ${first.file} "${first.value}", ${file} "${value}"`);
+      it('keeps valid messages with known placeholders', () => {
+        for (const area of areas) {
+          for (const [key, value] of Object.entries(table(lang, area) ?? {})) {
+            const allowed = argumentNames(key);
+            let names: Set<string>;
+            try {
+              names = argumentNames(value);
+            } catch {
+              assert.fail(`${area}: broken message ${value}`);
+            }
+            for (const name of names)
+              assert.ok(allowed.has(name), `${area}: {${name}} in ${value}`);
+          }
         }
-      }
-    }
-    assert.deepEqual(clashes, []);
-  });
+      });
 
-  it('uses no dashes, middle dots or emoji', () => {
-    for (const [key, value] of Object.entries(messagesEs)) {
-      assert.doesNotMatch(value, /[–—·•]|\p{Extended_Pictographic}/u, key);
-      assert.notEqual(value.trim(), '', key);
-    }
-  });
+      it('gives a shared key the same text in every file', () => {
+        const seen = new Map<string, { area: string; value: string }>();
+        const clashes: string[] = [];
+        for (const area of areas) {
+          for (const [key, value] of Object.entries(table(lang, area) ?? {})) {
+            const first = seen.get(key);
+            if (!first) seen.set(key, { area, value });
+            else if (first.value !== value) {
+              clashes.push(`${key}: ${first.area} "${first.value}", ${area} "${value}"`);
+            }
+          }
+        }
+        assert.deepEqual(clashes, []);
+      });
+
+      it('uses no dashes, middle dots or emoji', () => {
+        for (const [key, value] of Object.entries(merged(lang))) {
+          assert.doesNotMatch(value, /[–—·•]|\p{Extended_Pictographic}/u, key);
+        }
+      });
+    });
+  }
 });
 
 describe('translator', () => {
@@ -107,18 +112,21 @@ describe('translator', () => {
     assert.equal(pickLang(null), 'en');
   });
 
-  it('fills placeholders and formats numbers', () => {
+  it('fills placeholders, plurals and numbers', () => {
     const en = createTranslator('en', null);
-    const de = createTranslator('de', messages);
-    assert.equal(en.plural(1, '{n} member', '{n} members'), '1 member');
-    assert.equal(en.plural(1200, '{n} member', '{n} members'), '1,200 members');
-    assert.equal(de.plural(1200, '{n} member', '{n} members'), '1.200 Mitglieder');
+    const de = createTranslator('de', merged('de'));
+    const members = '{n, plural, one {# member} other {# members}}';
+    assert.equal(en(members, { n: 1 }), '1 member');
+    assert.equal(en(members, { n: 1200 }), '1,200 members');
+    assert.equal(de(members, { n: 1200 }), '1.200 Mitglieder');
     assert.equal(de('Page {number}', { number: 3 }), 'Seite 3');
     assert.equal(de.list(['a', 'b', 'c']), 'a, b und c');
   });
 
-  it('falls back to the english text', () => {
-    const de = createTranslator('de', messages);
+  it('falls back to the English text', () => {
+    const de = createTranslator('de', { 'Page {number}': '', '{n} left': '{n, plural, one {' });
     assert.equal(de.raw('Not a known key.'), 'Not a known key.');
+    assert.equal(de.raw('Page {number}', { number: 2 }), 'Page 2');
+    assert.equal(de.raw('{n} left', { n: 2 }), '2 left');
   });
 });

@@ -83,7 +83,9 @@ function durationOf(t: Translator, view: CaseView, now: string, expiryDays: numb
     if (expiryDays === null) return t('Never expires');
     const left = new Date(view.createdAt).getTime() + expiryDays * DAY - new Date(now).getTime();
     return left > 0
-      ? t.plural(Math.ceil(left / DAY), 'Expires in {n} day', 'Expires in {n} days')
+      ? t('{n, plural, one {Expires in # day} other {Expires in # days}}', {
+          n: Math.ceil(left / DAY),
+        })
       : t('Expired');
   }
   return t('None');

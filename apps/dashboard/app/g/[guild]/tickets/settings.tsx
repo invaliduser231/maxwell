@@ -25,14 +25,16 @@ const delaySeconds = [0, 10, 30, 60, 300];
 
 function idleLabel(t: Translator, hours: number): string {
   if (hours === 0) return t('Never');
-  if (hours % 24 === 0 && hours > 48) return t.plural(hours / 24, '{n} day', '{n} days');
-  return t.plural(hours, '{n} hour', '{n} hours');
+  if (hours % 24 === 0 && hours > 48)
+    return t('{n, plural, one {# day} other {# days}}', { n: hours / 24 });
+  return t('{n, plural, one {# hour} other {# hours}}', { n: hours });
 }
 
 function delayLabel(t: Translator, seconds: number): string {
   if (seconds === 0) return t('Right away');
-  if (seconds % 60 === 0) return t.plural(seconds / 60, '{n} minute', '{n} minutes');
-  return t.plural(seconds, '{n} second', '{n} seconds');
+  if (seconds % 60 === 0)
+    return t('{n, plural, one {# minute} other {# minutes}}', { n: seconds / 60 });
+  return t('{n, plural, one {# second} other {# seconds}}', { n: seconds });
 }
 
 function withCurrent(

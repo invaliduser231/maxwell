@@ -44,18 +44,24 @@ export function tallyText(
   },
 ): string {
   const parts = [
-    tally.joins > 0 ? t.plural(tally.joins, '{n} join', '{n} joins') : null,
-    tally.bans > 0 ? t.plural(tally.bans, '{n} ban', '{n} bans') : null,
-    tally.kicks > 0 ? t.plural(tally.kicks, '{n} kick', '{n} kicks') : null,
-    tally.timeouts > 0 ? t.plural(tally.timeouts, '{n} timeout', '{n} timeouts') : null,
+    tally.joins > 0 ? t('{n, plural, one {# join} other {# joins}}', { n: tally.joins }) : null,
+    tally.bans > 0 ? t('{n, plural, one {# ban} other {# bans}}', { n: tally.bans }) : null,
+    tally.kicks > 0 ? t('{n, plural, one {# kick} other {# kicks}}', { n: tally.kicks }) : null,
+    tally.timeouts > 0
+      ? t('{n, plural, one {# timeout} other {# timeouts}}', { n: tally.timeouts })
+      : null,
     tally.deleted > 0
-      ? t.plural(tally.deleted, '{n} deleted message', '{n} deleted messages')
+      ? t('{n, plural, one {# deleted message} other {# deleted messages}}', { n: tally.deleted })
       : null,
-    tally.hits > 0 ? t.plural(tally.hits, '{n} AutoMod hit', '{n} AutoMod hits') : null,
+    tally.hits > 0
+      ? t('{n, plural, one {# AutoMod hit} other {# AutoMod hits}}', { n: tally.hits })
+      : null,
     tally.channels > 0
-      ? t.plural(tally.channels, '{n} channel change', '{n} channel changes')
+      ? t('{n, plural, one {# channel change} other {# channel changes}}', { n: tally.channels })
       : null,
-    tally.roles > 0 ? t.plural(tally.roles, '{n} role change', '{n} role changes') : null,
+    tally.roles > 0
+      ? t('{n, plural, one {# role change} other {# role changes}}', { n: tally.roles })
+      : null,
   ].filter((part): part is string => part !== null);
   return parts.length > 0 ? t.list(parts) : t.raw('Nothing recorded');
 }
@@ -103,7 +109,9 @@ export function timelineText(t: Translator, event: TimelineEvent): string {
         plain: '{name} was timed out',
       });
     case 'delete':
-      return t.plural(event.count, '{n} message deleted', '{n} messages deleted');
+      return t('{n, plural, one {# message deleted} other {# messages deleted}}', {
+        n: event.count,
+      });
     case 'hit':
       return event.rule
         ? t.raw('AutoMod hit for {name} ({rule})', { name: member(t, event), rule: event.rule })

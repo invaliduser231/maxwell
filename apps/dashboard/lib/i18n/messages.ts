@@ -1,85 +1,129 @@
-import { access } from './de/access';
-import { audit } from './de/audit';
-import { automod } from './de/automod';
-import { backups } from './de/backups';
-import { cards } from './de/cards';
-import { collection } from './de/collection';
-import { commands } from './de/commands';
-import { common } from './de/common';
-import { counters } from './de/counters';
-import { economy } from './de/economy';
-import { errors } from './de/errors';
-import { events } from './de/events';
-import { feeds } from './de/feeds';
-import { forms } from './de/forms';
-import { games } from './de/games';
-import { general } from './de/general';
-import { giveaways } from './de/giveaways';
-import { inbox } from './de/inbox';
-import { insights } from './de/insights';
-import { invites } from './de/invites';
-import { landing } from './de/landing';
-import { levels } from './de/levels';
-import { logs } from './de/logs';
-import { members } from './de/members';
-import { moderation } from './de/moderation';
-import { overview } from './de/overview';
-import { pages } from './de/pages';
-import { publicPage } from './de/public';
-import { roles } from './de/roles';
-import { scheduler } from './de/scheduler';
-import { security } from './de/security';
-import { shield } from './de/shield';
-import { starboard } from './de/starboard';
-import { start } from './de/start';
-import { suggestions } from './de/suggestions';
-import { support } from './de/support';
-import { templates } from './de/templates';
-import { tickets } from './de/tickets';
-import { time } from './de/time';
-import { voice } from './de/voice';
-import { welcome } from './de/welcome';
+import access from '@/locales/en/access.json';
+import audit from '@/locales/en/audit.json';
+import automod from '@/locales/en/automod.json';
+import backups from '@/locales/en/backups.json';
+import cards from '@/locales/en/cards.json';
+import collection from '@/locales/en/collection.json';
+import commands from '@/locales/en/commands.json';
+import common from '@/locales/en/common.json';
+import counters from '@/locales/en/counters.json';
+import economy from '@/locales/en/economy.json';
+import errors from '@/locales/en/errors.json';
+import events from '@/locales/en/events.json';
+import feeds from '@/locales/en/feeds.json';
+import forms from '@/locales/en/forms.json';
+import games from '@/locales/en/games.json';
+import general from '@/locales/en/general.json';
+import giveaways from '@/locales/en/giveaways.json';
+import inbox from '@/locales/en/inbox.json';
+import insights from '@/locales/en/insights.json';
+import invites from '@/locales/en/invites.json';
+import landing from '@/locales/en/landing.json';
+import levels from '@/locales/en/levels.json';
+import logs from '@/locales/en/logs.json';
+import members from '@/locales/en/members.json';
+import moderation from '@/locales/en/moderation.json';
+import overview from '@/locales/en/overview.json';
+import pages from '@/locales/en/pages.json';
+import publicPage from '@/locales/en/public.json';
+import roles from '@/locales/en/roles.json';
+import scheduler from '@/locales/en/scheduler.json';
+import security from '@/locales/en/security.json';
+import shield from '@/locales/en/shield.json';
+import starboard from '@/locales/en/starboard.json';
+import start from '@/locales/en/start.json';
+import suggestions from '@/locales/en/suggestions.json';
+import support from '@/locales/en/support.json';
+import templates from '@/locales/en/templates.json';
+import tickets from '@/locales/en/tickets.json';
+import time from '@/locales/en/time.json';
+import voice from '@/locales/en/voice.json';
+import welcome from '@/locales/en/welcome.json';
+
+export const areas = [
+  'access',
+  'audit',
+  'automod',
+  'backups',
+  'cards',
+  'collection',
+  'commands',
+  'common',
+  'counters',
+  'economy',
+  'errors',
+  'events',
+  'feeds',
+  'forms',
+  'games',
+  'general',
+  'giveaways',
+  'inbox',
+  'insights',
+  'invites',
+  'landing',
+  'levels',
+  'logs',
+  'members',
+  'moderation',
+  'overview',
+  'pages',
+  'public',
+  'roles',
+  'scheduler',
+  'security',
+  'shield',
+  'starboard',
+  'start',
+  'suggestions',
+  'support',
+  'templates',
+  'tickets',
+  'time',
+  'voice',
+  'welcome',
+] as const;
 
 export const messages = {
-  ...time,
-  ...pages,
-  ...security,
-  ...common,
-  ...errors,
-  ...start,
-  ...landing,
-  ...overview,
-  ...audit,
   ...access,
+  ...audit,
   ...automod,
   ...backups,
-  ...templates,
   ...cards,
   ...collection,
   ...commands,
+  ...common,
+  ...counters,
   ...economy,
+  ...errors,
   ...events,
   ...feeds,
   ...forms,
   ...games,
   ...general,
-  ...publicPage,
   ...giveaways,
+  ...inbox,
   ...insights,
   ...invites,
+  ...landing,
+  ...levels,
+  ...logs,
   ...members,
   ...moderation,
-  ...inbox,
-  ...tickets,
-  ...support,
-  ...scheduler,
+  ...overview,
+  ...pages,
+  ...publicPage,
   ...roles,
-  ...levels,
-  ...suggestions,
-  ...welcome,
-  ...starboard,
-  ...counters,
-  ...voice,
-  ...logs,
+  ...scheduler,
+  ...security,
   ...shield,
-} as const;
+  ...starboard,
+  ...start,
+  ...suggestions,
+  ...support,
+  ...templates,
+  ...tickets,
+  ...time,
+  ...voice,
+  ...welcome,
+};

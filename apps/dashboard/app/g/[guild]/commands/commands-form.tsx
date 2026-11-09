@@ -188,7 +188,7 @@ function CommandList({
                 {name}
               </span>
               <span className="mx-sub">
-                {`${t(kindNames[command.trigger])}, ${t.plural(uses, 'used {n} time', 'used {n} times')}`}
+                {`${t(kindNames[command.trigger])}, ${t('{n, plural, one {used # time} other {used # times}}', { n: uses })}`}
               </span>
             </button>
             <Switch

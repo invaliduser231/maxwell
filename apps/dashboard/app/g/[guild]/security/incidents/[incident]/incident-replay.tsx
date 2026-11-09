@@ -278,7 +278,9 @@ export function IncidentReplay({ detail, canEdit }: { detail: IncidentDetail; ca
               {canEdit ? (
                 <div className="mx-inline">
                   <TwoStep
-                    label={t.plural(selected, 'Undo {n} action', 'Undo {n} actions')}
+                    label={t('{n, plural, one {Undo # action} other {Undo # actions}}', {
+                      n: selected,
+                    })}
                     primary
                     disabled={busy || selected === 0}
                     run={runUndo}

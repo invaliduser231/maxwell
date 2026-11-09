@@ -72,7 +72,7 @@ function localMs(value: string, timezone: string): number {
 }
 
 function entryCount(t: Translator, n: number): string {
-  return t.plural(n, '{n} entry', '{n} entries');
+  return t('{n, plural, one {# entry} other {# entries}}', { n: n });
 }
 
 function useJob() {
@@ -155,7 +155,9 @@ function ActivePanel({ active, now }: { active: Active[]; now: number }) {
                 item.requiredRoleId ? roleName(item.requiredRoleId) : '',
                 item.excludedRoleId ? t('Not {role}', { role: roleName(item.excludedRoleId) }) : '',
                 item.minLevel > 0 ? t('Level {level}', { level: item.minLevel }) : '',
-                item.minMemberDays > 0 ? t.plural(item.minMemberDays, '{n} day', '{n} days') : '',
+                item.minMemberDays > 0
+                  ? t('{n, plural, one {# day} other {# days}}', { n: item.minMemberDays })
+                  : '',
               ].filter(Boolean);
               return (
                 <tr key={item.id}>
@@ -501,7 +503,9 @@ function NewGiveaway({
             {more ? t('Fewer options') : t('More options')}
           </button>
           {!more && extras > 0 ? (
-            <span className="mx-sub">{t.plural(extras, '{n} option set', '{n} options set')}</span>
+            <span className="mx-sub">
+              {t('{n, plural, one {# option set} other {# options set}}', { n: extras })}
+            </span>
           ) : null}
         </div>
       </PanelBody>
@@ -655,10 +659,12 @@ function PreviewPanel({ form, host }: { form: Draft; host: string }) {
     form.requiredRoleId ? t('role {name}', { name: roleName(form.requiredRoleId) }) : '',
     form.minLevel > 0 ? t('level {level}', { level: form.minLevel }) : '',
     form.minMemberDays > 0
-      ? t.plural(form.minMemberDays, 'member for {n} day', 'member for {n} days')
+      ? t('{n, plural, one {member for # day} other {member for # days}}', {
+          n: form.minMemberDays,
+        })
       : '',
   ].filter(Boolean);
-  const winners = t.plural(form.winners, '{n} winner.', '{n} winners.');
+  const winners = t('{n, plural, one {# winner.} other {# winners.}}', { n: form.winners });
   const ends =
     Number.isFinite(end) && end > start
       ? t('Ends {when}.', { when: fullDate(t, end, timezone) })
@@ -730,7 +736,10 @@ function HistoryPanel({ history, now }: { history: Ended[]; now: number }) {
             : t('Won by {names}', {
                 names: t.list(
                   extra > 0
-                    ? [...item.winners, t.plural(extra, '{n} other', '{n} others')]
+                    ? [
+                        ...item.winners,
+                        t('{n, plural, one {# other} other {# others}}', { n: extra }),
+                      ]
                     : item.winners,
                 ),
               });

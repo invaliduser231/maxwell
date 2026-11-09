@@ -30,7 +30,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={lang} className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <body>
-        <I18nProvider lang={lang} table={tableFor(lang)}>
+        <I18nProvider lang={lang} table={await tableFor(lang)}>
           {children}
         </I18nProvider>
       </body>

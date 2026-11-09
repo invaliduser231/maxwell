@@ -78,7 +78,9 @@ export function TranscriptView({
         span={8}
         id="tr-messages"
         actions={
-          <span className="mx-sub">{t.plural(messages.length, '{n} message', '{n} messages')}</span>
+          <span className="mx-sub">
+            {t('{n, plural, one {# message} other {# messages}}', { n: messages.length })}
+          </span>
         }
       >
         {messages.length === 0 ? (

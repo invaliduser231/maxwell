@@ -119,7 +119,7 @@ function typeNote(t: Translator, menu: RoleMenu): string | null {
     case 'binding':
       return t('Members pick once and cannot change.');
     case 'limit':
-      return t.plural(menu.limit, 'Up to {n} role.', 'Up to {n} roles.');
+      return t('{n, plural, one {Up to # role.} other {Up to # roles.}}', { n: menu.limit });
     default:
       return null;
   }
@@ -210,7 +210,7 @@ function MenuList({
     >
       {value.menus.map((menu, index) => {
         const live = posted.some((entry) => entry.menuId === menu.id);
-        const count = t.plural(menu.entries.length, '{n} role', '{n} roles');
+        const count = t('{n, plural, one {# role} other {# roles}}', { n: menu.entries.length });
         return (
           <div key={menu.id} className="mx-row">
             <button

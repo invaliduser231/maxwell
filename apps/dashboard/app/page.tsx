@@ -141,7 +141,9 @@ export default async function Landing() {
             </div>
             {count > 0 ? (
               <p style={{ margin: 0, fontSize: 14, color: 'var(--mx-muted)' }}>
-                {t.plural(count, 'Running in {n} community.', 'Running in {n} communities.')}
+                {t('{n, plural, one {Running in # community.} other {Running in # communities.}}', {
+                  n: count,
+                })}
               </p>
             ) : null}
           </div>

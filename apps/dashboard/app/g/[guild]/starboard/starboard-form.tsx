@@ -46,10 +46,10 @@ export interface Summary {
 
 type Period = 'week' | 'month' | 'all';
 
-const presets: { value: string; label: Key; one: Key; other: Key }[] = [
-  { value: '⭐', label: 'Star', one: '{n} star', other: '{n} stars' },
-  { value: '🔥', label: 'Fire', one: '{n} fire', other: '{n} fires' },
-  { value: '❤️', label: 'Heart', one: '{n} heart', other: '{n} hearts' },
+const presets: { value: string; label: Key; count: Key }[] = [
+  { value: '⭐', label: 'Star', count: '{n, plural, one {# star} other {# stars}}' },
+  { value: '🔥', label: 'Fire', count: '{n, plural, one {# fire} other {# fires}}' },
+  { value: '❤️', label: 'Heart', count: '{n, plural, one {# heart} other {# hearts}}' },
 ];
 
 const periods: { value: Period; label: Key }[] = [
@@ -107,8 +107,8 @@ function Preview({ post, author }: { post: TopPost | null; author: Author }) {
   const preset = presets.find((entry) => entry.value === value.emoji);
   const stars = Math.max(value.threshold, post?.stars ?? value.threshold);
   const word = preset
-    ? t.plural(stars, preset.one, preset.other)
-    : t.plural(stars, '{n} reaction', '{n} reactions');
+    ? t(preset.count, { n: stars })
+    : t('{n, plural, one {# reaction} other {# reactions}}', { n: stars });
   const where = post ? channelName(post.channelId) : '#general';
   return (
     <div className="mx-preview">
@@ -212,7 +212,7 @@ export function StarboardForm({
                 {channelName(summary.topChannel.id)}
               </span>
               <span className="mx-sub">
-                {t.plural(summary.topChannel.posts, '{n} post', '{n} posts')}
+                {t('{n, plural, one {# post} other {# posts}}', { n: summary.topChannel.posts })}
               </span>
             </div>
           ) : null}
@@ -221,7 +221,7 @@ export function StarboardForm({
               <span className="mx-stat-label">{t('Most starred member')}</span>
               <span className="mx-stat-value mx-ellipsis">{person(summary.topAuthor.id)}</span>
               <span className="mx-sub">
-                {t.plural(summary.topAuthor.posts, '{n} post', '{n} posts')}
+                {t('{n, plural, one {# post} other {# posts}}', { n: summary.topAuthor.posts })}
               </span>
             </div>
           ) : null}

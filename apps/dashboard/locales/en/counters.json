@@ -1,0 +1,23 @@
+{
+  "Counters": "Counters",
+  "Members: {count}": "Members: {count}",
+  "Online: {count}": "Online: {count}",
+  "Goal: {count} / {goal}": "Goal: {count} / {goal}",
+  "In voice: {count}": "In voice: {count}",
+  "Channels: {count}": "Channels: {count}",
+  "Roles: {count}": "Roles: {count}",
+  "{count} days to go": "{count} days to go",
+  "Online": "Online",
+  "Member goal": "Member goal",
+  "In voice": "In voice",
+  "Countdown": "Countdown",
+  "Add counter": "Add counter",
+  "Counts": "Counts",
+  "Goal": "Goal",
+  "Date": "Date",
+  "No counters yet.": "No counters yet.",
+  "{command} creates a locked voice channel for one.": "{command} creates a locked voice channel for one.",
+  "What {name} counts": "What {name} counts",
+  "Name of {name}": "Name of {name}",
+  "Use {count} for the number. Goals also know {goal} and {left}.": "Use {count} for the number. Goals also know {goal} and {left}."
+}

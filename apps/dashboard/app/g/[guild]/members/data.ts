@@ -86,7 +86,7 @@ function flagOf(t: Translator, row: MemberListRow): ListedMember['flag'] {
   if (row.review) return { text: t('Waiting for review'), color: '#3A9EEA' };
   if (row.activeWarns > 0) {
     return {
-      text: t.plural(row.activeWarns, '{n} active warn', '{n} active warns'),
+      text: t('{n, plural, one {# active warn} other {# active warns}}', { n: row.activeWarns }),
       color: YELLOW,
     };
   }
@@ -287,11 +287,17 @@ export async function loadFile(
     risk.push(t('Changed names {count} times this month.', { count: recentNames.length }));
   }
   if (summary.activeWarns > 0) {
-    risk.push(t.plural(summary.activeWarns, '{n} active warning.', '{n} active warnings.'));
+    risk.push(
+      t('{n, plural, one {# active warning.} other {# active warnings.}}', {
+        n: summary.activeWarns,
+      }),
+    );
   }
   const bans = summary.actions.ban ?? 0;
   if (bans > 0) {
-    risk.push(t.plural(bans, 'Banned here before.', 'Banned here {n} times before.'));
+    risk.push(
+      t('{n, plural, one {Banned here before.} other {Banned here # times before.}}', { n: bans }),
+    );
   }
 
   const timeline: TimelineItem[] = [];

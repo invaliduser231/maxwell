@@ -328,7 +328,7 @@ export function AuditView({
               <span className="mx-sub">
                 {more
                   ? t('{count}+ entries', { count: rows.length })
-                  : t.plural(rows.length, '{n} change', '{n} changes')}
+                  : t('{n, plural, one {# change} other {# changes}}', { n: rows.length })}
               </span>
             )}
           </div>

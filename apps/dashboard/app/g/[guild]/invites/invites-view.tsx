@@ -113,7 +113,7 @@ function Stats({ summary, campaignJoins }: { summary: InviteSummary; campaignJoi
 function since(t: Translator, from: string, to: number): string {
   const days = Math.floor((to - Date.parse(from)) / DAY);
   if (days < 1) return t('less than a day');
-  return t.plural(days, '{n} day', '{n} days');
+  return t('{n, plural, one {# day} other {# days}}', { n: days });
 }
 
 function Figure({ label, children }: { label: string; children: ReactNode }) {

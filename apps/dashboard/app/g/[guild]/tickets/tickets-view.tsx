@@ -98,7 +98,9 @@ function Stats({ overview }: { overview: TicketOverview }) {
               minimumFractionDigits: 1,
               maximumFractionDigits: 1,
             }),
-      note: overview.ratings ? t.plural(overview.ratings, '{n} rating', '{n} ratings') : null,
+      note: overview.ratings
+        ? t('{n, plural, one {# rating} other {# ratings}}', { n: overview.ratings })
+        : null,
     },
   ];
   return (
@@ -598,7 +600,7 @@ function Ratings({ overview }: { overview: TicketOverview }) {
         <div className="mx-panel-body">
           {[5, 4, 3, 2, 1].map((stars) => {
             const count = counts[stars - 1] ?? 0;
-            const label = t.plural(stars, '{n} star', '{n} stars');
+            const label = t('{n, plural, one {# star} other {# stars}}', { n: stars });
             return (
               <div key={stars} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span className="mx-sub" style={{ width: 60 }}>

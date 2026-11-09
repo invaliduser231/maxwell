@@ -35,7 +35,7 @@ export function ruleLabel(t: Translator, rule: ScheduleRule, order: readonly Wee
       return t('every {days} at {time}', { days: days.join(', '), time: rule.time });
     }
     case 'interval':
-      return t.plural(rule.hours, 'every hour', 'every {n} hours');
+      return t('{n, plural, one {every hour} other {every # hours}}', { n: rule.hours });
   }
 }
 

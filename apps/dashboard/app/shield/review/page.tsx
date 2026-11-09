@@ -84,7 +84,7 @@ export default async function ShieldReviewPage() {
                         name: who(decision.operator),
                         date: fullDate(t, decision.createdAt, 'UTC'),
                       }),
-                      t.plural(decision.records, '{n} record', '{n} records'),
+                      t('{n, plural, one {# record} other {# records}}', { n: decision.records }),
                       decision.note,
                     ]
                       .filter(Boolean)

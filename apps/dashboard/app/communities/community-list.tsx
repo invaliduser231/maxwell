@@ -112,7 +112,7 @@ export function CommunityList({ communities }: { communities: Community[] }) {
                 <span className="mx-row-title mx-ellipsis">{entry.name}</span>
                 {entry.members !== null ? (
                   <span className="mx-sub">
-                    {t.plural(entry.members, '{n} member', '{n} members')}
+                    {t('{n, plural, one {# member} other {# members}}', { n: entry.members })}
                   </span>
                 ) : null}
               </div>

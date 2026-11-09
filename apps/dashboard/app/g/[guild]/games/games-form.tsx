@@ -70,7 +70,8 @@ const SLOTS = ['a', 'b', 'c', 'd'] as const;
 const seconds = [10, 15, 20, 30, 45, 60, 90, 120, 180, 300];
 
 function secondsLabel(t: Translator, n: number): string {
-  if (n >= 60 && n % 60 === 0) return t.plural(n / 60, '{n} minute', '{n} minutes');
+  if (n >= 60 && n % 60 === 0)
+    return t('{n, plural, one {# minute} other {# minutes}}', { n: n / 60 });
   return t('{count} seconds', { count: n });
 }
 
@@ -345,10 +346,9 @@ function TriviaEditor({ economy }: { economy: EconomyView }) {
       }
       set({ trivia: { ...trivia, questions: [...questions, ...added] } });
       setStatus({
-        message: t.plural(
-          added.length,
-          '{n} question added. Save to keep it.',
-          '{n} questions added. Save to keep them.',
+        message: t(
+          '{n, plural, one {# question added. Save to keep it.} other {# questions added. Save to keep them.}}',
+          { n: added.length },
         ),
         error: false,
       });
@@ -386,7 +386,7 @@ function TriviaEditor({ economy }: { economy: EconomyView }) {
       </PanelBody>
       <Section
         title={t('Questions')}
-        aside={t.plural(questions.length, '{n} question', '{n} questions')}
+        aside={t('{n, plural, one {# question} other {# questions}}', { n: questions.length })}
       />
       {questions.length === 0 ? <Empty mood="thinking">{t('No questions yet.')}</Empty> : null}
       {shown.map((entry) => {
@@ -771,7 +771,7 @@ function BoardPanel({ board }: { board: Record<string, BoardRow[]> }) {
   const rows = board[tab] ?? [];
   const detail = (row: BoardRow) => {
     if (tab === 'all') {
-      return `${t(gameNames[row.game])}, ${t.plural(row.best, '{n} win', '{n} wins')}`;
+      return `${t(gameNames[row.game])}, ${t('{n, plural, one {# win} other {# wins}}', { n: row.best })}`;
     }
     if (tab === 'higherlower') return t('{count} played', { count: row.plays });
     if (tab === 'counting') return t('Highest {count}', { count: row.best });
@@ -780,9 +780,10 @@ function BoardPanel({ board }: { board: Record<string, BoardRow[]> }) {
   };
   const score = (row: BoardRow) => {
     if (tab === 'higherlower') return t('{count} streak', { count: row.best });
-    if (tab === 'counting') return t.plural(row.wins, '{n} number', '{n} numbers');
-    if (tab === 'wordchain') return t.plural(row.wins, '{n} word', '{n} words');
-    return t.plural(row.wins, '{n} win', '{n} wins');
+    if (tab === 'counting')
+      return t('{n, plural, one {# number} other {# numbers}}', { n: row.wins });
+    if (tab === 'wordchain') return t('{n, plural, one {# word} other {# words}}', { n: row.wins });
+    return t('{n, plural, one {# win} other {# wins}}', { n: row.wins });
   };
 
   const played = Object.values(board).some((entries) => entries.length > 0);

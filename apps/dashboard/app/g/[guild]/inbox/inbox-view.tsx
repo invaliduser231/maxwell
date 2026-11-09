@@ -449,10 +449,9 @@ function DetailPanel({
 
         {detail.held !== null ? (
           <p style={{ margin: 0 }}>
-            {t.plural(
-              detail.held,
-              '{n} member waiting at the gate',
-              '{n} members waiting at the gate',
+            {t(
+              '{n, plural, one {# member waiting at the gate} other {# members waiting at the gate}}',
+              { n: detail.held },
             )}
           </p>
         ) : null}

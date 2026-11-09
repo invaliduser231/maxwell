@@ -113,10 +113,12 @@ function summary(t: Translator, key: AutomodRuleKey, rules: Rules): string {
     case 'links': {
       const count = rules.links.domains.length;
       if (rules.links.listMode === 'allow') {
-        return t.plural(count, 'Only {n} allowed domain', 'Only {n} allowed domains');
+        return t('{n, plural, one {Only # allowed domain} other {Only # allowed domains}}', {
+          n: count,
+        });
       }
       return count > 0
-        ? t.plural(count, '{n} blocked domain', '{n} blocked domains')
+        ? t('{n, plural, one {# blocked domain} other {# blocked domains}}', { n: count })
         : t('No domains listed yet');
     }
     case 'mentions':
@@ -128,10 +130,9 @@ function summary(t: Translator, key: AutomodRuleKey, rules: Rules): string {
       });
     case 'words':
       return rules.words.patterns.length > 0
-        ? t.plural(
-            rules.words.patterns.length,
-            '{n} pattern, wildcards allowed',
-            '{n} patterns, wildcards allowed',
+        ? t(
+            '{n, plural, one {# pattern, wildcards allowed} other {# patterns, wildcards allowed}}',
+            { n: rules.words.patterns.length },
           )
         : t('No patterns yet');
     case 'repeats':
@@ -253,12 +254,14 @@ function Gate({ initial }: { initial: GateView }) {
   let detail: string;
   if (active && held > 0) {
     title = gate.incident
-      ? t.plural(
-          held,
-          'Raid shield held {n} account at the gate',
-          'Raid shield held {n} accounts at the gate',
+      ? t(
+          '{n, plural, one {Raid shield held # account at the gate} other {Raid shield held # accounts at the gate}}',
+          { n: held },
         )
-      : t.plural(held, '{n} account waiting at the gate', '{n} accounts waiting at the gate');
+      : t(
+          '{n, plural, one {# account waiting at the gate} other {# accounts waiting at the gate}}',
+          { n: held },
+        );
     const started = inSentence(
       t,
       dayTime(t, gate.incident?.startedAt ?? gate.held[0]?.heldAt ?? gate.now, gate.now, timezone),
@@ -371,7 +374,9 @@ function Gate({ initial }: { initial: GateView }) {
           {held > gate.held.length ? (
             <div className="mx-panel-body" style={{ borderTop: '1px solid var(--mx-line)' }}>
               <span className="mx-sub">
-                {t.plural(held - gate.held.length, '{n} more account', '{n} more accounts')}
+                {t('{n, plural, one {# more account} other {# more accounts}}', {
+                  n: held - gate.held.length,
+                })}
               </span>
             </div>
           ) : null}

@@ -54,11 +54,11 @@ function kindText(t: Translator, snapshot: SnapshotRow): string {
 
 function counts(t: Translator, snapshot: SnapshotRow): string {
   const parts = [
-    t.plural(snapshot.roleCount, '{n} role', '{n} roles'),
-    t.plural(snapshot.channelCount, '{n} channel', '{n} channels'),
+    t('{n, plural, one {# role} other {# roles}}', { n: snapshot.roleCount }),
+    t('{n, plural, one {# channel} other {# channels}}', { n: snapshot.channelCount }),
   ];
   if (snapshot.moduleCount > 0) {
-    parts.push(t.plural(snapshot.moduleCount, '{n} module', '{n} modules'));
+    parts.push(t('{n, plural, one {# module} other {# modules}}', { n: snapshot.moduleCount }));
   }
   return parts.join(', ');
 }
@@ -257,7 +257,7 @@ function Snapshots({
               value={String(value.retentionDays)}
               options={withCurrent(KEEP_DAYS, value.retentionDays).map((days) => ({
                 value: String(days),
-                label: t.plural(days, '{n} day', '{n} days'),
+                label: t('{n, plural, one {# day} other {# days}}', { n: days }),
               }))}
               onChange={(next) => set({ retentionDays: Number(next) })}
             />
@@ -361,7 +361,9 @@ function Changes({
             : t('Changes')}
         </h2>
         {diff ? (
-          <span className="mx-sub">{t.plural(items.length, '{n} change', '{n} changes')}</span>
+          <span className="mx-sub">
+            {t('{n, plural, one {# change} other {# changes}}', { n: items.length })}
+          </span>
         ) : null}
       </div>
       {diff && items.length === 0 ? (
@@ -544,8 +546,10 @@ function Import({
           } else if (created) {
             const parts = [
               t('Created {roles} and {channels}.', {
-                roles: t.plural(created.roles, '{n} role', '{n} roles'),
-                channels: t.plural(created.channels, '{n} channel', '{n} channels'),
+                roles: t('{n, plural, one {# role} other {# roles}}', { n: created.roles }),
+                channels: t('{n, plural, one {# channel} other {# channels}}', {
+                  n: created.channels,
+                }),
               }),
             ];
             if (created.failed > 0) parts.push(t('{count} failed.', { count: created.failed }));
@@ -611,7 +615,9 @@ function Import({
                 {view.name ? <span className="mx-row-title">{view.name}</span> : null}
                 {view.skipped > 0 ? (
                   <span className="mx-sub">
-                    {t.plural(view.skipped, '{n} item skipped', '{n} items skipped')}
+                    {t('{n, plural, one {# item skipped} other {# items skipped}}', {
+                      n: view.skipped,
+                    })}
                   </span>
                 ) : null}
               </div>
@@ -771,7 +777,9 @@ function Publish({
             <Link href={`/templates/${card.id}`} className="mx-row-title">
               {card.title}
             </Link>
-            <span className="mx-sub">{t.plural(card.uses, 'Used {n} time', 'Used {n} times')}</span>
+            <span className="mx-sub">
+              {t('{n, plural, one {Used # time} other {Used # times}}', { n: card.uses })}
+            </span>
           </div>
           {readOnly ? null : (
             <TwoStep

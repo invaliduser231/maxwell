@@ -163,29 +163,31 @@ export function until(t: Translator, at: Moment, now: Moment, timeZone: string):
 }
 
 function minutes(t: Translator, value: number): string {
-  return t.plural(value, '{n} minute', '{n} minutes');
+  return t('{n, plural, one {# minute} other {# minutes}}', { n: value });
 }
 
 function hours(t: Translator, value: number): string {
-  return t.plural(value, '{n} hour', '{n} hours');
+  return t('{n, plural, one {# hour} other {# hours}}', { n: value });
 }
 
 function days(t: Translator, value: number): string {
-  return t.plural(value, '{n} day', '{n} days');
+  return t('{n, plural, one {# day} other {# days}}', { n: value });
 }
 
 type Unit = 'minute' | 'hour' | 'day';
 
 function past(t: Translator, unit: Unit, value: number): string {
-  if (unit === 'minute') return t.plural(value, '{n} minute ago', '{n} minutes ago');
-  if (unit === 'hour') return t.plural(value, '{n} hour ago', '{n} hours ago');
-  return t.plural(value, '{n} day ago', '{n} days ago');
+  if (unit === 'minute')
+    return t('{n, plural, one {# minute ago} other {# minutes ago}}', { n: value });
+  if (unit === 'hour') return t('{n, plural, one {# hour ago} other {# hours ago}}', { n: value });
+  return t('{n, plural, one {# day ago} other {# days ago}}', { n: value });
 }
 
 function future(t: Translator, unit: Unit, value: number): string {
-  if (unit === 'minute') return t.plural(value, 'in {n} minute', 'in {n} minutes');
-  if (unit === 'hour') return t.plural(value, 'in {n} hour', 'in {n} hours');
-  return t.plural(value, 'in {n} day', 'in {n} days');
+  if (unit === 'minute')
+    return t('{n, plural, one {in # minute} other {in # minutes}}', { n: value });
+  if (unit === 'hour') return t('{n, plural, one {in # hour} other {in # hours}}', { n: value });
+  return t('{n, plural, one {in # day} other {in # days}}', { n: value });
 }
 
 export function ago(t: Translator, at: Moment, now: Moment, timeZone?: string): string {
@@ -240,9 +242,13 @@ export function since(t: Translator, ms: number): string {
   if (ms < 2 * DAY) return past(t, 'hour', Math.floor(ms / HOUR));
   if (ms < 60 * DAY) return past(t, 'day', Math.floor(ms / DAY));
   if (ms < 730 * DAY) {
-    return t.plural(Math.floor(ms / (30 * DAY)), '{n} month ago', '{n} months ago');
+    return t('{n, plural, one {# month ago} other {# months ago}}', {
+      n: Math.floor(ms / (30 * DAY)),
+    });
   }
-  return t.plural(Math.floor(ms / (365 * DAY)), '{n} year ago', '{n} years ago');
+  return t('{n, plural, one {# year ago} other {# years ago}}', {
+    n: Math.floor(ms / (365 * DAY)),
+  });
 }
 
 export function waited(t: Translator, at: Moment, now: Moment): string {
@@ -253,8 +259,8 @@ export function waited(t: Translator, at: Moment, now: Moment): string {
 }
 
 const units: [(t: Translator, value: number) => string, number][] = [
-  [(t, value) => t.plural(value, '{n} year', '{n} years'), 365 * DAY],
-  [(t, value) => t.plural(value, '{n} week', '{n} weeks'), 7 * DAY],
+  [(t, value) => t('{n, plural, one {# year} other {# years}}', { n: value }), 365 * DAY],
+  [(t, value) => t('{n, plural, one {# week} other {# weeks}}', { n: value }), 7 * DAY],
   [days, DAY],
   [hours, HOUR],
   [minutes, MINUTE],
@@ -278,8 +284,9 @@ export function age(t: Translator, ms: number): string {
   if (ms < HOUR) return minutes(t, Math.max(1, Math.floor(ms / MINUTE)));
   if (ms < 2 * DAY) return hours(t, Math.floor(ms / HOUR));
   if (ms < 60 * DAY) return days(t, Math.floor(ms / DAY));
-  if (ms < 730 * DAY) return t.plural(Math.floor(ms / (30 * DAY)), '{n} month', '{n} months');
-  return t.plural(Math.floor(ms / (365 * DAY)), '{n} year', '{n} years');
+  if (ms < 730 * DAY)
+    return t('{n, plural, one {# month} other {# months}}', { n: Math.floor(ms / (30 * DAY)) });
+  return t('{n, plural, one {# year} other {# years}}', { n: Math.floor(ms / (365 * DAY)) });
 }
 
 export function minutesLabel(t: Translator, value: number): string {

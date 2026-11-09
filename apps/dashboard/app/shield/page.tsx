@@ -19,7 +19,9 @@ export default async function ShieldPage() {
     <div className="mx-stack" style={{ width: '100%', gap: 8, textAlign: 'left' }}>
       <p style={{ margin: 0 }}>{t('You are listed in Maxwell Shield.')}</p>
       <p className="mx-sub" style={{ margin: 0 }}>
-        {t.plural(entries.length, 'Reported by {n} community.', 'Reported by {n} communities.')}
+        {t('{n, plural, one {Reported by # community.} other {Reported by # communities.}}', {
+          n: entries.length,
+        })}
       </p>
       <div>
         {entries.map((entry) => (

@@ -202,7 +202,7 @@ export function ResponseDetail({
         <h3>{t('Team vote')}</h3>
         {needed > 0 ? (
           <span className="mx-sub">
-            {t.plural(needed, '{n} approval needed', '{n} approvals needed')}
+            {t('{n, plural, one {# approval needed} other {# approvals needed}}', { n: needed })}
           </span>
         ) : null}
       </div>

@@ -515,10 +515,9 @@ function Editor({
               )
             }
           >
-            {t.plural(
-              state.failures,
-              'Paused after {n} failed check.',
-              'Paused after {n} failed checks.',
+            {t(
+              '{n, plural, one {Paused after # failed check.} other {Paused after # failed checks.}}',
+              { n: state.failures },
             )}{' '}
             {state.lastError ? errorOf(t, state.lastError) : null}
           </Callout>

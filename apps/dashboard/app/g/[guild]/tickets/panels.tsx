@@ -61,7 +61,7 @@ const openDefaults: Record<TicketPanelKind, Key> = {
 };
 
 function limitLabel(t: Translator, n: number): string {
-  return t.plural(n, '{n} open ticket', '{n} open tickets');
+  return t('{n, plural, one {# open ticket} other {# open tickets}}', { n: n });
 }
 
 const limits = [1, 2, 3, 5, 10];

@@ -47,7 +47,7 @@ function InviteField({
     ...codes.map((entry) => ({
       value: entry.code,
       label: entry.code,
-      hint: t.plural(entry.joins, '{n} join', '{n} joins'),
+      hint: t('{n, plural, one {# join} other {# joins}}', { n: entry.joins }),
     })),
   ];
 

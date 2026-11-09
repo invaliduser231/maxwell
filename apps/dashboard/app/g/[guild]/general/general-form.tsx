@@ -258,7 +258,9 @@ export function GeneralForm({
                         ...retentionOptions,
                         {
                           value: String(value.caseRetentionDays),
-                          label: t.plural(value.caseRetentionDays, '{n} day', '{n} days'),
+                          label: t('{n, plural, one {# day} other {# days}}', {
+                            n: value.caseRetentionDays,
+                          }),
                         },
                       ]
                 }

@@ -85,9 +85,9 @@ const CHUNK = 20_000;
 function cooldownLabel(t: Translator, seconds: number): string {
   if (seconds === 0) return t('No cooldown');
   if (seconds > 60 && seconds % 60 === 0) {
-    return t.plural(seconds / 60, '{n} minute', '{n} minutes');
+    return t('{n, plural, one {# minute} other {# minutes}}', { n: seconds / 60 });
   }
-  return t.plural(seconds, '{n} second', '{n} seconds');
+  return t('{n, plural, one {# second} other {# seconds}}', { n: seconds });
 }
 
 function factorLabel(t: Translator, value: string): string {
@@ -494,7 +494,9 @@ function RewardsPanel({
                 <div className="mx-bar" style={{ flex: 1, maxWidth: 160 }}>
                   <span style={{ width: `${share}%` }} />
                 </div>
-                <span className="mx-sub">{t.plural(members, '{n} member', '{n} members')}</span>
+                <span className="mx-sub">
+                  {t('{n, plural, one {# member} other {# members}}', { n: members })}
+                </span>
               </div>
             </div>
             {readOnly ? null : (

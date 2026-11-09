@@ -51,9 +51,11 @@ export default async function Templates({
                   {card.description ? <p className="mx-tpl-text">{card.description}</p> : null}
                   <span className="mx-tpl-meta">
                     {[
-                      t.plural(card.roleCount, '{n} role', '{n} roles'),
-                      t.plural(card.channelCount, '{n} channel', '{n} channels'),
-                      t.plural(card.uses, 'Used {n} time', 'Used {n} times'),
+                      t('{n, plural, one {# role} other {# roles}}', { n: card.roleCount }),
+                      t('{n, plural, one {# channel} other {# channels}}', {
+                        n: card.channelCount,
+                      }),
+                      t('{n, plural, one {Used # time} other {Used # times}}', { n: card.uses }),
                     ].join(', ')}
                   </span>
                 </li>

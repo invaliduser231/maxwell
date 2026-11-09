@@ -47,7 +47,7 @@ export default async function PublicCommunity({ params }: Props) {
           <h1 className="mx-pub-title">{page.name}</h1>
           {page.memberCount !== null ? (
             <p className="mx-pub-count">
-              {t.plural(page.memberCount, '{n} member', '{n} members')}
+              {t('{n, plural, one {# member} other {# members}}', { n: page.memberCount })}
             </p>
           ) : null}
         </div>

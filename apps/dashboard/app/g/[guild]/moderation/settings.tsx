@@ -97,7 +97,7 @@ function parseStep(key: string): Omit<EscalationStep, 'warns'> {
 }
 
 function days(t: Translator, value: number): string {
-  return t.plural(value, '{n} day', '{n} days');
+  return t('{n, plural, one {# day} other {# days}}', { n: value });
 }
 
 function ArrowIcon() {
@@ -511,7 +511,9 @@ export function SettingsTab({
                   label:
                     count === 0
                       ? t('Keep messages')
-                      : t.plural(count, 'The last {n} day', 'The last {n} days'),
+                      : t('{n, plural, one {The last # day} other {The last # days}}', {
+                          n: count,
+                        }),
                 }))}
                 onChange={(next) => set({ banDeleteMessageDays: Number(next) })}
               />

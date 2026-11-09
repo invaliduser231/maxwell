@@ -190,10 +190,9 @@ export default async function Overview({ params }: { params: Promise<{ guild: st
   if (wait.flags.count > 0 && sees('moderation')) {
     attention.push({
       key: 'flags',
-      title: t.plural(
-        wait.flags.count,
-        '{n} escalation waiting for review',
-        '{n} escalations waiting for review',
+      title: t(
+        '{n, plural, one {# escalation waiting for review} other {# escalations waiting for review}}',
+        { n: wait.flags.count },
       ),
       detail: wait.flags.oldest
         ? t('Oldest flagged {when}', {
@@ -225,7 +224,9 @@ export default async function Overview({ params }: { params: Promise<{ guild: st
       key: 'gate',
       title:
         wait.held.count > 0
-          ? t.plural(wait.held.count, '{n} person held at the gate', '{n} people held at the gate')
+          ? t('{n, plural, one {# person held at the gate} other {# people held at the gate}}', {
+              n: wait.held.count,
+            })
           : t('Lockdown is on'),
       detail: parts.join(', ') || t('Raid shield'),
       action: t('Review'),
@@ -238,7 +239,9 @@ export default async function Overview({ params }: { params: Promise<{ guild: st
       : t('Waiting for staff');
     attention.push({
       key: 'tickets',
-      title: t.plural(wait.tickets.count, '{n} open ticket', '{n} open tickets'),
+      title: t('{n, plural, one {# open ticket} other {# open tickets}}', {
+        n: wait.tickets.count,
+      }),
       detail:
         wait.tickets.unclaimed > 0
           ? t('{oldest}, {count} unclaimed', { oldest, count: wait.tickets.unclaimed })
@@ -251,7 +254,8 @@ export default async function Overview({ params }: { params: Promise<{ guild: st
     for (const form of wait.forms) {
       attention.push({
         key: `form-${form.name}`,
-        title: t.plural(form.count, '{n} answer to {form}', '{n} answers to {form}', {
+        title: t('{n, plural, one {# answer to {form}} other {# answers to {form}}}', {
+          n: form.count,
           form: form.name,
         }),
         detail: t('Newest {when}', {
@@ -266,13 +270,9 @@ export default async function Overview({ params }: { params: Promise<{ guild: st
     if (!sees(job.module)) continue;
     attention.push({
       key: `job-${job.module}`,
-      title: t.plural(
-        job.count,
-        'A {module} task keeps failing',
-        '{n} {module} tasks keep failing',
-        {
-          module: nameOf(job.module),
-        },
+      title: t(
+        '{n, plural, one {A {module} task keeps failing} other {# {module} tasks keep failing}}',
+        { n: job.count, module: nameOf(job.module) },
       ),
       detail: clip(job.error),
       action: t('View'),
@@ -343,7 +343,7 @@ export default async function Overview({ params }: { params: Promise<{ guild: st
             actions={
               attention.length > 0 ? (
                 <span className="mx-sub">
-                  {t.plural(attention.length, '{n} item', '{n} items')}
+                  {t('{n, plural, one {# item} other {# items}}', { n: attention.length })}
                 </span>
               ) : null
             }

@@ -108,7 +108,10 @@ function CurrencyPanel({ span }: { span: 7 | 12 }) {
           </Field>
         </Fields>
       </PanelBody>
-      <Section title={t('Earning')} aside={t.plural(sources, '{n} source on', '{n} sources on')} />
+      <Section
+        title={t('Earning')}
+        aside={t('{n, plural, one {# source on} other {# sources on}}', { n: sources })}
+      />
       <Row
         title={t('Messages')}
         sub={t('Once every {count} seconds', { count: message.cooldownSeconds })}
@@ -864,7 +867,9 @@ export function EconomyForm({
           {
             label: t('In circulation'),
             value: `${t.count(overview.supply)} ${symbol}`,
-            note: t.plural(overview.wallets, 'In {n} wallet', 'Across {n} wallets'),
+            note: t('{n, plural, one {In # wallet} other {Across # wallets}}', {
+              n: overview.wallets,
+            }),
           },
           {
             label: t('Earned today'),

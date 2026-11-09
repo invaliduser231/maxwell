@@ -95,8 +95,8 @@ const sectionHead: CSSProperties = { borderTop: '1px solid var(--mx-line)', padd
 const longest = [30, 90, 365, 730];
 
 function longestLabel(t: Translator, days: number): string {
-  if (days % 365 === 0) return t.plural(days / 365, '{n} year', '{n} years');
-  return t.plural(days, '{n} day', '{n} days');
+  if (days % 365 === 0) return t('{n, plural, one {# year} other {# years}}', { n: days / 365 });
+  return t('{n, plural, one {# day} other {# days}}', { n: days });
 }
 
 function newId(taken: readonly string[]): string {

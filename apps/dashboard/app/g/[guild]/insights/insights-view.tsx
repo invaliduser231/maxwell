@@ -574,7 +574,12 @@ function Settings() {
                   ? keepOptions
                   : [
                       ...keepOptions,
-                      { value: keep, label: t.plural(value.retentionDays, '{n} day', '{n} days') },
+                      {
+                        value: keep,
+                        label: t('{n, plural, one {# day} other {# days}}', {
+                          n: value.retentionDays,
+                        }),
+                      },
                     ]
               }
               onChange={(next) => set({ retentionDays: Number(next) })}

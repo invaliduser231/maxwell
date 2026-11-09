@@ -53,10 +53,11 @@ function durationText(t: Translator, minutes: number): string {
   const match = durations.find((entry) => entry.value === String(minutes));
   if (match) return t('ends in {span}', { span: t(match.label) });
   if (minutes % 1440 === 0) {
-    return t.plural(minutes / 1440, 'ends in {n} day', 'ends in {n} days');
+    return t('{n, plural, one {ends in # day} other {ends in # days}}', { n: minutes / 1440 });
   }
-  if (minutes % 60 === 0) return t.plural(minutes / 60, 'ends in {n} hour', 'ends in {n} hours');
-  return t.plural(minutes, 'ends in {n} minute', 'ends in {n} minutes');
+  if (minutes % 60 === 0)
+    return t('{n, plural, one {ends in # hour} other {ends in # hours}}', { n: minutes / 60 });
+  return t('{n, plural, one {ends in # minute} other {ends in # minutes}}', { n: minutes });
 }
 
 function percents(counts: readonly number[]): number[] {
@@ -129,7 +130,7 @@ function ResultCard({
               {question.trim() || t('Your question')}
             </span>
             <span className="mx-sub" style={{ whiteSpace: 'nowrap' }}>
-              {t.plural(total, '{n} vote', '{n} votes')}
+              {t('{n, plural, one {# vote} other {# votes}}', { n: total })}
             </span>
           </div>
           {options.map(({ key, text }, index) => {
@@ -192,7 +193,7 @@ function Recent({ polls }: { polls: PollView[] }) {
           const votes = poll.counts.reduce((sum, value) => sum + value, 0);
           const max = Math.max(0, ...poll.counts);
           const leaders = poll.options.filter((_, index) => poll.counts[index] === max);
-          const count = t.plural(votes, '{n} vote', '{n} votes');
+          const count = t('{n, plural, one {# vote} other {# votes}}', { n: votes });
           const detail =
             poll.status === 'draft'
               ? t('Not posted')

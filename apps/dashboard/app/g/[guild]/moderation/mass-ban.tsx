@@ -158,7 +158,7 @@ export function MassBanPanel({
           </button>
           {preview ? (
             <button type="submit" className="mx-btn mx-btn-danger" disabled={pending}>
-              {t.plural(count, 'Ban {n} member', 'Ban {n} members')}
+              {t('{n, plural, one {Ban # member} other {Ban # members}}', { n: count })}
             </button>
           ) : (
             <button

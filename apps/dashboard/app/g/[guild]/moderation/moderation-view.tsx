@@ -57,14 +57,19 @@ function StatsBar({ stats, now }: { stats: Stats; now: string }) {
     {
       label: t('Warns, 30 days'),
       value: t.count(stats.warns30),
-      sub: stats.warned30 > 0 ? t.plural(stats.warned30, '{n} member', '{n} members') : null,
+      sub:
+        stats.warned30 > 0
+          ? t('{n, plural, one {# member} other {# members}}', { n: stats.warned30 })
+          : null,
     },
     {
       label: t('Handled by Maxwell'),
       value: `${share}%`,
       sub:
         stats.total30 > 0
-          ? t.plural(stats.total30, 'of {n} case, 30 days', 'of {n} cases, 30 days')
+          ? t('{n, plural, one {of # case, 30 days} other {of # cases, 30 days}}', {
+              n: stats.total30,
+            })
           : null,
     },
   ];

@@ -136,7 +136,7 @@ export function CommunitySwitcher({
           </span>
           {current.members !== null ? (
             <span style={{ fontSize: 11, color: 'var(--mx-muted)' }}>
-              {t.plural(current.members, '{n} member', '{n} members')}
+              {t('{n, plural, one {# member} other {# members}}', { n: current.members })}
             </span>
           ) : null}
         </span>
