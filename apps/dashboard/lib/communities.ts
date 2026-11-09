@@ -1,4 +1,5 @@
 import 'server-only';
+import { guildAccess, levelOf } from './access';
 import { db } from './db';
 import { canManage, type FluxerUser, inviteUrl } from './fluxer';
 import { sessionGuilds } from './session';
@@ -26,13 +27,22 @@ export async function communities(user: FluxerUser): Promise<CommunityEntry[]> {
     `,
   ]);
   const inGuild = new Set(present.map((row) => row.id));
-  const withGrants = new Set(granted.map((row) => row.id));
+  const withGrants = granted
+    .map((row) => row.id)
+    .filter((id) => inGuild.has(id) && !guilds.some((g) => g.id === id && canManage(g, user.id)));
+  const checked = await Promise.all(
+    withGrants.map(async (id) => {
+      const access = await guildAccess(id).catch(() => null);
+      return access && levelOf(access, null) !== 'none' ? id : null;
+    }),
+  );
+  const allowed = new Set(checked.filter((id): id is string => id !== null));
 
   return guilds
     .flatMap((guild): CommunityEntry[] => {
       const manage = canManage(guild, user.id);
       const present = inGuild.has(guild.id);
-      if (!manage && !(present && withGrants.has(guild.id))) return [];
+      if (!manage && !allowed.has(guild.id)) return [];
       const status = present ? 'in' : 'out';
       return [
         {
