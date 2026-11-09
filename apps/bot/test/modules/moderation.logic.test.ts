@@ -52,7 +52,7 @@ describe('text helpers', () => {
   it('writes durations out', () => {
     expect(humanDuration(10 * 60_000)).toBe('10 minutes');
     expect(humanDuration(3_600_000)).toBe('1 hour');
-    expect(humanDuration(DAY + 3 * 3_600_000)).toBe('1 day 3 hours');
+    expect(humanDuration(DAY + 3 * 3_600_000)).toBe('1 day and 3 hours');
     expect(humanDuration(14 * DAY)).toBe('2 weeks');
     expect(humanDuration(500)).toBe('1 second');
   });

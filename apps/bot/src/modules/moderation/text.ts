@@ -1,32 +1,29 @@
-import { type Language, language } from '../../i18n/language.js';
+import { locale } from '../../i18n/language.js';
+import { andList } from '../../ui/format.js';
 
-type Unit = Record<Language, [string, string]>;
-
-const units: [number, Unit][] = [
-  [365 * 86_400_000, { en: ['year', 'years'], de: ['Jahr', 'Jahre'], es: ['año', 'años'] }],
-  [7 * 86_400_000, { en: ['week', 'weeks'], de: ['Woche', 'Wochen'], es: ['semana', 'semanas'] }],
-  [86_400_000, { en: ['day', 'days'], de: ['Tag', 'Tage'], es: ['día', 'días'] }],
-  [3_600_000, { en: ['hour', 'hours'], de: ['Stunde', 'Stunden'], es: ['hora', 'horas'] }],
-  [60_000, { en: ['minute', 'minutes'], de: ['Minute', 'Minuten'], es: ['minuto', 'minutos'] }],
-  [1_000, { en: ['second', 'seconds'], de: ['Sekunde', 'Sekunden'], es: ['segundo', 'segundos'] }],
+const units: [number, Intl.NumberFormatOptions['unit']][] = [
+  [365 * 86_400_000, 'year'],
+  [7 * 86_400_000, 'week'],
+  [86_400_000, 'day'],
+  [3_600_000, 'hour'],
+  [60_000, 'minute'],
+  [1_000, 'second'],
 ];
 
-const joiners: Record<Language, string> = { en: ' ', de: ' und ', es: ' y ' };
-
 export function humanDuration(ms: number): string {
-  const lang = language();
   let left = Math.max(Math.round(ms / 1_000) * 1_000, 1_000);
   const out: string[] = [];
-  for (const [size, names] of units) {
+  for (const [size, unit] of units) {
     const value = Math.floor(left / size);
     if (value > 0) {
-      const [one, many] = names[lang];
-      out.push(`${value} ${value === 1 ? one : many}`);
+      out.push(
+        new Intl.NumberFormat(locale(), { style: 'unit', unit, unitDisplay: 'long' }).format(value),
+      );
       left -= value * size;
     }
     if (out.length === 2) break;
   }
-  return out.join(joiners[lang]);
+  return andList(out);
 }
 
 export function renderTemplate(template: string, vars: Record<string, string>): string {

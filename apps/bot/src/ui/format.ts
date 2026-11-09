@@ -1,4 +1,5 @@
 import { language, locale } from '../i18n/language.js';
+import { uiCopy } from './copy.js';
 
 const FLUXER_EPOCH = 1_420_070_400_000n;
 
@@ -21,16 +22,25 @@ export function plural(value: number, one: string, many = `${one}s`): string {
   return `${count(value)} ${value === 1 ? one : many}`;
 }
 
+const lists = new Map<string, Intl.ListFormat>();
+
+function listFormat(type: Intl.ListFormatType): Intl.ListFormat {
+  const lang = language() === 'en' ? 'en-GB' : locale();
+  const id = `${lang}:${type}`;
+  let found = lists.get(id);
+  if (!found) {
+    found = new Intl.ListFormat(lang, { type });
+    lists.set(id, found);
+  }
+  return found;
+}
+
 export function andList(items: readonly string[]): string {
-  if (items.length <= 1) return items.join('');
-  const and = { en: 'and', de: 'und', es: 'y' }[language()];
-  return `${items.slice(0, -1).join(', ')} ${and} ${items.at(-1)}`;
+  return listFormat('conjunction').format(items);
 }
 
 export function orList(items: readonly string[]): string {
-  if (items.length <= 1) return items.join('');
-  const or = { en: 'or', de: 'oder', es: 'o' }[language()];
-  return `${items.slice(0, -1).join(', ')} ${or} ${items.at(-1)}`;
+  return listFormat('disjunction').format(items);
 }
 
 export function date(value: Date | number, options: Intl.DateTimeFormatOptions = {}): string {
@@ -38,12 +48,7 @@ export function date(value: Date | number, options: Intl.DateTimeFormatOptions =
 }
 
 export function ordinal(value: number): string {
-  if (language() === 'de') return `${value}.`;
-  if (language() === 'es') return `${value}.º`;
-  const tens = value % 100;
-  if (tens >= 11 && tens <= 13) return `${value}th`;
-  const suffix = ['th', 'st', 'nd', 'rd'][value % 10] ?? 'th';
-  return `${value}${suffix}`;
+  return uiCopy.ordinal(value);
 }
 
 export function code(text: string): string {
