@@ -9,6 +9,7 @@ import { copy } from './copy.js';
 import type { Ctx } from './guard.js';
 import type { Honeypot } from './honeypot.js';
 import type { RaidWatch } from './raid.js';
+import { isStaff, staffVerify } from './staff-verify.js';
 import type { Verifier } from './verification.js';
 
 export function securityCommands(
@@ -22,13 +23,30 @@ export function securityCommands(
     name: 'verify',
     description: copy.commands.verify,
     args: [{ name: 'code', type: 'text', optional: true }],
-    examples: ['verify 12345', 'verify new'],
+    examples: ['verify 12345', 'verify new', 'verify @member'],
     async run(cmd) {
-      const text = cmd.args.string('code') ?? 'new';
+      const input = cmd.args.string('code');
+      const text = input ?? 'new';
+      const author = cmd.message.author.id;
       const reply = (content: string) =>
         cmd.reply({ content, deleteAfter: cmd.guildId ? 15_000 : undefined });
-      const handled = await verifier.answer(cmd.message.author.id, text, cmd.guildId, reply);
-      if (!handled) await reply(copy.dm.nothing);
+      const staff = cmd.guildId
+        ? await staffVerify(ctx, verifier, {
+            guildId: cmd.guildId,
+            channelId: cmd.message.channelId,
+            authorId: author,
+            text: input ?? null,
+          })
+        : null;
+      if (staff) {
+        await cmd.reply({ content: staff, mentionUsers: [] });
+      } else {
+        const handled = await verifier.answer(author, text, cmd.guildId, reply);
+        if (!handled) {
+          const team = cmd.guildId ? await isStaff(ctx, cmd.guildId, author) : false;
+          await reply(team ? copy.staffVerify.notHere : copy.dm.nothing);
+        }
+      }
       if (cmd.guildId) {
         await cmd.platform.delete(cmd.message.channelId, cmd.message.id).catch(() => {});
       }

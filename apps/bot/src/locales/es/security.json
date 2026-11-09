@@ -64,6 +64,13 @@
     "which": "Tienes verificaciones pendientes en {guilds}. Responde primero a la más reciente.",
     "fresh": "Aquí tienes una imagen nueva."
   },
+  "staffVerify": {
+    "done": "{user} está verificado.",
+    "doneRole": "{user} está verificado y ya tiene {role}.",
+    "nothing": "{user} no tiene una comprobación de seguridad abierta y este panel de tickets no da ningún rol. Elige uno en Tickets en el panel.",
+    "notHere": "Úsalo en un ticket o menciona a alguien que esté esperando en la comprobación de seguridad.",
+    "roleFailed": "No pude darle a {user} el rol {role}. Mi rol tiene que estar por encima y necesito Gestionar roles."
+  },
   "channel": {
     "intro": "{user}, tienes los MD cerrados, así que la verificación es aquí.\nEscribe los dígitos en **{color}** de la imagen con `{prefix}verify 12345`."
   },
@@ -173,7 +180,7 @@
     }
   },
   "commands": {
-    "verify": "Responde a tu captcha. Usa \"new\" para una imagen nueva.",
+    "verify": "Responde a tu captcha. El equipo puede usarlo en un ticket o con una mención para dejar pasar a alguien.",
     "security": "Muestra qué está vigilando Security.",
     "status": "Muestra qué está vigilando Security.",
     "raid": "Activa el modo raid.",

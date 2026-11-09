@@ -64,6 +64,13 @@
     "which": "You have checks waiting in {guilds}. Answer in the newest one first.",
     "fresh": "Here is a new picture."
   },
+  "staffVerify": {
+    "done": "{user} is verified.",
+    "doneRole": "{user} is verified and has {role} now.",
+    "nothing": "{user} has no open security check, and this ticket panel gives no role. Pick one under Tickets in the dashboard.",
+    "notHere": "Use this in a ticket, or mention someone who is waiting at the security check.",
+    "roleFailed": "I couldn't give {user} the role {role}. My role has to sit above it and I need Manage Roles."
+  },
   "channel": {
     "intro": "{user}, your DMs are closed, so the check happens here.\nType the **{color}** digits from the picture with `{prefix}verify 12345`."
   },
@@ -173,7 +180,7 @@
     }
   },
   "commands": {
-    "verify": "Answers your captcha. Use \"new\" for a new picture.",
+    "verify": "Answers your captcha. The team can use it in a ticket or with a mention to let someone in.",
     "security": "Shows what Security is watching.",
     "status": "Shows what Security is watching.",
     "raid": "Turns raid mode on.",

@@ -171,5 +171,7 @@
   "Keep it under 2,000 characters.": "No pases de 2.000 caracteres.",
   "Paste a user ID or mention.": "Pega un ID de usuario o una mención.",
   "{n, plural, one {# rating} other {# ratings}}": "{n, plural, one {# valoración} other {# valoraciones}}",
-  "{n, plural, one {# message} other {# messages}}": "{n, plural, one {# mensaje} other {# mensajes}}"
+  "{n, plural, one {# message} other {# messages}}": "{n, plural, one {# mensaje} other {# mensajes}}",
+  "Role after verification": "Rol tras la verificación",
+  "The team types {command} in the ticket and the member gets this role.": "El equipo escribe {command} en el ticket y el miembro recibe este rol."
 }

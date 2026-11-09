@@ -64,6 +64,13 @@
     "which": "Prüfungen warten in {guilds}. Antworte zuerst auf die neueste.",
     "fresh": "Hier ist ein neues Bild."
   },
+  "staffVerify": {
+    "done": "{user} ist verifiziert.",
+    "doneRole": "{user} ist verifiziert und hat jetzt {role}.",
+    "nothing": "{user} hat keinen offenen Security-Check, und dieses Ticket-Panel vergibt keine Rolle. Such dir im Dashboard unter Tickets eine aus.",
+    "notHere": "Nutz das in einem Ticket oder erwähne jemanden, der am Security-Check wartet.",
+    "roleFailed": "Ich konnte {user} die Rolle {role} nicht geben. Meine Rolle muss darüber stehen und ich brauche Manage Roles."
+  },
   "channel": {
     "intro": "{user}, deine DMs sind zu, deshalb läuft die Prüfung hier.\nTippe die **{color}** Ziffern aus dem Bild mit `{prefix}verify 12345` ab."
   },
@@ -173,7 +180,7 @@
     }
   },
   "commands": {
-    "verify": "Beantwortet dein Captcha. Mit \"new\" kommt ein neues Bild.",
+    "verify": "Beantwortet dein Captcha. Das Team kann damit im Ticket oder per Erwähnung jemanden reinlassen.",
     "security": "Zeigt, worauf Security achtet.",
     "status": "Zeigt, worauf Security achtet.",
     "raid": "Schaltet den Raid-Modus ein.",

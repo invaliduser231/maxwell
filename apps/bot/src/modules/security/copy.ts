@@ -43,6 +43,14 @@ export const copy = catalog('security', en, (m) => ({
     resolved: (userId: string, status: string) =>
       m.log.resolved({ user: mention.user(userId), status }),
   },
+  staffVerify: {
+    done: (userId: string) => m.staffVerify.done({ user: mention.user(userId) }),
+    doneRole: (userId: string, roleId: string) =>
+      m.staffVerify.doneRole({ user: mention.user(userId), role: mention.role(roleId) }),
+    nothing: (userId: string) => m.staffVerify.nothing({ user: mention.user(userId) }),
+    roleFailed: (userId: string, roleId: string) =>
+      m.staffVerify.roleFailed({ user: mention.user(userId), role: mention.role(roleId) }),
+  },
   dm: {
     title: (guild: string) => m.dm.title({ guild }),
     intro: (color: string) => m.dm.intro({ color: escapeMarkdown(color) }),
@@ -198,6 +206,8 @@ export const audit = {
   raidStarted: (reason: string) => `Raid mode on (${reason})`,
   raidEnded: 'Raid mode off',
   passed: (name: string) => `Let ${name} through the security check`,
+  verified: (name: string, role: string | null) =>
+    role ? `Verified ${name} and gave ${role}` : `Verified ${name}`,
   honeypot: 'Created a honeypot channel',
   shieldRemoved: 'Took a member out of Maxwell Shield',
   checkEveryone: 'Security check: removed dangerous permissions from @everyone',

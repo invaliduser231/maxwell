@@ -6,6 +6,7 @@ import { useEffect, useState, useTransition } from 'react';
 import {
   ChannelSelect,
   RoleMulti,
+  RoleSelect,
   Seg,
   Select,
   TextArea,
@@ -105,6 +106,7 @@ function newPanel(name: string, panels: TicketPanel[]): TicketPanel {
     openMessage: '',
     channelName: '{panel}-{number}',
     maxOpenPerMember: 1,
+    verifyRoleId: null,
   };
 }
 
@@ -353,6 +355,18 @@ function PanelSetup({
           checked={panel.pingTeam}
           onChange={(pingTeam) => patch({ pingTeam })}
         />
+        <div className="mx-field">
+          <span className="mx-label">{t('Role after verification')}</span>
+          <RoleSelect
+            value={panel.verifyRoleId}
+            onChange={(verifyRoleId) => patch({ verifyRoleId: verifyRoleId || null })}
+          />
+          <span className="mx-sub">
+            {t('The team types {command} in the ticket and the member gets this role.', {
+              command: 'verify',
+            })}
+          </span>
+        </div>
         <div className="mx-preview">
           <MessagePreview>
             <EmbedPreview
