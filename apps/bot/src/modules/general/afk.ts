@@ -83,13 +83,7 @@ export class AfkTracker {
       if (away.length === 0) return;
       await platform.reply(message, {
         content: away
-          .map((entry) =>
-            copy.afk.away(
-              `<@${entry.userId}>`,
-              entry.reason,
-              humanDuration(Date.now() - entry.since.getTime()),
-            ),
-          )
+          .map((entry) => copy.afk.away(`<@${entry.userId}>`, entry.reason, entry.since))
           .join('\n'),
         mentionUsers: [],
       });

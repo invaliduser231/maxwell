@@ -57,7 +57,7 @@
   "afk": {
     "set": "{hasReason, select, yes {Estás ausente: {reason}} other {Estás ausente.}}",
     "back": "Hola de nuevo. Estuviste fuera {duration}.",
-    "away": "{hasReason, select, yes {{who} está ausente desde hace {since}: {reason}} other {{who} está ausente desde hace {since}.}}"
+    "away": "{hasReason, select, yes {{who} se fue {since}: {reason}} other {{who} se fue {since}.}}"
   },
   "privacy": {
     "exported": "Todo lo que guardo sobre ti en esa comunidad.",

@@ -1,6 +1,6 @@
 import { catalog } from '../../i18n/catalog.js';
 import en from '../../locales/en/general.json' with { type: 'json' };
-import { code } from '../../ui/format.js';
+import { code, timestamp } from '../../ui/format.js';
 
 export const copy = catalog('general', en, (m) => ({
   ping: {
@@ -28,8 +28,8 @@ export const copy = catalog('general', en, (m) => ({
   afk: {
     set: (reason: string) => m.afk.set({ hasReason: reason ? 'yes' : 'no', reason }),
     back: (duration: string) => m.afk.back({ duration }),
-    away: (who: string, reason: string, since: string) =>
-      m.afk.away({ hasReason: reason ? 'yes' : 'no', who, reason, since }),
+    away: (who: string, reason: string, since: Date) =>
+      m.afk.away({ hasReason: reason ? 'yes' : 'no', who, reason, since: timestamp(since, 'R') }),
   },
   privacy: {
     confirm: (prefix: string) => m.privacy.confirm({ prefix }),

@@ -68,7 +68,10 @@ describe('afk', () => {
     await tracker.onMessage(message(max, `hey <@${lena}>`, [lena]));
     await tracker.onMessage(message(max, `again <@${lena}>`, [lena]));
     expect(replies).toHaveLength(1);
-    expect(replies[0]?.content).toBe(`<@${lena}> has been away for 2 hours: sleeping`);
+    const since = Math.floor((Date.now() - 2 * 3_600_000) / 1000);
+    expect(replies[0]?.content).toMatch(
+      new RegExp(`^<@${lena}> went away <t:(${since}|${since - 1}):R>: sleeping$`),
+    );
     expect(replies[0]?.mentionUsers).toEqual([]);
   });
 

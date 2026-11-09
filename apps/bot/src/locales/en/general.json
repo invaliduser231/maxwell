@@ -57,7 +57,7 @@
   "afk": {
     "set": "{hasReason, select, yes {You are away: {reason}} other {You are away.}}",
     "back": "Welcome back. You were away for {duration}.",
-    "away": "{hasReason, select, yes {{who} has been away for {since}: {reason}} other {{who} has been away for {since}.}}"
+    "away": "{hasReason, select, yes {{who} went away {since}: {reason}} other {{who} went away {since}.}}"
   },
   "privacy": {
     "exported": "Everything I store about you in that community.",
