@@ -365,7 +365,7 @@ export class ModInbox {
 
     let caseNumber: number | null = null;
     let outcome = 'none';
-    if (input.action && !this.services.config.OWNER_IDS.includes(input.by)) {
+    if (input.action) {
       const { problem } = await checkTarget(platform, {
         guildId: item.guildId,
         actorId: input.by,

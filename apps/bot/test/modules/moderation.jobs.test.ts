@@ -190,15 +190,11 @@ describe('moderation action job', () => {
     ]);
   });
 
-  it('lets bot operators act on ranked members without being in the community', async () => {
-    const { run, acted, warnings } = setup([operator]);
+  it('gives bot operators no way around the checks', async () => {
+    const { run, acted } = setup([operator]);
     await run({ action: 'ban', userId: senior, moderatorId: operator, by: operator });
     await run({ action: 'kick', userId: boss, moderatorId: operator, by: operator });
-    expect(warnings).toEqual([]);
-    expect(acted).toEqual([
-      expect.objectContaining({ action: 'ban', userId: senior, moderatorId: operator }),
-      expect.objectContaining({ action: 'kick', userId: boss, moderatorId: operator }),
-    ]);
+    expect(acted).toEqual([]);
   });
 
   it('runs bot-internal actions as before', async () => {

@@ -199,7 +199,7 @@ describe.skipIf(!url)('backups module', () => {
     expect(records.at(-1)?.after).toMatchObject({ members: 1 });
   });
 
-  it('lets bot operators import dangerous permissions other editors lack', async () => {
+  it('withholds dangerous permissions from bot operators like from anyone else', async () => {
     const apply = async (by: string) => {
       const importId = await store.createImport(guild, 'template:1', by);
       await store.setImportPlan(guild, importId, {
@@ -226,9 +226,8 @@ describe.skipIf(!url)('backups module', () => {
     expect(denied?.status).toBe('applied');
     expect(denied?.result).toMatchObject({ withheld: ['Administrator'] });
     expect(created.at(-1)?.permissions).toEqual(['ManageMessages']);
-    const trusted = await apply(operator);
-    expect(trusted?.status).toBe('applied');
-    expect(trusted?.result).not.toHaveProperty('withheld');
-    expect(created.at(-1)?.permissions).toEqual(['Administrator', 'ManageMessages']);
+    const operatorRun = await apply(operator);
+    expect(operatorRun?.result).toMatchObject({ withheld: ['Administrator'] });
+    expect(created.at(-1)?.permissions).toEqual(['ManageMessages']);
   });
 });

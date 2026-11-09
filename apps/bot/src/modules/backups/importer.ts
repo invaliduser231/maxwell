@@ -38,7 +38,6 @@ export interface ImportDeps {
   platform: Platform;
   store: BackupStore;
   fetcher?: typeof fetch;
-  operator?(userId: string): boolean;
   record(guildId: string, by: Actor, summary: string, result: ImportResult): Promise<void>;
   onError(error: unknown, what: string): void;
 }
@@ -142,7 +141,7 @@ async function ungranted(
   ]);
   const wanted = dangerous.filter((name) => granted.has(name));
   const userId = by.id;
-  if (wanted.length === 0 || (userId && deps.operator?.(userId))) return new Set();
+  if (wanted.length === 0) return new Set();
   if (!userId) return new Set(wanted);
   const missing = new Set<Permission>();
   if (await deps.platform.hasPermissions(guildId, userId, null, wanted)) return missing;

@@ -32,13 +32,12 @@ export const guildAccess = cache(async (guildId: string): Promise<GuildAccess | 
   );
   const [membership, guild, voted, grantList] = await Promise.all([
     membershipOf,
-    membershipOf.then((found) => (found || owner ? botGuild(guildId) : null)),
+    membershipOf.then((found) => (found ? botGuild(guildId) : null)),
     owner || !votes.enabled ? Promise.resolve(true) : votes.hasVoted(user.id),
     access.list(guildId),
   ]);
-  if (!membership && !owner) return null;
-  if (!guild) return null;
-  const admin = owner || (membership ? canManage(membership, user.id) : false);
+  if (!membership || !guild) return null;
+  const admin = canManage(membership, user.id);
   const grants = admin ? [] : grantList;
   const roles =
     admin || grants.length === 0 ? [] : ((await guildMember(guildId, user.id))?.roles ?? []);

@@ -387,7 +387,7 @@ describe.skipIf(!url)('moderation inbox flows', () => {
     expect(shared?.reportedBy).toBe(mod);
   });
 
-  it('refuses inbox actions on administrators unless a bot owner resolves', async () => {
+  it('refuses inbox actions on administrators, also for bot owners', async () => {
     const report = await inbox.store.report({
       guildId: guild,
       subjectId: admin,
@@ -412,7 +412,7 @@ describe.skipIf(!url)('moderation inbox flows', () => {
     expect(await resolve(mod)).toBeNull();
     expect(bans).not.toContain(admin);
     expect((await inbox.store.get(guild, report.item.number))?.status).toBe('open');
-    expect((await resolve(owner))?.outcome).toBe('ban');
-    expect(bans).toContain(admin);
+    expect(await resolve(owner)).toBeNull();
+    expect(bans).not.toContain(admin);
   });
 });

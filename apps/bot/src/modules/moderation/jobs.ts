@@ -64,7 +64,7 @@ function ignoreMissing(error: unknown): void {
 
 export function registerJobs(moderation: ModerationService, tools: ChannelTools): void {
   const { ctx, store } = moderation;
-  const { platform, log, sql, modules, config } = ctx.services;
+  const { platform, log, sql, modules } = ctx.services;
 
   const scheduleNext = async (kind: string, every: number) => {
     const next = Math.ceil((Date.now() + 1) / every) * every;
@@ -160,7 +160,7 @@ export function registerJobs(moderation: ModerationService, tools: ChannelTools)
       return;
     }
     const input = parsed.data;
-    if (input.by !== undefined && !config.OWNER_IDS.includes(input.by)) {
+    if (input.by !== undefined) {
       const { problem } = await checkTarget(platform, {
         guildId,
         actorId: input.by,

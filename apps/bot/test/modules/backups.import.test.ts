@@ -64,7 +64,6 @@ function harness(options: {
   plan?: ImportPlan;
   everyone?: readonly Permission[];
   holds: (name: Permission) => boolean;
-  operator?: (userId: string) => boolean;
 }) {
   const checks: Permission[][] = [];
   const edits: { id: string; edit: RoleEdit }[] = [];
@@ -120,7 +119,6 @@ function harness(options: {
   const deps: ImportDeps = {
     platform,
     store,
-    operator: options.operator,
     record: async (_guild, _by, _summary, result) => {
       recorded.push(result);
     },
@@ -189,17 +187,6 @@ describe('template import permissions', () => {
     ]);
     expect(run.recorded).toEqual([result]);
     expect(run.outcomes).toEqual([{ status: 'applied', detail: result }]);
-  });
-
-  it('trusts bot operators without asking the platform', async () => {
-    const run = harness({ holds: () => false, operator: (id) => id === user });
-    const result = await run.apply();
-    expect(run.checks).toEqual([]);
-    expect(run.roles[0]?.permissions).toEqual(['Administrator', 'BanMembers', 'ManageMessages']);
-    expect(run.edits[0]?.edit.permissionBits).toBe(
-      permissionBits(['ViewChannel', 'Administrator', 'ManageGuild']),
-    );
-    expect(result).not.toHaveProperty('withheld');
   });
 
   it('looks nothing up when the template grants nothing dangerous', async () => {
