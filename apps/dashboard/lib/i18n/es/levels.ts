@@ -70,4 +70,17 @@ export const levels = {
   'Last import: {count} members on {date}': 'Última importación: {count} miembros el {date}',
   'Nothing imported yet': 'Nada importado todavía',
   'That file has rows I cannot read.': 'Ese archivo tiene filas que no puedo leer.',
+  'From Pluuty': 'Desde Pluuty',
+  'Import as': 'Importar como',
+  XP: 'XP',
+  'Import from Pluuty': 'Importar desde Pluuty',
+  'Reads the public Pluuty leaderboard of this community. Members keep their level.':
+    'Lee la clasificación pública de Pluuty de esta comunidad. Los miembros conservan su nivel.',
+  'Reads the public Pluuty leaderboard of this community. Levels follow the curve here.':
+    'Lee la clasificación pública de Pluuty de esta comunidad. Los niveles siguen la curva de aquí.',
+  'Pluuty shows no leaderboard for this community. Turn on its public leaderboard and try again.':
+    'Pluuty no muestra ninguna clasificación para esta comunidad. Activa su clasificación pública y vuelve a intentarlo.',
+  'Pluuty did not answer. Try again later.': 'Pluuty no responde. Vuelve a intentarlo más tarde.',
+  'Pluuty has no levels for this community yet.':
+    'Pluuty todavía no tiene niveles para esta comunidad.',
 } as const;

@@ -30,7 +30,7 @@ import { Avatar, Empty, Field, Fields, Grid, Panel, PanelBody, roleColor } from 
 import type { Key, Translator } from '@/lib/i18n';
 import type { Person } from '@/lib/people';
 import { date } from '@/lib/time';
-import { importLevels } from './actions';
+import { importFromPluuty, importLevels } from './actions';
 
 interface Leader {
   rank: number;
@@ -73,6 +73,11 @@ const importModes: { value: ImportMode; label: Key }[] = [
   { value: 'max', label: 'Keep higher' },
   { value: 'replace', label: 'Replace' },
   { value: 'add', label: 'Add' },
+];
+
+const keepOptions: { value: 'level' | 'xp'; label: Key }[] = [
+  { value: 'level', label: 'Levels' },
+  { value: 'xp', label: 'XP' },
 ];
 
 const CHUNK = 20_000;
@@ -156,9 +161,7 @@ function bestList(lists: unknown[][], guildId: string | null): unknown[] | null 
 
 function rowsOf(input: unknown, guildId: string): unknown[] | null {
   const lists = candidates(input);
-  return (
-    bestList(lists, guildId) ?? bestList(lists, null) ?? (Array.isArray(input) ? input : null)
-  );
+  return bestList(lists, guildId) ?? bestList(lists, null) ?? (Array.isArray(input) ? input : null);
 }
 
 function toNumber(value: unknown): number | null {
@@ -744,6 +747,22 @@ function ImportPanel({ lastImport }: { lastImport: { rows: number; at: string } 
   const [status, setStatus] = useState<{ text: string; error: boolean } | null>(null);
   const [pending, start] = useTransition();
 
+  const [keep, setKeep] = useState<'level' | 'xp'>('level');
+
+  const fromPluuty = () =>
+    start(async () => {
+      setStatus(null);
+      const result = await importFromPluuty(guildId, mode, keep);
+      setStatus(
+        result.ok
+          ? {
+              text: t('Importing {count} members.', { count: result.data?.count ?? 0 }),
+              error: false,
+            }
+          : { text: t.raw(result.error), error: true },
+      );
+    });
+
   const run = () =>
     start(async () => {
       if (!file) return;
@@ -828,6 +847,29 @@ function ImportPanel({ lastImport }: { lastImport: { rows: number; at: string } 
               </button>
             </div>
             <span className="mx-hint">{t('JSON or CSV with id and xp or level columns')}</span>
+            <div className="mx-field">
+              <span className="mx-label">{t('From Pluuty')}</span>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <Seg
+                  label={t('Import as')}
+                  value={keep}
+                  options={keepOptions.map((option) => ({ ...option, label: t(option.label) }))}
+                  onChange={setKeep}
+                />
+                <button type="button" className="mx-btn" disabled={pending} onClick={fromPluuty}>
+                  {t('Import from Pluuty')}
+                </button>
+              </div>
+              <span className="mx-hint">
+                {keep === 'level'
+                  ? t(
+                      'Reads the public Pluuty leaderboard of this community. Members keep their level.',
+                    )
+                  : t(
+                      'Reads the public Pluuty leaderboard of this community. Levels follow the curve here.',
+                    )}
+              </span>
+            </div>
             <div className="mx-field">
               <span className="mx-label">{t('When a member already has XP')}</span>
               <Seg
