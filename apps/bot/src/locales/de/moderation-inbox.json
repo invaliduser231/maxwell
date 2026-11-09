@@ -1,0 +1,67 @@
+{
+  "command": "Schickt eine Nachricht oder ein Mitglied an die Moderation. Antworte auf die Nachricht oder nenne das Mitglied.",
+  "sent": "Ist bei der Moderation.",
+  "already": "Das hast du schon gemeldet.",
+  "nothing": "Antworte auf die Nachricht, die du melden willst, oder nenne das Mitglied.",
+  "self": "Dich selbst kannst du nicht melden.",
+  "bot": "Bots werden nicht gemeldet, frag eine Moderatorin oder einen Moderator.",
+  "off": "Meldungen sind hier ausgeschaltet.",
+  "reactionSent": "Deine Meldung in **{server}** ist bei der Moderation.",
+  "titles": {
+    "report": "Meldung #{n}",
+    "appeal": "Einspruch #{n}",
+    "review": "Prüfung #{n}",
+    "gate": "Einlass #{n}",
+    "check": "Verifizierung #{n}"
+  },
+  "fields": {
+    "member": "Mitglied",
+    "reporters": "Gemeldet von",
+    "message": "Nachricht",
+    "report": "Meldung",
+    "appeal": "Einspruch",
+    "review": "Grund",
+    "gate": "Wartend",
+    "check": "Verifizierung",
+    "status": "Status",
+    "outcome": "Ergebnis",
+    "note": "Notiz"
+  },
+  "reporters": "{n, plural, one {# Mitglied} other {# Mitgliedern}}",
+  "jump": "Zur Nachricht",
+  "gone": "Gelöscht",
+  "dashboard": "Im Dashboard öffnen",
+  "status": {
+    "open": "Offen",
+    "claimed": "Übernommen von {who}",
+    "resolved": "Erledigt von {who}",
+    "dismissed": "Verworfen von {who}"
+  },
+  "outcomes": {
+    "warn": "Verwarnt, Fall #{n}",
+    "timeout": "Timeout, Fall #{n}",
+    "kick": "Gekickt, Fall #{n}",
+    "ban": "Gebannt, Fall #{n}",
+    "unban": "Entbannt, Fall #{n}",
+    "approved": "Bestätigt",
+    "declined": "Abgelehnt",
+    "deleted": "Nachricht gelöscht",
+    "let_in": "Hereingelassen",
+    "banned": "Gebannt",
+    "left": "Hat den Server verlassen",
+    "passed": "Captcha gelöst",
+    "released": "Hereingelassen",
+    "none": "Nichts unternommen"
+  },
+  "gateHeld": "{n, plural, one {# Mitglied wartet} other {# Mitglieder warten}} am Einlass",
+  "checkStates": {
+    "undelivered": "Das Captcha ließ sich nicht zustellen.",
+    "failed": "Captcha nicht gelöst.",
+    "expired": "Captcha nicht rechtzeitig gelöst."
+  },
+  "riskScore": "{hasReasons, select, yes {Risikowert {score}: {reasons}} other {Risikowert {score}}}",
+  "appealAccepted": "Dein Einspruch in **{server}** wurde angenommen. Mit einer Einladung kannst du wieder beitreten.",
+  "appealDeclined": "Dein Einspruch in **{server}** wurde abgelehnt.",
+  "more": "und {n} weitere",
+  "appealLine": "Einspruch einlegen kannst du hier: {url}"
+}

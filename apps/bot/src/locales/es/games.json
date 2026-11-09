@@ -1,0 +1,84 @@
+{
+  "commands": {
+    "trivia": "Hace una pregunta de trivia. Gana la primera respuesta correcta en el chat.",
+    "coinflip": "Lanza una moneda o reta a un miembro a un lanzamiento con apuesta.",
+    "higherlower": "Adivina si el siguiente número es mayor o menor. Con apuesta, si quieres.",
+    "top": {
+      "trivia": "La clasificación de trivia.",
+      "counting": "La clasificación de conteo.",
+      "wordchain": "La clasificación de cadena de palabras.",
+      "higherlower": "La clasificación de mayor o menor.",
+      "coinflip": "La clasificación de cara o cruz."
+    }
+  },
+  "off": "{game} está desactivado aquí.",
+  "wrongChannel": "Aquí los juegos van en otros canales.",
+  "economyOff": "Las apuestas necesitan Economy, y está desactivado aquí.",
+  "stakeRange": "Las apuestas van de {min} a {max}.",
+  "broke": "Solo tienes {balance}.",
+  "unknownMember": "No encuentro a ese miembro.",
+  "names": {
+    "trivia": "Trivia",
+    "counting": "Conteo",
+    "wordchain": "Cadena de palabras",
+    "higherlower": "Mayor o menor",
+    "coinflip": "Cara o cruz"
+  },
+  "reward": "+{amount}",
+  "trivia": {
+    "title": "Trivia",
+    "none": "Todavía no hay preguntas. Un admin puede añadir algunas en el panel.",
+    "running": "Ya hay una pregunta abierta aquí.",
+    "prompt": "Responde en el chat. El tiempo se acaba {until}.",
+    "won": "{user} acertó: **{answer}**.",
+    "timeout": "Se acabó el tiempo. Era **{answer}**."
+  },
+  "counting": {
+    "broke": "{reset, select, yes {{user} rompió la cuenta en **{reached}**. El siguiente número es **1**.} other {{user}, ese no es.}}",
+    "twice": "{reset, select, yes {{user} contó dos veces seguidas. De vuelta a **1**.} other {{user}, espera a que cuente otra persona.}}",
+    "expected": "El siguiente número era {n}.",
+    "milestone": "**{n}**. {amount} para {user}."
+  },
+  "wordchain": {
+    "letter": "**{word}** no empieza por **{letter}**.",
+    "repeat": "**{word}** ya se usó.",
+    "twice": "Espera a que juegue otra persona.",
+    "reset": "{ended, select, yes {La cadena termina en **{reached}**. Empieza de nuevo con cualquier palabra.} other {Empieza de nuevo con cualquier palabra.}}"
+  },
+  "hilo": {
+    "running": "Ya tienes una partida en curso en {channel}.",
+    "start": "{staked, select, yes {El número es **{n}** (de 1 a {max}). Hay {stake} en juego.} other {El número es **{n}** (de 1 a {max}).}}",
+    "how": "Responde `higher` o `lower`, o `stop` para cobrar. Termina {until}.",
+    "right": "{valued, select, yes {**{n}**. Correcto, {streak} seguidos. Ahora vale {worth}.} other {**{n}**. Correcto, {streak} seguidos.}}",
+    "wrong": "{staked, select, yes {**{n}**. Incorrecto. Pierdes {lost} después de {streak, plural, one {# acierto} other {# aciertos}}.} other {**{n}**. Incorrecto. La racha termina en {streak, number}.}}",
+    "cashed": "Cobraste {amount} después de {streak, plural, one {# acierto} other {# aciertos}}.",
+    "refunded": "Paraste antes del primer intento. Te devuelvo {amount}.",
+    "stopped": "Paraste con una racha de {streak}.",
+    "timeout": "A {user} se le acabó el tiempo. {text}"
+  },
+  "coinflip": {
+    "heads": "Cara.",
+    "tails": "Cruz.",
+    "self": "No puedes lanzar contra ti.",
+    "bot": "Los bots no apuestan.",
+    "busy": "Uno de ustedes ya tiene un cara o cruz abierto.",
+    "challenge": "{staked, select, yes {{to}, {from} quiere lanzar una moneda contigo por {stake} cada uno.} other {{to}, {from} quiere lanzar una moneda contigo.}}",
+    "confirm": "Reacciona con {yes} para aceptar o {no} para rechazar. Abierto hasta {until}.",
+    "won": "{staked, select, yes {**{side}** {winner} se lleva {pot}.} other {**{side}** Gana {winner}.}}",
+    "declined": "{user} rechazó.",
+    "cancelled": "Cancelado.",
+    "expired": "Sin respuesta, así que no pasó nada.",
+    "failed": "Alguien ya no puede cubrir la apuesta, así que no pasó nada."
+  },
+  "board": {
+    "title": "Clasificación de {game}",
+    "empty": [
+      "Todavía no hay nadie en la clasificación.",
+      "La clasificación está vacía. Alguien tiene que empezar."
+    ],
+    "wins": "{n, plural, one {# victoria} other {# victorias}}",
+    "best": "mejor racha {n}",
+    "you": "Tú: #{rank}, {value}",
+    "notYou": "Todavía no estás en la clasificación"
+  }
+}

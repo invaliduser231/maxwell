@@ -1,0 +1,23 @@
+{
+  "commands": {
+    "stats": "Charts of how active the community is.",
+    "channels": "The busiest text and voice channels.",
+    "members": "The members who write the most.",
+    "user": "How active a member has been."
+  },
+  "channelsTitle": "Busiest channels, last {days} days",
+  "text": "Text",
+  "voice": "Voice",
+  "channelLine": "{rank}. {channel}  {value}",
+  "messages": "{value, plural, one {# message} other {# messages}}",
+  "minutes": "{unit, select, hours {{hours} hours} other {{minutes} min}}",
+  "nothing": "Nothing counted yet.",
+  "membersTitle": "Most active members, last {days} days",
+  "memberLine": "{rank}. {user}  {value}",
+  "userTitle": "Activity of {name}",
+  "userLines": "{messages, plural, one {# message} other {# messages}} on {days} of the last {range} days.",
+  "lastSeen": "Last active {when}.",
+  "quiet": "No messages in the last {range} days.",
+  "others": "Only moderators can look up other members.",
+  "failed": "The chart could not be drawn. Try again in a moment."
+}

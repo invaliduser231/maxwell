@@ -1,0 +1,78 @@
+{
+  "commands": {
+    "balance": "Cuánto tienes tú u otra persona.",
+    "daily": "Recoge tu recompensa diaria. Vuelve cada día para mantener la racha.",
+    "pay": "Envía dinero a otro miembro. Una parte se va en impuestos.",
+    "shop": "Lo que puedes comprar aquí.",
+    "buy": "Compra algo en la tienda.",
+    "rich": "Quién tiene más."
+  },
+  "balance": {
+    "self": "Tienes {amount}.",
+    "other": "{user} tiene {amount}.",
+    "rank": "#{rank} aquí",
+    "today": "{earned} de {cap} ganados hoy",
+    "emptySelf": [
+      "Nada todavía. Escribe un poco, todo suma.",
+      "Vacío por ahora.",
+      "Ni uno todavía."
+    ]
+  },
+  "daily": {
+    "off": "Las recompensas diarias están desactivadas aquí.",
+    "claimed": "{streak, plural, =0 {+{amount}.} =1 {+{amount}.} other {+{amount}. # días seguidos.}}",
+    "next": "La próxima {at}",
+    "wait": "{command} vuelve a estar disponible {at}.",
+    "slow": ["Con calma.", "De uno en uno."]
+  },
+  "pay": {
+    "self": "No puedes enviarte dinero a ti.",
+    "bot": "Los bots no necesitan dinero.",
+    "unknown": "No encuentro a ese miembro.",
+    "tooSmall": "Envía al menos 1.",
+    "broke": "Solo tienes {amount}.",
+    "sent": "{taxed, select, yes {Enviaste {received} a {user}. {tax} se fueron en impuestos.} other {Enviaste {received} a {user}.}}"
+  },
+  "shop": {
+    "title": "Tienda",
+    "empty": [
+      "La tienda está vacía. Un admin puede llenarla desde el panel.",
+      "Todavía no hay nada a la venta."
+    ],
+    "soldOut": "agotado",
+    "left": "quedan {n}",
+    "hint": "{prefix}buy <item>",
+    "kinds": {
+      "role": "Rol",
+      "pack": "Sobre de cartas",
+      "background": "Fondo de perfil",
+      "giveaway": "Participación en sorteo"
+    }
+  },
+  "buy": {
+    "unknown": "No hay nada llamado {query} en la tienda. `{prefix}shop` muestra lo que hay.",
+    "soldOut": "**{name}** está agotado.",
+    "limit": "Ya compraste **{name}** todas las veces posibles.",
+    "funds": "Cuesta {price}. Tienes {balance}.",
+    "roleGone": "Ese rol ya no existe. Un admin tiene que arreglar este artículo en el panel.",
+    "roleHeld": "Ya tienes {role}.",
+    "roleFailed": "No pude darte {role}, así que el dinero volvió a tu cartera.",
+    "role": "{timed, select, yes {{role} es tuyo hasta {until}.} other {{role} es tuyo.}}",
+    "pack": "**{name}** es tuyo. Ábrelo con {command}.",
+    "background": "**{name}** ya está en tu perfil.",
+    "equipped": "Ya tienes **{name}**. Vuelve a estar en tu perfil.",
+    "giveaway": "**{name}** es tuyo. Cuenta en el próximo sorteo.",
+    "where": "en esta comunidad"
+  },
+  "rich": {
+    "title": "Los más ricos",
+    "empty": ["Nadie tiene nada todavía.", "Todas las carteras están vacías. Muy equitativo."],
+    "you": "Tú: #{rank} con {amount}",
+    "notYou": "Todavía no apareces en la lista"
+  },
+  "reasons": {
+    "bought": "Compró {name} en la tienda",
+    "refunded": "Compra en la tienda reembolsada",
+    "expired": "Rol de la tienda vencido"
+  }
+}

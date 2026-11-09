@@ -1,0 +1,106 @@
+{
+  "moderation": {
+    "name": "Moderation",
+    "description": "Cases, warnings, timeouts, kicks and bans."
+  },
+  "automod": {
+    "name": "AutoMod",
+    "description": "Filters and the raid shield."
+  },
+  "security": {
+    "name": "Security",
+    "description": "Risk checks, captcha, raid and nuke protection, honeypots."
+  },
+  "logs": {
+    "name": "Logs",
+    "description": "Message, member, role and channel logs."
+  },
+  "backups": {
+    "name": "Backups",
+    "description": "Snapshots of roles, channels and settings."
+  },
+  "welcome": {
+    "name": "Welcome",
+    "description": "Messages, cards and roles for new members."
+  },
+  "invites": {
+    "name": "Invites",
+    "description": "Who invited whom, and who stayed."
+  },
+  "levels": {
+    "name": "Levels",
+    "description": "XP, role rewards and the leaderboard."
+  },
+  "roles": {
+    "name": "Roles",
+    "description": "Role menus, autoroles and sticky roles."
+  },
+  "tickets": {
+    "name": "Tickets",
+    "description": "Support tickets and modmail."
+  },
+  "forms": {
+    "name": "Forms",
+    "description": "Applications and forms with actions."
+  },
+  "suggestions": {
+    "name": "Suggestions",
+    "description": "Suggestions with votes and status."
+  },
+  "giveaways": {
+    "name": "Giveaways",
+    "description": "Giveaways with requirements and bonus entries."
+  },
+  "events": {
+    "name": "Events and polls",
+    "description": "Events with RSVP, and polls."
+  },
+  "starboard": {
+    "name": "Starboard",
+    "description": "Highlights the most starred messages."
+  },
+  "counters": {
+    "name": "Counters",
+    "description": "Channel names that keep count."
+  },
+  "economy": {
+    "name": "Economy",
+    "description": "Joules, the shop and daily rewards."
+  },
+  "collection": {
+    "name": "Collection",
+    "description": "Collect your community."
+  },
+  "games": {
+    "name": "Games",
+    "description": "Trivia, counting and other small games."
+  },
+  "feeds": {
+    "name": "Feeds",
+    "description": "RSS, YouTube, Twitch and more in your channels."
+  },
+  "commands": {
+    "name": "Custom commands",
+    "description": "Your own commands and auto replies."
+  },
+  "scheduler": {
+    "name": "Scheduler",
+    "description": "Scheduled and repeating messages."
+  },
+  "insights": {
+    "name": "Insights",
+    "description": "Activity, retention and moderation stats."
+  },
+  "voice": {
+    "name": "Voice rooms",
+    "description": "Join to create voice channels."
+  },
+  "cards": {
+    "name": "Cards",
+    "description": "Colors and backgrounds of the image cards."
+  },
+  "general": {
+    "name": "General",
+    "description": "Prefix, language, timezone and privacy."
+  }
+}

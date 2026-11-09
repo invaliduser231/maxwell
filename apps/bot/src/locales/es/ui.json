@@ -1,0 +1,35 @@
+{
+  "done": ["Listo.", "Hecho.", "Guardado."],
+  "missingPermissions": "Para eso necesitas {list}.",
+  "botMissingPermissions": "Para eso necesito {list} {where}.",
+  "here": "aquí",
+  "there": "allí",
+  "inCommunity": "en esta comunidad",
+  "moduleOff": "{name} está desactivado aquí. Un admin puede activarlo en el panel.",
+  "guildOnly": "Eso solo funciona dentro de una comunidad.",
+  "cooldown": ["Con calma.", "De uno en uno."],
+  "tryAgain": "Vuelve a intentarlo {when}.",
+  "failed": "Eso falló de mi lado. Quedó registrado como {errorCode}. Vuelve a intentarlo en un minuto.",
+  "pickOne": "Elige uno.",
+  "args": {
+    "missing": "Para eso me falta `{name}`.",
+    "user": "No encuentro a nadie para `{name}`.",
+    "channel": "Ese canal no lo veo.",
+    "role": "Ese rol no existe aquí.",
+    "durationMissing": "Me falta `{name}`, por ejemplo `10m` o `2h`.",
+    "duration": "No conozco esa duración. Prueba `10m`, `2h` o `3d`.",
+    "between": "`{name}` tiene que estar entre {min} y {max}.",
+    "whole": "`{name}` tiene que ser un número entero."
+  },
+  "unknownCommand": "No hay ningún comando {typed}. ¿Quisiste decir {suggestion}?",
+  "prefixHint": "El prefijo aquí es {prefix}. `{prefix}help` lo muestra todo.",
+  "prefixAgain": "Sigo aquí. Sigue siendo {prefix}.",
+  "prefixThird": "Te oí las dos primeras veces.",
+  "page": "Página {index} de {total}",
+  "eggs": {
+    "demon": "Solo del tipo termodinámico.",
+    "sort": "Las rápidas a la izquierda, las lentas a la derecha. Ordenado.",
+    "who": "Maxwell. Aquí mantengo el orden."
+  },
+  "ordinal": "{value}.º"
+}

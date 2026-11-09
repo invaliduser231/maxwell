@@ -1,0 +1,35 @@
+{
+  "done": ["Erledigt.", "Passt.", "Gespeichert."],
+  "missingPermissions": "Dafür brauchst du {list}.",
+  "botMissingPermissions": "Dafür brauche ich {list} {where}.",
+  "here": "hier",
+  "there": "dort",
+  "inCommunity": "in dieser Community",
+  "moduleOff": "{name} ist hier aus. Ein Admin kann es im Dashboard einschalten.",
+  "guildOnly": "Das geht nur in einer Community.",
+  "cooldown": ["Langsam.", "Eins nach dem anderen."],
+  "tryAgain": "Versuch es {when} noch mal.",
+  "failed": "Das hat bei mir nicht geklappt. Gespeichert als {errorCode}. Versuch es in einer Minute noch mal.",
+  "pickOne": "Such dir eins aus.",
+  "args": {
+    "missing": "Mir fehlt noch `{name}`.",
+    "user": "Für `{name}` finde ich niemanden.",
+    "channel": "Diesen Kanal sehe ich nicht.",
+    "role": "Diese Rolle gibt es hier nicht.",
+    "durationMissing": "Mir fehlt noch `{name}`, zum Beispiel `10m` oder `2h`.",
+    "duration": "Diese Dauer kenne ich nicht. Probier `10m`, `2h` oder `3d`.",
+    "between": "`{name}` muss zwischen {min} und {max} liegen.",
+    "whole": "`{name}` muss eine ganze Zahl sein."
+  },
+  "unknownCommand": "Einen Befehl {typed} gibt es nicht. Meintest du {suggestion}?",
+  "prefixHint": "Das Prefix hier ist {prefix}. `{prefix}help` zeigt alles.",
+  "prefixAgain": "Immer noch da. Immer noch {prefix}.",
+  "prefixThird": "Ich hab dich schon die ersten zwei Male gehört.",
+  "page": "Seite {index} von {total}",
+  "eggs": {
+    "demon": "Nur die thermodynamische Sorte.",
+    "sort": "Schnelle nach links, langsame nach rechts. Sortiert.",
+    "who": "Maxwell. Ich halte hier Ordnung."
+  },
+  "ordinal": "{value}."
+}

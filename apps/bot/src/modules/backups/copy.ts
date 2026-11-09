@@ -1,35 +1,20 @@
-import { localized } from '../../i18n/localized.js';
-import { code } from '../../ui/format.js';
-import de from './copy.de.js';
-import es from './copy.es.js';
+import { catalog } from '../../i18n/catalog.js';
+import en from '../../locales/en/backups.json' with { type: 'json' };
 
-const en = {
-  commands: {
-    backup: 'Snapshots of roles, channels and settings.',
-    now: 'Takes a snapshot of roles, channels and settings.',
-    list: 'Lists the saved snapshots.',
-  },
-  kinds: {
-    daily: 'daily',
-    manual: 'manual',
-  },
+export const copy = catalog('backups', en, (m) => ({
   saved: (number: number, roles: number, channels: number) =>
-    `Snapshot #${number} saved with **${roles}** roles and **${channels}** channels.`,
-  listTitle: 'Snapshots',
+    m.saved({ number: String(number), roles: String(roles), channels: String(channels) }),
   listLine: (number: number, kind: string, when: string, roles: number, channels: number) =>
-    `\`#${number}\`  ${when}  ${kind}  ${roles} roles, ${channels} channels`,
-  listLabel: (label: string) => `*${label}*`,
-  listFooter: 'Compare and restore them in the dashboard.',
-  empty: (prefix: string) => [
-    `No snapshots yet. ${code(`${prefix}backup now`)} takes one.`,
-    `Nothing saved yet. ${code(`${prefix}backup now`)} takes the first snapshot.`,
-  ],
-  failed: 'The snapshot failed. Check that I can see all channels and roles, then try again.',
-};
-
-export type BackupsCopy = typeof en;
-
-export const copy = localized(en, { de, es });
+    m.listLine({
+      number: String(number),
+      kind,
+      when,
+      roles: String(roles),
+      channels: String(channels),
+    }),
+  listLabel: (label: string) => m.listLabel({ label }),
+  empty: (prefix: string) => m.empty({ prefix }),
+}));
 
 export const audit = {
   auditSnapshot: (number: number) => `Took snapshot #${number}`,

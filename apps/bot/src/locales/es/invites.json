@@ -1,0 +1,65 @@
+{
+  "commands": {
+    "invites": "Cuántos miembros trajo alguien.",
+    "top": "Quién trajo más miembros que se quedaron.",
+    "who": "Cómo llegó un miembro y quién lo invitó.",
+    "log": "Publica cada entrada con su invitación en un canal."
+  },
+  "top": {
+    "empty": [
+      "Nadie ha traído a nadie todavía.",
+      "La clasificación está vacía. Alguien tiene que empezar.",
+      "Todavía no hay invitaciones en la clasificación. Esto está tranquilo."
+    ],
+    "you": "Tú: #{rank} con {active, plural, one {# miembro} other {# miembros}}",
+    "notOnBoard": "Todavía no apareces en la clasificación",
+    "title": "Los que más invitan",
+    "left": "{n} se fueron"
+  },
+  "who": {
+    "before": "{who} ya estaba aquí antes que yo, así que no sé cómo entró.",
+    "looking": "{who} entró {when}. Sigo averiguando cómo.",
+    "unknown": "{who} entró {when}. Fluxer no me dijo cómo.",
+    "through": "{who} entró {when} con {source}."
+  },
+  "log": {
+    "current": "Las entradas se publican en {channel}.",
+    "off": "Las publicaciones de entradas están desactivadas.",
+    "turnOn": "Actívalas con {prefix}invites log #canal.",
+    "notChannel": "Ese canal no lo veo.",
+    "where": "en {channel}",
+    "set": "Desde ahora las entradas van a {channel}."
+  },
+  "stats": {
+    "selfEmpty": ["Todavía no has traído a nadie.", "Nadie ha entrado gracias a ti todavía."],
+    "otherEmpty": "{who} todavía no ha traído a nadie.",
+    "you": "Tú",
+    "stayedOne": "Se quedó.",
+    "stayedAll": "Se quedaron todos.",
+    "stillHere": "{n} siguen aquí.",
+    "brought": "{subject}: **{total, plural, one {# miembro} other {# miembros}}** traídos. {stayed}",
+    "leftAgain": "{n} se fueron otra vez"
+  },
+  "source": {
+    "inviteFrom": "`{code}` de {inviter}",
+    "invite": "una invitación",
+    "vanity": "el enlace personalizado",
+    "discovery": "el explorador",
+    "bot": "una invitación de bot",
+    "creator": "la creación de la comunidad",
+    "admin": "un admin de la instancia",
+    "unknown": "una vía desconocida"
+  },
+  "join": {
+    "through": "{who} entró con {source}.",
+    "plain": "{who} entró.",
+    "needsPermission": "Necesito Manage Community para ver qué invitación se usó.",
+    "notTold": "Fluxer no me dijo qué invitación se usó.",
+    "botTitle": "Bot añadido",
+    "memberTitle": "Miembro se unió",
+    "inviterNow": "{inviter} ya tiene **{active, plural, one {# miembro} other {# miembros}}** aquí.",
+    "created": "Cuenta creada",
+    "young": "La cuenta solo tiene {age}.",
+    "number": "Miembro #{n}"
+  }
+}

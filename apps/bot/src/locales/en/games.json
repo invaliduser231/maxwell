@@ -1,0 +1,81 @@
+{
+  "commands": {
+    "trivia": "Ask a trivia question. First right answer in chat wins.",
+    "coinflip": "Flip a coin, or challenge a member to a flip with a stake.",
+    "higherlower": "Guess if the next number is higher or lower. Stake something if you like.",
+    "top": {
+      "trivia": "The trivia leaderboard.",
+      "counting": "The counting leaderboard.",
+      "wordchain": "The word chain leaderboard.",
+      "higherlower": "The higher or lower leaderboard.",
+      "coinflip": "The coinflip leaderboard."
+    }
+  },
+  "off": "{game} is off here.",
+  "wrongChannel": "Games run in other channels here.",
+  "economyOff": "Stakes need Economy, and it is off here.",
+  "stakeRange": "Stakes go from {min} to {max}.",
+  "broke": "You only have {balance}.",
+  "unknownMember": "That's not a member I can find.",
+  "names": {
+    "trivia": "Trivia",
+    "counting": "Counting",
+    "wordchain": "Word chain",
+    "higherlower": "Higher or lower",
+    "coinflip": "Coinflip"
+  },
+  "reward": "+{amount}",
+  "trivia": {
+    "title": "Trivia",
+    "none": "No questions yet. An admin can add some in the dashboard.",
+    "running": "A question is already open here.",
+    "prompt": "Answer in chat. Time runs out {until}.",
+    "won": "{user} got it: **{answer}**.",
+    "timeout": "Time's up. It was **{answer}**."
+  },
+  "counting": {
+    "broke": "{reset, select, yes {{user} broke the count at **{reached}**. Next number is **1**.} other {{user}, that's not it.}}",
+    "twice": "{reset, select, yes {{user} counted twice in a row. Back to **1**.} other {{user}, wait for someone else.}}",
+    "expected": "The next number was {n}.",
+    "milestone": "**{n}**. {amount} for {user}."
+  },
+  "wordchain": {
+    "letter": "**{word}** doesn't start with **{letter}**.",
+    "repeat": "**{word}** was used already.",
+    "twice": "Wait for someone else.",
+    "reset": "{ended, select, yes {Chain ends at **{reached}**. Start fresh with any word.} other {Start fresh with any word.}}"
+  },
+  "hilo": {
+    "running": "You already have a game running in {channel}.",
+    "start": "{staked, select, yes {The number is **{n}** (1 to {max}). {stake} on the line.} other {The number is **{n}** (1 to {max}).}}",
+    "how": "Reply `higher` or `lower`, `stop` to cash out. Ends {until}.",
+    "right": "{valued, select, yes {**{n}**. Right, {streak} in a row. Worth {worth} now.} other {**{n}**. Right, {streak} in a row.}}",
+    "wrong": "{staked, select, yes {**{n}**. Wrong. {lost} gone after {streak, plural, one {# right guess} other {# right guesses}}.} other {**{n}**. Wrong. Streak ends at {streak, number}.}}",
+    "cashed": "Cashed out {amount} after {streak, plural, one {# right guess} other {# right guesses}}.",
+    "refunded": "Stopped before the first guess. {amount} back.",
+    "stopped": "Stopped at a streak of {streak}.",
+    "timeout": "{user} ran out of time. {text}"
+  },
+  "coinflip": {
+    "heads": "Heads.",
+    "tails": "Tails.",
+    "self": "You can't flip against yourself.",
+    "bot": "Bots don't gamble.",
+    "busy": "One of you already has an open coinflip.",
+    "challenge": "{staked, select, yes {{to}, {from} wants to flip a coin with you for {stake} each.} other {{to}, {from} wants to flip a coin with you.}}",
+    "confirm": "React with {yes} to accept or {no} to decline. Open until {until}.",
+    "won": "{staked, select, yes {**{side}** {winner} takes {pot}.} other {**{side}** {winner} wins.}}",
+    "declined": "{user} declined.",
+    "cancelled": "Called off.",
+    "expired": "No answer, so nothing happened.",
+    "failed": "Someone can't cover the stake anymore, so nothing happened."
+  },
+  "board": {
+    "title": "{game} leaderboard",
+    "empty": ["Nobody is on the board yet.", "The board is empty. Someone has to start."],
+    "wins": "{n, plural, one {# win} other {# wins}}",
+    "best": "best streak {n}",
+    "you": "You: #{rank}, {value}",
+    "notYou": "You are not on the board yet"
+  }
+}

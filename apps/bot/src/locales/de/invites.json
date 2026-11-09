@@ -1,0 +1,65 @@
+{
+  "commands": {
+    "invites": "Wie viele Mitglieder jemand hergebracht hat.",
+    "top": "Wer die meisten Mitglieder hergebracht hat, die geblieben sind.",
+    "who": "Wie ein Mitglied hergekommen ist und wer es eingeladen hat.",
+    "log": "Postet jeden Beitritt mit seiner Einladung in einen Kanal."
+  },
+  "top": {
+    "empty": [
+      "Noch hat niemand jemanden hergebracht.",
+      "Die Liste ist leer. Irgendwer muss anfangen.",
+      "Noch keine Einladungen auf der Liste. Ruhig hier."
+    ],
+    "you": "Du: #{rank} mit {active, plural, one {# Mitglied} other {# Mitgliedern}}",
+    "notOnBoard": "Du stehst noch nicht auf der Liste",
+    "title": "Top-Einlader",
+    "left": "{n} weg"
+  },
+  "who": {
+    "before": "{who} war schon vor mir da, deshalb weiß ich nicht, wie.",
+    "looking": "{who} ist {when} beigetreten. Ich schaue noch nach, wie.",
+    "unknown": "{who} ist {when} beigetreten. Fluxer hat mir nicht verraten, wie.",
+    "through": "{who} ist {when} über {source} beigetreten."
+  },
+  "log": {
+    "current": "Beitritte landen in {channel}.",
+    "off": "Beitrittsposts sind aus.",
+    "turnOn": "Einschalten mit {prefix}invites log #kanal.",
+    "notChannel": "Diesen Kanal sehe ich nicht.",
+    "where": "in {channel}",
+    "set": "Beitritte landen ab jetzt in {channel}."
+  },
+  "stats": {
+    "selfEmpty": ["Du hast noch niemanden hergebracht.", "Über dich ist noch niemand gekommen."],
+    "otherEmpty": "{who} hat noch niemanden hergebracht.",
+    "you": "Du",
+    "stayedOne": "Ist geblieben.",
+    "stayedAll": "Alle sind geblieben.",
+    "stillHere": "{n} sind noch da.",
+    "brought": "{subject} hat **{total, plural, one {# Mitglied} other {# Mitglieder}}** hergebracht. {stayed}",
+    "leftAgain": "{n} wieder gegangen"
+  },
+  "source": {
+    "inviteFrom": "`{code}` von {inviter}",
+    "invite": "eine Einladung",
+    "vanity": "den Vanity-Link",
+    "discovery": "Discovery",
+    "bot": "eine Bot-Einladung",
+    "creator": "das Erstellen der Community",
+    "admin": "einen Instanz-Admin",
+    "unknown": "einen unbekannten Weg"
+  },
+  "join": {
+    "through": "{who} ist über {source} beigetreten.",
+    "plain": "{who} ist beigetreten.",
+    "needsPermission": "Ich brauche Manage Community, um die Einladung zu sehen.",
+    "notTold": "Fluxer hat mir nicht verraten, welche Einladung es war.",
+    "botTitle": "Bot hinzugefügt",
+    "memberTitle": "Neues Mitglied",
+    "inviterNow": "{inviter} hat jetzt **{active, plural, one {# Mitglied} other {# Mitglieder}}** hier.",
+    "created": "Konto erstellt",
+    "young": "Das Konto ist erst {age} alt.",
+    "number": "Mitglied #{n}"
+  }
+}

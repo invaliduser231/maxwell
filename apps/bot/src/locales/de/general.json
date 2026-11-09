@@ -1,0 +1,72 @@
+{
+  "commands": {
+    "ping": "Prüft, ob ich wach bin und wie schnell ich antworte.",
+    "help": "Zeigt, was ich kann, oder erklärt ein Modul oder einen Befehl.",
+    "prefix": "Zeigt das Prefix oder ändert es für diese Community.",
+    "about": "Wer ich bin und wie es mir geht.",
+    "entropy": "Wie ordentlich es hier ist.",
+    "vote": "Stimm auf fluxerlist für Maxwell ab und schalte alle gesperrten Module für dich frei.",
+    "mydata": "Schickt dir alles, was Maxwell in dieser Community über dich speichert.",
+    "forgetme": "Löscht deine Levels, Währung, Karten und andere Daten in dieser Community.",
+    "afk": "Meldet dich ab. Wer dich erwähnt, sieht deine Notiz, bis du wieder schreibst."
+  },
+  "ping": {
+    "first": "Pong.",
+    "measuring": "wird gemessen",
+    "result": "Pong. Gateway **{gateway}**, API **{api}**."
+  },
+  "help": {
+    "nothing": "Zu {query} gibt es nichts. `{prefix}help` zeigt alles.",
+    "examples": "Beispiele",
+    "needs": "Braucht",
+    "also": "Auch",
+    "title": "Befehle",
+    "prefix": "Das Prefix hier ist {prefix}.",
+    "details": "{prefix}help <modul> oder {prefix}help <befehl> für Details"
+  },
+  "prefix": {
+    "current": "Das Prefix hier ist {prefix}.",
+    "change": "Ändern mit {prefix}prefix <neu>.",
+    "tooLong": "Höchstens 8 Zeichen.",
+    "reset": "Wieder {prefix}.",
+    "set": "Hier höre ich jetzt auf {prefix}."
+  },
+  "about": {
+    "tagline": "Ich halte hier Ordnung.",
+    "communities": "Communities",
+    "online": "Online seit",
+    "memory": "Speicher"
+  },
+  "entropy": "Entropie hier: niedrig. Soll so bleiben.",
+  "vote": {
+    "done": "Deine Stimme ist da. Gesperrte Module sind für dich im Dashboard offen.",
+    "ask": "Stimm einmal auf fluxerlist für Maxwell ab, dann sind alle gesperrten Module für dich offen.{link}",
+    "again": "Danach `{prefix}vote` noch mal ausführen."
+  },
+  "greet": {
+    "hello": "Hallo, ich bin Maxwell. Ich halte hier Ordnung.",
+    "prefix": "Das Prefix ist {prefix}. Fang mit `{prefix}help` an.",
+    "mention": "Erwähn mich einfach, wenn du das Prefix vergisst.",
+    "missing": "> Mir fehlt **{permission}**. Bis dahin geht noch nicht: {feature}.",
+    "features": {
+      "ManageGuild": "Einladungs-Tracking",
+      "EmbedLinks": "alles außer reinem Text",
+      "AddReactions": "Reaktionen"
+    }
+  },
+  "afk": {
+    "set": "{hasReason, select, yes {Du bist weg: {reason}} other {Du bist weg.}}",
+    "back": "Willkommen zurück. Du warst {duration} weg.",
+    "away": "{hasReason, select, yes {{who} ist seit {since} weg: {reason}} other {{who} ist seit {since} weg.}}"
+  },
+  "privacy": {
+    "exported": "Alles, was ich in dieser Community über dich speichere.",
+    "nothingStored": "Ich speichere in dieser Community nichts über dich.",
+    "noDm": "Ich kann dir keine DM schicken. Öffne deine DMs und versuch es noch mal.",
+    "sent": "Ist in deinen DMs.",
+    "warning": "Das löscht deine Levels, Währung, Karten, Notizen und alles andere, was ich hier über dich speichere. Moderationsfälle bleiben.",
+    "confirm": "Mit `{prefix}forgetme confirm` geht es los.",
+    "partial": "Das meiste ist weg. Bei {modules} hat es nicht geklappt, versuch es später noch mal.",
+    "forgotten": "Vergessen."
+  }
+}

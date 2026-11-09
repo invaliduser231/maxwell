@@ -1,0 +1,74 @@
+{
+  "commands": {
+    "balance": "How much you or someone else has.",
+    "daily": "Collect your daily reward. Come back every day for a streak.",
+    "pay": "Send money to another member. Part of it goes to tax.",
+    "shop": "What you can buy here.",
+    "buy": "Buy something from the shop.",
+    "rich": "Who has the most."
+  },
+  "balance": {
+    "self": "You have {amount}.",
+    "other": "{user} has {amount}.",
+    "rank": "#{rank} here",
+    "today": "{earned} of {cap} earned today",
+    "emptySelf": ["Nothing yet. Talk a bit, it adds up.", "Empty so far.", "Not a single one yet."]
+  },
+  "daily": {
+    "off": "Daily rewards are off here.",
+    "claimed": "{streak, plural, =0 {+{amount}.} =1 {+{amount}.} other {+{amount}. {streak, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} day in a row.}}",
+    "next": "Next one {at}",
+    "wait": "{command} is ready again {at}.",
+    "slow": ["Easy.", "One at a time."]
+  },
+  "pay": {
+    "self": "You can't pay yourself.",
+    "bot": "Bots don't need money.",
+    "unknown": "That's not a member I can find.",
+    "tooSmall": "Send at least 1.",
+    "broke": "You only have {amount}.",
+    "sent": "{taxed, select, yes {Sent {received} to {user}. {tax} went to tax.} other {Sent {received} to {user}.}}"
+  },
+  "shop": {
+    "title": "Shop",
+    "empty": [
+      "The shop is empty. An admin can stock it in the dashboard.",
+      "Nothing for sale yet."
+    ],
+    "soldOut": "sold out",
+    "left": "{n} left",
+    "hint": "{prefix}buy <item>",
+    "kinds": {
+      "role": "Role",
+      "pack": "Card pack",
+      "background": "Profile background",
+      "giveaway": "Giveaway entry"
+    }
+  },
+  "buy": {
+    "unknown": "Nothing called {query} in the shop. `{prefix}shop` lists what's there.",
+    "soldOut": "**{name}** is sold out.",
+    "limit": "You already bought **{name}** as often as you can.",
+    "funds": "That costs {price}. You have {balance}.",
+    "roleGone": "That role no longer exists. An admin has to fix this item in the dashboard.",
+    "roleHeld": "You already have {role}.",
+    "roleFailed": "I couldn't give you {role}, so the money is back in your wallet.",
+    "role": "{timed, select, yes {{role} is yours until {until}.} other {{role} is yours.}}",
+    "pack": "**{name}** is yours. Open it with {command}.",
+    "background": "**{name}** is on your profile now.",
+    "equipped": "You already own **{name}**. It's on your profile again.",
+    "giveaway": "**{name}** is yours. It counts in the next giveaway.",
+    "where": "in this community"
+  },
+  "rich": {
+    "title": "Richest",
+    "empty": ["Nobody has anything yet.", "All wallets are empty. Very equal."],
+    "you": "You: #{rank} with {amount}",
+    "notYou": "You are not on the board yet"
+  },
+  "reasons": {
+    "bought": "Bought {name} in the shop",
+    "refunded": "Shop purchase refunded",
+    "expired": "Shop role expired"
+  }
+}

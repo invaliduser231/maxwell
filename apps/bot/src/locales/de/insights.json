@@ -1,0 +1,23 @@
+{
+  "commands": {
+    "stats": "Diagramme dazu, wie aktiv die Community ist.",
+    "channels": "Die aktivsten Text- und Voice-Kanäle.",
+    "members": "Die Mitglieder, die am meisten schreiben.",
+    "user": "Wie aktiv ein Mitglied war."
+  },
+  "channelsTitle": "Aktivste Kanäle, letzte {days} Tage",
+  "text": "Text",
+  "voice": "Voice",
+  "channelLine": "{rank}. {channel}  {value}",
+  "messages": "{value, plural, one {# Nachricht} other {# Nachrichten}}",
+  "minutes": "{unit, select, hours {{hours} Stunden} other {{minutes} Min.}}",
+  "nothing": "Noch nichts gezählt.",
+  "membersTitle": "Aktivste Mitglieder, letzte {days} Tage",
+  "memberLine": "{rank}. {user}  {value}",
+  "userTitle": "Aktivität von {name}",
+  "userLines": "{messages, plural, one {# Nachricht} other {# Nachrichten}} an {days} der letzten {range} Tage.",
+  "lastSeen": "Zuletzt aktiv {when}.",
+  "quiet": "Keine Nachrichten in den letzten {range} Tagen.",
+  "others": "Andere Mitglieder können nur Moderatoren nachschlagen.",
+  "failed": "Das Diagramm ließ sich nicht zeichnen. Versuch es gleich noch mal."
+}

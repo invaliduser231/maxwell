@@ -1,14 +1,7 @@
-import { localized } from '../../i18n/localized.js';
-import de from './dispute-copy.de.js';
-import es from './dispute-copy.es.js';
+import { catalog } from '../../i18n/catalog.js';
+import en from '../../locales/en/security-dispute.json' with { type: 'json' };
 
-const en = {
-  removed: 'Your Maxwell Shield dispute was accepted. You are no longer listed.',
-  kept: 'Your Maxwell Shield dispute was declined. The listing stays.',
-  note: (note: string) => `Note: ${note}`,
-  link: (url: string) => `Details: ${url}`,
-};
-
-export type DisputeCopy = typeof en;
-
-export const disputeCopy = localized(en, { de, es });
+export const disputeCopy = catalog('security-dispute', en, (m) => ({
+  note: (note: string) => m.note({ note }),
+  link: (url: string) => m.link({ url }),
+}));

@@ -1,0 +1,3 @@
+{
+  "menuHint": "{type, select, unique {Immer nur eine Rolle.} add {Rollen bleiben, auch wenn du die Reaktion entfernst.} temporary {Rollen gelten {duration}.} verify {Reagier, um die Rolle zu bekommen.} remove {Reagier, um die Rolle abzugeben.} binding {Einmal wählen. Die Wahl gilt.} limit {{limit, plural, one {Höchstens # Rolle.} other {Höchstens # Rollen.}}} other {}}"
+}

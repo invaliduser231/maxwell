@@ -1,288 +1,178 @@
-import type { FindingKey, Severity } from '@maxwell/core/modules/security-check';
 import { mention } from '../../commands/mentions.js';
-import { localized } from '../../i18n/localized.js';
-import { andList, bold, code, lines, plural, subtext } from '../../ui/format.js';
-import type { TargetColor } from './captcha.js';
-import de from './copy.de.js';
-import es from './copy.es.js';
+import { catalog, type Vars } from '../../i18n/catalog.js';
+import en from '../../locales/en/security.json' with { type: 'json' };
+import { andList, escapeMarkdown, plural, subtext } from '../../ui/format.js';
 import type { RiskReason } from './risk.js';
 
-function span(hours: number): string {
-  if (hours % 24 !== 0) return plural(hours, 'hour');
-  return plural(hours / 24, 'day');
+function reasonVars(reason: RiskReason): Vars {
+  switch (reason.key) {
+    case 'age':
+      return reason.hours % 24 !== 0
+        ? { key: 'ageHours', count: reason.hours }
+        : { key: 'ageDays', count: reason.hours / 24 };
+    case 'spamName':
+      return { key: reason.key, word: reason.word };
+    case 'wave':
+      return { key: reason.key, count: reason.size - 1 };
+    case 'rejoin':
+      return { key: reason.key, count: reason.minutes };
+    case 'priorKick':
+    case 'priorBan':
+    case 'shield':
+      return { key: reason.key, times: reason.count };
+    default:
+      return { key: reason.key };
+  }
 }
 
-const permissionNames: Record<string, string> = {
-  Administrator: 'Administrator',
-  ManageGuild: 'Manage Server',
-  ManageRoles: 'Manage Roles',
-  ManageChannels: 'Manage Channels',
-  ManageWebhooks: 'Manage Webhooks',
-  BanMembers: 'Ban Members',
-  KickMembers: 'Kick Members',
-  MentionEveryone: 'Mention @everyone',
-};
+function named<K extends string>(
+  names: readonly string[],
+  labels: Record<K, () => string>,
+  keys: Record<K, string>,
+): string {
+  return andList(names.map((name) => (name in keys ? labels[name as K]() : name)));
+}
 
-const ruleNames: Record<string, string> = {
-  spam: 'spam',
-  mentions: 'mass mentions',
-  newAccountLinks: 'links from new accounts',
-  invites: 'invite links',
-};
-
-const named = (names: readonly string[], table: Record<string, string>) =>
-  andList(names.map((name) => table[name] ?? name));
-
-const en = {
-  colors: { blue: 'blue', yellow: 'yellow' } as Record<TargetColor, string>,
-  reason: (reason: RiskReason): string => {
-    switch (reason.key) {
-      case 'age':
-        return `account younger than ${span(reason.hours)}`;
-      case 'noAvatar':
-        return 'no profile picture';
-      case 'noName':
-        return 'no display name or nickname';
-      case 'newWithoutAvatar':
-        return 'new account without a picture';
-      case 'randomName':
-        return 'name looks generated';
-      case 'digitName':
-        return 'long number in the name';
-      case 'spamName':
-        return `name contains "${reason.word}"`;
-      case 'wave':
-        return `joined with ${plural(reason.size - 1, 'similar account')}`;
-      case 'rejoin':
-        return `came back ${plural(reason.minutes, 'minute')} after leaving`;
-      case 'priorKick':
-        return `kicked here before (${reason.count})`;
-      case 'priorBan':
-        return `banned here before (${reason.count})`;
-      case 'shield':
-        return `reported in ${reason.count} other communities`;
-      case 'newInviter':
-        return 'invited by a brand new member';
-      case 'established':
-        return 'old account with a picture';
-      case 'raid':
-        return 'joined during raid mode';
-    }
-  },
+export const copy = catalog('security', en, (m) => ({
+  reason: (reason: RiskReason) => m.reason(reasonVars(reason)),
   log: {
-    title: (name: string) => `Welcome ${name}`,
-    clear: 'Good to go.',
-    flaggedDm: 'Flagged for a check. Maxwell sent a captcha by DM.',
+    title: (name: string) => m.log.title({ name }),
     flaggedChannel: (channelId: string) =>
-      `Flagged for a check. DMs are closed, so the captcha went to ${mention.channel(channelId)}.`,
-    flaggedNowhere:
-      'Flagged for a check, but there was nowhere to send the captcha. Waiting at the gate.',
-    severe: (action: string) => `Risk score too high. Maxwell ${action} the account.`,
-    user: 'Member',
-    verification: 'Check',
-    score: 'Risk score',
-    reasons: 'Why',
-    noReasons: 'Nothing unusual',
-    status: {
-      clear: 'Passed',
-      pending: 'Waiting for captcha',
-      passed: 'Passed after captcha',
-      failed: 'Failed captcha',
-      expired: 'Did not answer in time',
-      left: 'Left before answering',
-      released: 'Let in by a moderator',
-    },
-    severeActions: { kick: 'kicked', ban: 'banned', none: 'flagged' },
-    resolved: (userId: string, status: string) => `${mention.user(userId)}: ${status}`,
-    noGate:
-      'Security wanted to hold someone back, but there is no gate role. Set it up on the Security page.',
+      m.log.flaggedChannel({ channel: mention.channel(channelId) }),
+    severe: (action: string) => m.log.severe({ action }),
+    resolved: (userId: string, status: string) =>
+      m.log.resolved({ user: mention.user(userId), status }),
   },
   dm: {
-    title: (guild: string) => `Quick check for ${guild}`,
-    intro: (color: string) =>
-      lines(
-        `Type the ${bold(color)} digits from the picture, from left to right.`,
-        'Ignore all other colors.',
-      ),
-    how: (prefix: string) =>
-      subtext(
-        `Reply here with just the digits, or use ${code(`${prefix}verify 12345`)}. ${code(`${prefix}verify new`)} gives you a new picture.`,
-      ),
-    expires: (until: string) => `The code runs out ${until}.`,
-    wrong: (left: number) =>
-      left === 1 ? "That's not it. One try left." : `That's not it. ${left} tries left.`,
-    passed: (guild: string) => `You're in. Welcome to ${bold(guild)}.`,
-    failed: (guild: string) => `That was the last try. ${guild} keeps you at the door for now.`,
-    kicked: (guild: string) =>
-      `That was the last try, so you were removed from ${guild}. You can join again.`,
-    expired: (guild: string) => `Time ran out for ${guild}. Ask a moderator to let you in.`,
-    expiredKick: (guild: string) =>
-      `Time ran out, so you were removed from ${guild}. You can join again.`,
-    nothing: 'There is no check waiting for you.',
-    which: (guilds: string) =>
-      `You have checks waiting in ${guilds}. Answer in the newest one first.`,
-    fresh: 'Here is a new picture.',
+    title: (guild: string) => m.dm.title({ guild }),
+    intro: (color: string) => m.dm.intro({ color: escapeMarkdown(color) }),
+    how: (prefix: string) => subtext(m.dm.how({ prefix })),
+    expires: (until: string) => m.dm.expires({ until }),
+    wrong: (left: number) => m.dm.wrong({ left }),
+    passed: (guild: string) => m.dm.passed({ guild: escapeMarkdown(guild) }),
+    failed: (guild: string) => m.dm.failed({ guild }),
+    kicked: (guild: string) => m.dm.kicked({ guild }),
+    expired: (guild: string) => m.dm.expired({ guild }),
+    expiredKick: (guild: string) => m.dm.expiredKick({ guild }),
+    which: (guilds: string) => m.dm.which({ guilds }),
   },
   channel: {
     intro: (userId: string, color: string, prefix: string) =>
-      lines(
-        `${mention.user(userId)}, your DMs are closed, so the check happens here.`,
-        `Type the ${bold(color)} digits from the picture with ${code(`${prefix}verify 12345`)}.`,
-      ),
+      m.channel.intro({ user: mention.user(userId), color: escapeMarkdown(color), prefix }),
   },
   raid: {
     started: {
-      joins: (joins: number, seconds: number) =>
-        `Raid mode is on. ${plural(joins, 'account')} joined in ${seconds} seconds.`,
-      wave: (size: number) =>
-        `Raid mode is on. ${plural(size, 'similar new account')} joined together.`,
-      flood: (members: number) =>
-        `Raid mode is on. ${plural(members, 'new member')} posted the same thing at once.`,
+      joins: (joins: number, seconds: number) => m.raid.started.joins({ joins, seconds }),
+      wave: (size: number) => m.raid.started.wave({ size }),
+      flood: (members: number) => m.raid.started.flood({ members }),
       manual: (userId: string | null) =>
-        userId ? `Raid mode is on, started by ${mention.user(userId)}.` : 'Raid mode is on.',
-      nuke: 'Raid mode is on after a nuke attempt.',
+        m.raid.started.manual({
+          by: userId ? 'user' : 'none',
+          user: userId ? mention.user(userId) : '',
+        }),
     },
     effects: (until: string, paused: boolean, slowmode: number) =>
       subtext(
-        `${andList(
-          [
-            'every new member gets a captcha',
-            paused ? 'invites are paused' : '',
-            slowmode > 0 ? `slowmode is ${slowmode}s` : '',
-          ].filter(Boolean),
-        )}. Ends ${until} unless it stays busy.`,
+        m.raid.effects({
+          effects: andList(
+            [
+              m.raid.effectCaptcha(),
+              paused ? m.raid.effectPaused() : '',
+              slowmode > 0 ? m.raid.effectSlowmode({ seconds: slowmode }) : '',
+            ].filter(Boolean),
+          ),
+          until,
+        }),
       ),
-    ended: (checked: number) =>
-      `Raid mode is off. ${plural(checked, 'member')} went through the check meanwhile.`,
-    calmed: (userId: string) => `Raid mode is off, ended by ${mention.user(userId)}.`,
-    already: 'Raid mode is already on.',
-    notActive: 'Raid mode is not on.',
-    extended: (until: string) => `Raid mode stays on until ${until}.`,
+    ended: (checked: number) => m.raid.ended({ checked }),
+    calmed: (userId: string) => m.raid.calmed({ user: mention.user(userId) }),
+    extended: (until: string) => m.raid.extended({ until }),
   },
   nuke: {
-    title: 'Nuke attempt stopped',
-    what: {
-      channelDelete: 'deleted channels',
-      channelCreate: 'created channels',
-      roleDelete: 'deleted roles',
-      ban: 'banned members',
-      kick: 'kicked members',
-      webhook: 'created webhooks',
-      botAdd: 'added bots',
-      dangerousGrant: 'handed out dangerous permissions',
-    } as Record<string, string>,
     line: (actorId: string, what: string, count: number, seconds: number) =>
-      `${mention.user(actorId)} ${what} ${count} times in ${seconds} seconds.`,
-    stripped: (roles: number) => `Took away ${plural(roles, 'role')} with dangerous permissions.`,
-    kicked: 'Kicked the account.',
-    banned: 'Banned the account.',
-    failed: 'Maxwell could not stop the account. Its role is probably above Maxwell.',
-    restoring: (channels: number, roles: number) =>
-      `Restoring ${plural(channels, 'channel')} and ${plural(roles, 'role')} from the last backup.`,
-    noBackup: 'No backup has these channels or roles, so nothing was restored.',
+      m.nuke.line({
+        actor: mention.user(actorId),
+        what,
+        count: String(count),
+        seconds: String(seconds),
+      }),
+    stripped: (roles: number) => m.nuke.stripped({ roles }),
+    restoring: (channels: number, roles: number) => m.nuke.restoring({ channels, roles }),
   },
   honeypot: {
-    warning: lines(
-      'Do not write in this channel.',
-      'It is a trap for spam bots. Anything posted here gets the account removed right away.',
-    ),
-    topic: 'Do not post here. Spam trap.',
     caught: (userId: string, channelId: string, action: string) =>
-      `${mention.user(userId)} posted in ${mention.channel(channelId)}. Maxwell ${action} the account.`,
+      m.honeypot.caught({
+        user: mention.user(userId),
+        channel: mention.channel(channelId),
+        action,
+      }),
     caughtRole: (userId: string, action: string) =>
-      `${mention.user(userId)} took the trap role. Maxwell ${action} the account.`,
-    actions: { ban: 'banned', softban: 'removed and cleaned up after', quarantine: 'held back' },
+      m.honeypot.caughtRole({ user: mention.user(userId), action }),
   },
   incident: {
-    kinds: {
-      raid: 'Raid',
-      manual: 'Raid',
-      nuke: 'Nuke',
-      lockdown: 'Lockdown',
-    } as Record<string, string>,
-    ended: (kind: string, minutes: number) => `${kind} over after ${plural(minutes, 'minute')}.`,
+    ended: (kind: string, minutes: number) => m.incident.ended({ kind, minutes }),
     parts: {
-      joins: (n: number) => plural(n, 'join'),
-      bans: (n: number) => plural(n, 'ban'),
-      kicks: (n: number) => plural(n, 'kick'),
-      timeouts: (n: number) => plural(n, 'timeout'),
-      deleted: (n: number) => plural(n, 'deleted message'),
-      hits: (n: number) => plural(n, 'AutoMod hit'),
-      channels: (n: number) => plural(n, 'channel change'),
-      roles: (n: number) => plural(n, 'role change'),
+      joins: (n: number) => m.incident.parts.joins({ n }),
+      bans: (n: number) => m.incident.parts.bans({ n }),
+      kicks: (n: number) => m.incident.parts.kicks({ n }),
+      timeouts: (n: number) => m.incident.parts.timeouts({ n }),
+      deleted: (n: number) => m.incident.parts.deleted({ n }),
+      hits: (n: number) => m.incident.parts.hits({ n }),
+      channels: (n: number) => m.incident.parts.channels({ n }),
+      roles: (n: number) => m.incident.parts.roles({ n }),
     },
-    quiet: 'Nothing else happened.',
-    replay: (url: string) => `[Replay and undo](${url})`,
+    replay: (url: string) => m.incident.replay({ url }),
   },
   status: {
-    title: 'Security',
     verification: (on: boolean, threshold: number) =>
-      on ? `Captcha from risk score ${threshold}` : 'Captcha is off',
+      m.status.verification({ on: on ? 'yes' : 'no', threshold }),
     raid: (on: boolean, active: string | null) =>
-      active ? `Raid mode on until ${active}` : on ? 'Raid watch on' : 'Raid watch off',
-    nuke: (on: boolean): string => (on ? 'Nuke watch on' : 'Nuke watch off'),
+      m.status.raid({ state: active ? 'active' : on ? 'on' : 'off', until: active ?? '' }),
+    nuke: (on: boolean) => m.status.nuke({ on: on ? 'yes' : 'no' }),
     honeypot: (on: boolean, channels: number) =>
-      on ? `${plural(channels, 'trap channel')}` : 'No honeypot',
-    pending: (count: number) => `${plural(count, 'member')} waiting for a captcha`,
+      m.status.honeypot({ on: on ? 'yes' : 'no', channels }),
+    pending: (count: number) => m.status.pending({ count }),
   },
   check: {
-    title: (score: number) => `Security check: ${score} of 100`,
-    clean: 'Nothing to fix.',
-    severity: { high: 'High', medium: 'Medium', low: 'Low' } as Record<Severity, string>,
-    line: (severity: string, text: string) => `${bold(severity)}: ${text}`,
-    more: (count: number) => `${plural(count, 'more finding')} on the dashboard.`,
-    fixHint: (url: string | null) =>
-      url
-        ? `Fix them on the [Security page](${url}).`
-        : 'Fix them on the Security page in the dashboard.',
+    title: (score: number) => m.check.title({ score: String(score) }),
+    line: (severity: string, text: string) =>
+      m.check.line({ severity: escapeMarkdown(severity), text }),
+    more: (count: number) => m.check.more({ count }),
+    fixHint: (url: string | null) => m.check.fixHint({ link: url ? 'yes' : 'no', url: url ?? '' }),
     findings: {
-      securityOff: () => 'Security is off.',
-      everyone: (names: readonly string[]) => `@everyone has ${named(names, permissionNames)}.`,
+      securityOff: () => m.check.findings.securityOff(),
+      everyone: (names: readonly string[]) =>
+        m.check.findings.everyone({
+          permissions: named(names, m.permissionNames, en.permissionNames),
+        }),
       botPosition: (names: readonly string[]) =>
-        `Maxwell's role is below ${andList(names.slice(0, 3))}, so it cannot act on those members.`,
-      botAdmin: (names: readonly string[]) => `The bot role ${names[0] ?? ''} has Administrator.`,
-      nukeOff: () => 'Nuke watch is off.',
-      automodOff: () => 'AutoMod is off.',
+        m.check.findings.botPosition({ roles: andList(names.slice(0, 3)) }),
+      botAdmin: (names: readonly string[]) => m.check.findings.botAdmin({ role: names[0] ?? '' }),
+      nukeOff: () => m.check.findings.nukeOff(),
+      automodOff: () => m.check.findings.automodOff(),
       automodRules: (names: readonly string[]) =>
-        `AutoMod does not check for ${named(names, ruleNames)}.`,
-      raidOff: () => 'Raid watch is off.',
-      verificationOff: () => 'The captcha for risky joins is off.',
+        m.check.findings.automodRules({ rules: named(names, m.ruleNames, en.ruleNames) }),
+      raidOff: () => m.check.findings.raidOff(),
+      verificationOff: () => m.check.findings.verificationOff(),
       adminRoles: (names: readonly string[]) =>
-        `${plural(names.length, 'role')} grant Administrator: ${andList(names.slice(0, 5))}.`,
+        m.check.findings.adminRoles({ count: names.length, roles: andList(names.slice(0, 5)) }),
       modRoles: (names: readonly string[]) =>
-        `Not set as mod roles in Moderation: ${andList(names.slice(0, 5))}.`,
-      securityLog: () => 'Security has no log channel.',
-      modLog: () => 'Moderation has no log channel.',
-    } as Record<FindingKey, (names: readonly string[]) => string>,
-  },
-  commands: {
-    verify: 'Answers your captcha. Use "new" for a new picture.',
-    security: 'Shows what Security is watching.',
-    status: 'Shows what Security is watching.',
-    raid: 'Turns raid mode on.',
-    calm: 'Turns raid mode off.',
-    pass: 'Lets a member through the check.',
-    honeypot: 'Creates a trap channel for spam bots.',
-    shield: 'Shares a ban with Maxwell Shield for 90 days.',
-    unshield: 'Takes a member back out of Maxwell Shield.',
-    check: 'Rates how well the community is protected.',
+        m.check.findings.modRoles({ roles: andList(names.slice(0, 5)) }),
+      securityLog: () => m.check.findings.securityLog(),
+      modLog: () => m.check.findings.modLog(),
+    },
   },
   replies: {
-    passed: (userId: string) => `${mention.user(userId)} is through.`,
-    notPending: (userId: string) => `${mention.user(userId)} is not waiting for a check.`,
-    honeypotMade: (channelId: string) => `Trap set in ${mention.channel(channelId)}.`,
-    shieldOff: 'Maxwell Shield is off here. It can be turned on in the dashboard under Security.',
-    notBanned: (userId: string) => `${mention.user(userId)} is not banned here.`,
-    shared: (userId: string) =>
-      `${mention.user(userId)} is shared with Maxwell Shield for 90 days.`,
-    unshared: (userId: string) => `${mention.user(userId)} is out of Maxwell Shield.`,
-    notShared: (userId: string) => `${mention.user(userId)} was not shared from here.`,
+    passed: (userId: string) => m.replies.passed({ user: mention.user(userId) }),
+    notPending: (userId: string) => m.replies.notPending({ user: mention.user(userId) }),
+    honeypotMade: (channelId: string) =>
+      m.replies.honeypotMade({ channel: mention.channel(channelId) }),
+    notBanned: (userId: string) => m.replies.notBanned({ user: mention.user(userId) }),
+    shared: (userId: string) => m.replies.shared({ user: mention.user(userId) }),
+    unshared: (userId: string) => m.replies.unshared({ user: mention.user(userId) }),
+    notShared: (userId: string) => m.replies.notShared({ user: mention.user(userId) }),
   },
-};
-
-export type SecurityCopy = typeof en;
-
-export const copy = localized(en, { de, es });
+}));
 
 export const reasons = {
   gate: 'Security check',

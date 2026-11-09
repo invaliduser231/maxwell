@@ -1,35 +1,9 @@
-import type { FeedType } from '@maxwell/core/modules/feeds';
-import { localized } from '../../i18n/localized.js';
-import de from './copy.de.js';
-import es from './copy.es.js';
+import { catalog } from '../../i18n/catalog.js';
+import en from '../../locales/en/feeds.json' with { type: 'json' };
 
-const en = {
-  labels: {
-    rss: 'Feed',
-    youtube: 'YouTube',
-    twitch: 'Twitch',
-    reddit: 'Reddit',
-    bluesky: 'Bluesky',
-    github: 'GitHub releases',
-    fluxer: 'Fluxer blog',
-  } satisfies Record<FeedType, string>,
-  templates: {
-    rss: '**{title}**\n{url}',
-    youtube: '{author} posted a new video: **{title}**\n{url}',
-    twitch: '{author} is live: **{title}**\n{url}',
-    reddit: 'New in {feed}: **{title}**\n{url}',
-    bluesky: '{author} posted on Bluesky\n{url}',
-    github: '{feed} released **{title}**\n{url}',
-    fluxer: 'New on the Fluxer blog: **{title}**\n{url}',
-  } satisfies Record<FeedType, string>,
-  untitledPost: 'New post',
-  twitchUntitled: 'Live now',
-  twitchPlaying: (game: string) => `Playing ${game}`,
-};
-
-export type FeedsCopy = typeof en;
-
-export const copy = localized(en, { de, es });
+export const copy = catalog('feeds', en, (m) => ({
+  twitchPlaying: (game: string) => m.twitchPlaying({ game }),
+}));
 
 export const audit = {
   pausedSummary: (label: string, error: string) =>

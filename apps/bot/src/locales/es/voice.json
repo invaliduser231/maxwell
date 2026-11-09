@@ -1,0 +1,31 @@
+{
+  "fallbackName": "Sala de voz",
+  "notInRoom": "No estás en ninguna sala de voz.",
+  "notOwner": "Solo {owner} puede cambiar esta sala.",
+  "renamed": "La sala ahora se llama **{name}**.",
+  "limit": "{value, plural, =0 {Ya no hay límite.} other {El límite ahora es #.}}",
+  "locked": "Sala cerrada. No entra nadie nuevo.",
+  "unlocked": "Sala abierta otra vez.",
+  "alreadyLocked": "La sala ya está cerrada.",
+  "alreadyUnlocked": "La sala no está cerrada.",
+  "transferred": "Ahora la sala es de {user}.",
+  "transferSelf": "La sala ya es tuya.",
+  "transferAbsent": "{user} tiene que estar en la sala primero.",
+  "transferBot": "Los bots no pueden ser dueños de una sala.",
+  "info": "{channel} es de {owner}.",
+  "infoInside": "{members, plural, one {# persona} other {# personas}} dentro{locked, select, yes {, cerrada} other {}}",
+  "where": "en {channel}",
+  "reasons": {
+    "created": "Join to create",
+    "empty": "Voice room was empty",
+    "command": "Room owner"
+  },
+  "commands": {
+    "room": "Muestra de quién es la sala de voz en la que estás.",
+    "name": "Cambia el nombre de tu sala de voz.",
+    "limit": "Define cuántas personas caben en tu sala de voz. 0 significa sin límite.",
+    "lock": "No deja entrar a gente nueva en tu sala de voz.",
+    "unlock": "Vuelve a abrir tu sala de voz.",
+    "transfer": "Pasa tu sala de voz a alguien que esté dentro."
+  }
+}

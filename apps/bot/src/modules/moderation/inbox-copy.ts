@@ -1,83 +1,37 @@
 import type { InboxKind } from '@maxwell/core/modules/moderation';
-import { localized } from '../../i18n/localized.js';
-import { count, plural } from '../../ui/format.js';
-import de from './inbox-copy.de.js';
-import es from './inbox-copy.es.js';
+import { catalog } from '../../i18n/catalog.js';
+import en from '../../locales/en/moderation-inbox.json' with { type: 'json' };
 
-const en = {
-  command:
-    'Sends a message or a member to the moderators. Reply to the message, or name the member.',
-  sent: 'Sent to the moderators.',
-  already: 'You already reported that.',
-  nothing: 'Reply to the message you want to report, or name the member.',
-  self: "You can't report yourself.",
-  bot: 'Bots are not reported, ask a moderator.',
-  off: 'Reports are turned off here.',
-  reactionSent: (server: string) => `Your report in **${server}** went to the moderators.`,
+export const inboxCopy = catalog('moderation-inbox', en, (m) => ({
+  reactionSent: (server: string) => m.reactionSent({ server }),
   titles: {
-    report: (n: number) => `Report #${n}`,
-    appeal: (n: number) => `Appeal #${n}`,
-    review: (n: number) => `Review #${n}`,
-    gate: (n: number) => `Gate #${n}`,
-    check: (n: number) => `Verification #${n}`,
-  } satisfies Record<InboxKind, (n: number) => string>,
-  fields: {
-    member: 'Member',
-    reporters: 'Reported by',
-    message: 'Message',
-    report: 'Report',
-    appeal: 'Appeal',
-    review: 'Reason',
-    gate: 'Waiting',
-    check: 'Verification',
-    status: 'Status',
-    outcome: 'Outcome',
-    note: 'Note',
+    report: (n: number) => m.titles.report({ n: String(n) }),
+    appeal: (n: number) => m.titles.appeal({ n: String(n) }),
+    review: (n: number) => m.titles.review({ n: String(n) }),
+    gate: (n: number) => m.titles.gate({ n: String(n) }),
+    check: (n: number) => m.titles.check({ n: String(n) }),
   },
-  reporters: (n: number) => plural(n, 'member'),
-  jump: 'Jump to message',
-  gone: 'Deleted',
-  dashboard: 'Open in the dashboard',
+  reporters: (n: number) => m.reporters({ n }),
   status: {
-    open: 'Open',
-    claimed: (who: string) => `Claimed by ${who}`,
-    resolved: (who: string) => `Resolved by ${who}`,
-    dismissed: (who: string) => `Dismissed by ${who}`,
+    claimed: (who: string) => m.status.claimed({ who }),
+    resolved: (who: string) => m.status.resolved({ who }),
+    dismissed: (who: string) => m.status.dismissed({ who }),
   },
   outcomes: {
-    warn: (n: number) => `Warned, case #${n}`,
-    timeout: (n: number) => `Timed out, case #${n}`,
-    kick: (n: number) => `Kicked, case #${n}`,
-    ban: (n: number) => `Banned, case #${n}`,
-    unban: (n: number) => `Unbanned, case #${n}`,
-    approved: 'Approved',
-    declined: 'Declined',
-    deleted: 'Message deleted',
-    let_in: 'Let in',
-    banned: 'Banned',
-    left: 'Left the server',
-    passed: 'Passed the captcha',
-    released: 'Let in',
-    none: 'No action',
+    warn: (n: number) => m.outcomes.warn({ n: String(n) }),
+    timeout: (n: number) => m.outcomes.timeout({ n: String(n) }),
+    kick: (n: number) => m.outcomes.kick({ n: String(n) }),
+    ban: (n: number) => m.outcomes.ban({ n: String(n) }),
+    unban: (n: number) => m.outcomes.unban({ n: String(n) }),
   },
-  gateHeld: (n: number) => `${plural(n, 'member')} waiting at the gate`,
-  checkStates: {
-    undelivered: 'The captcha could not be sent.',
-    failed: 'Failed the captcha.',
-    expired: 'Did not solve the captcha in time.',
-  },
+  gateHeld: (n: number) => m.gateHeld({ n }),
   riskScore: (score: number, reasons: string) =>
-    `Risk score ${score}${reasons ? `: ${reasons}` : ''}`,
-  appealAccepted: (server: string) =>
-    `Your appeal in **${server}** was accepted. You can join again with an invite.`,
-  appealDeclined: (server: string) => `Your appeal in **${server}** was declined.`,
-  more: (n: number) => `and ${count(n)} more`,
-  appealLine: (url: string) => `You can appeal here: ${url}`,
-};
-
-export type InboxCopy = typeof en;
-
-export const inboxCopy = localized(en, { de, es });
+    m.riskScore({ score: String(score), reasons, hasReasons: reasons ? 'yes' : 'no' }),
+  appealAccepted: (server: string) => m.appealAccepted({ server }),
+  appealDeclined: (server: string) => m.appealDeclined({ server }),
+  more: (n: number) => m.more({ n }),
+  appealLine: (url: string) => m.appealLine({ url }),
+}));
 
 const kinds: Record<InboxKind, string> = {
   report: 'report',

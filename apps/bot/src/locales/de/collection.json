@@ -1,0 +1,107 @@
+{
+  "commands": {
+    "cards": "Sammle Karten aus deiner Community und aus eigenen Decks.",
+    "view": "Deine Sammlung, die von jemand anderem oder eine Karte aus der Nähe.",
+    "pack": "Öffnet ein Kartenpack. Nimmt zuerst eins aus dem Shop, sonst zahlst du den Preis.",
+    "trade": "Biete jemandem Karten gegen welche von ihm an. Beide müssen zustimmen.",
+    "wishlist": "Karten, die du haben willst. Du wirst gepingt, wenn eine droppt.",
+    "sets": "Die Sets hier und wie weit du bist.",
+    "optin": "Bring deine eigene Karte ins Community-Deck.",
+    "optout": "Nimm deine Karte aus dem Community-Deck. Jede Kopie verschwindet.",
+    "claim": "Schnapp dir die Karte, die hier gerade gedroppt ist."
+  },
+  "communityDeck": "Community",
+  "unknownMember": "Dieses Mitglied finde ich nicht.",
+  "summary": {
+    "self": "Du hast **{total, plural, one {# Karte} other {# Karten}}**, {unique} verschiedene.",
+    "other": "{user} hat **{total, plural, one {# Karte} other {# Karten}}**, {unique} verschiedene.",
+    "emptySelf": [
+      "Noch keine Karten. Warte auf einen Drop oder öffne ein Pack.",
+      "Deine Sammlung ist bisher leer."
+    ],
+    "emptyOther": "{user} hat noch keine Karten.",
+    "hint": "{prefix}cards view zeigt die ganze Liste"
+  },
+  "view": {
+    "title": "Sammlung",
+    "header": "{user}: {total, plural, one {# Karte} other {# Karten}}, {unique} verschiedene",
+    "unknown": "Hier gibt es keine Karte namens {query}.",
+    "rarity": "Seltenheit",
+    "deck": "Deck",
+    "owners": "Besitzer",
+    "yours": "Du hast",
+    "wished": "Gewünscht von",
+    "retired": "Droppt nicht mehr."
+  },
+  "pack": {
+    "none": "Hier gibt es noch keine Packs. Ein Admin kann im Dashboard welche anlegen.",
+    "unknown": "Kein Pack namens {query}. `{prefix}shop` oder das Dashboard zeigt, was es gibt.",
+    "pick": "Welches? {names}",
+    "economyOff": "Packs kosten Geld, und Economy ist hier aus.",
+    "funds": "Das Pack kostet {price}. Du hast {balance}.",
+    "empty": "Es gibt noch keine Karten zum Ziehen.",
+    "opened": "**{name}**, {size, plural, one {# Karte} other {# Karten}}:",
+    "fromInventory": "Im Shop bezahlt",
+    "isNew": "neu"
+  },
+  "claim": {
+    "nothing": "Hier gibt es nichts zu holen.",
+    "got": "**{name}** ({rarity}) gehört dir."
+  },
+  "drop": {
+    "title": "Eine Karte ist gedroppt",
+    "hint": "Wer zuerst {command} schreibt, bekommt sie. Weg {until}.",
+    "wished": "Gewünscht von {users}",
+    "claimed": "Geschnappt von {user}.",
+    "expired": "Niemand hat sie geholt.",
+    "noPool": "Es gibt noch keine Karten zum Droppen.",
+    "noChannel": "Kein Drop-Kanal eingestellt."
+  },
+  "trade": {
+    "off": "Tauschen ist hier aus.",
+    "self": "Mit dir selbst kannst du nicht tauschen.",
+    "bot": "Bots sammeln keine Karten.",
+    "usage": "{prefix}cards trade <mitglied> <deine karten> gegen <seine karten>",
+    "empty": "Nenn mindestens eine Karte, zum Beispiel #12.",
+    "tooMany": "Höchstens {max, plural, one {# Karte} other {# Karten}} pro Seite.",
+    "missing": "Du hast #{number} nicht.",
+    "theyLack": "{user} hat #{number} nicht.",
+    "busy": "Einer von euch hat schon einen offenen Tausch. Bringt den erst zu Ende.",
+    "offer": "{mode, select, both {{from} bietet {give} gegen {want} von {to}.} give {{from} schenkt {to} {give}.} other {{from} fragt {to} nach {want}.}}",
+    "confirm": "Reagiert beide mit {yes} zum Tauschen oder {no} zum Abbrechen. Offen bis {until}.",
+    "done": "Getauscht.",
+    "cancelled": "{user} hat abgebrochen. Nichts hat den Besitzer gewechselt.",
+    "expired": "Keine Antwort, also ist nichts passiert.",
+    "failed": "Jemand hat die Karten nicht mehr, also hat nichts den Besitzer gewechselt.",
+    "nothing": "nichts"
+  },
+  "wishlist": {
+    "title": "Wunschliste",
+    "empty": ["Deine Wunschliste ist leer.", "Noch nichts auf deiner Wunschliste."],
+    "which": "Welche Karte?",
+    "added": "**{name}** steht auf deiner Wunschliste. Ich ping dich, wenn sie droppt.",
+    "exists": "**{name}** steht schon auf deiner Wunschliste.",
+    "full": "Deine Wunschliste ist mit {max} voll. Nimm erst eine runter.",
+    "removed": "**{name}** ist von deiner Wunschliste runter.",
+    "notOn": "**{name}** war nicht auf deiner Wunschliste.",
+    "usage": "{prefix}cards wishlist [add|remove] <karte>"
+  },
+  "sets": {
+    "title": "Sets",
+    "empty": ["Hier gibt es noch keine Sets.", "Noch gibt es keine Sets zum Vervollständigen."],
+    "reward": "Belohnung: {parts}",
+    "completed": "{hasRewards, select, yes {Set komplett: **{name}**. {rewards}.} other {Set komplett: **{name}**.}}",
+    "completedBy": "{hasRewards, select, yes {{user} hat das Set **{name}** komplett. {rewards}.} other {{user} hat das Set **{name}** komplett.}}",
+    "progress": "{owned} / {total}",
+    "roleReason": "Set {name} komplett"
+  },
+  "optin": {
+    "off": "Das Community-Deck ist hier aus.",
+    "done": "Du bist jetzt im Community-Deck. Andere können deine Karte sammeln.",
+    "already": "Du bist schon im Community-Deck."
+  },
+  "optout": {
+    "done": "Du bist raus aus dem Community-Deck. Jede Kopie deiner Karte ist weg.",
+    "notIn": "Du warst nicht im Community-Deck."
+  }
+}

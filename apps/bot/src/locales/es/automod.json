@@ -1,0 +1,92 @@
+{
+  "commands": {
+    "gate": "La sala de espera del escudo anti-raid.",
+    "list": "Quién está esperando en la sala de espera.",
+    "let": "Deja entrar a un miembro o a todos los que están en la sala de espera.",
+    "ban": "Banea a todos los que esperan en la sala de espera."
+  },
+  "rules": {
+    "spam": "Spam",
+    "invites": "Enlaces de invitación",
+    "links": "Enlaces",
+    "mentions": "Menciones masivas",
+    "caps": "Mayúsculas",
+    "words": "Lista de palabras",
+    "repeats": "Mensajes repetidos",
+    "emoji": "Spam de emojis",
+    "newAccountLinks": "Enlaces de cuentas nuevas",
+    "phishing": "Enlaces de phishing"
+  },
+  "holds": {
+    "raid": "raid",
+    "lockdown": "cierre",
+    "account_age": "cuenta nueva",
+    "verify": "captcha",
+    "honeypot": "trampa"
+  },
+  "details": {
+    "spam": "{count} mensajes en {seconds} s",
+    "invite": "invitación {code}",
+    "link": "enlace a {host}",
+    "mentions": "{count} menciones",
+    "caps": "{percent} % mayúsculas",
+    "word": "coincide con {pattern}",
+    "repeats": "el mismo mensaje {count} veces",
+    "emoji": "{count} emojis",
+    "newAccountLink": "enlace de una cuenta con {age} de antigüedad",
+    "phishing": "dominio de phishing conocido {host}",
+    "lookalike": "{host} imita a {brand}"
+  },
+  "brands": {
+    "fluxer": "Fluxer",
+    "discord": "Discord",
+    "steam": "Steam",
+    "nitro": "Nitro"
+  },
+  "actions": {
+    "delete": "Mensaje eliminado",
+    "warn": "Advertencia",
+    "timeout": "Aislamiento de {duration}",
+    "kick": "Expulsión",
+    "ban": "Baneo",
+    "logOnly": "Ninguna, solo registro"
+  },
+  "theCommunity": "la comunidad",
+  "warn": "{who}, ese mensaje incumplió la regla **{rule}** de aquí.",
+  "dmTimeout": "Te aislaron en **{guild}** durante {duration}. Motivo: {rule}.",
+  "dmKick": "Te expulsaron de **{guild}**. Motivo: {rule}.",
+  "dmBan": "Te banearon de **{guild}**. Motivo: {rule}.",
+  "dmFooter": "Las preguntas van al equipo de la comunidad, no a mí.",
+  "warnReason": "{hasDetail, select, yes {AutoMod: {rule}, {detail}} other {AutoMod: {rule}}}",
+  "logTitle": "{logOnly, select, yes {{rule} (solo registro)} other {{rule} detectado}}",
+  "logWhere": "{who} en {channel}",
+  "logAction": "Acción",
+  "logFooter": "Usuario {userId} / Mensaje {messageId}",
+  "slowmode": {
+    "raised": "Modo lento en {channel} subido a {duration}, {rate} mensajes en el último minuto.",
+    "lowered": "Modo lento en {channel} bajado a {duration}.",
+    "restored": "{hasDuration, select, yes {Modo lento en {channel} de vuelta a {duration}.} other {El modo lento en {channel} está desactivado otra vez.}}"
+  },
+  "raidAlert": "> [!CAUTION]\n> El escudo anti-raid está activo. **{joins}** entradas en {seconds} segundos.\nQuienes entren esperan en la sala de espera hasta {until}.",
+  "raidNoGate": "No hay rol de sala de espera, así que no se retiene a nadie. Elige uno en el panel.",
+  "gateHint": "`{prefix}gate list` muestra quién está esperando.",
+  "lockdownStarted": "Cierre hasta {until}. Quienes entren esperan en la sala de espera.",
+  "lockdownEnded": "{held, plural, =0 {Cierre terminado. No queda nadie en la sala de espera.} other {Cierre terminado. **{held}** siguen esperando en la sala de espera.}}",
+  "gateTitle": "En la sala de espera",
+  "gateIncident": "{hasUntil, select, yes {**{held}** retenidos. Cierre hasta {until}.} other {**{held}** retenidos.}}",
+  "gateLine": "{who}  {when}  *{reason}*",
+  "gateEmpty": [
+    "Nadie está esperando en la sala de espera.",
+    "La sala de espera está vacía.",
+    "Nadie en la sala de espera. Día tranquilo."
+  ],
+  "notHeld": "{who} no está esperando en la sala de espera.",
+  "letInOne": "{who} ya puede entrar.",
+  "letInAll": "{count, plural, =1 {Dejé entrar a **1** miembro.} other {Dejé entrar a **#** miembros.}}",
+  "letInPartial": "Dejé entrar a **{done}** de {total}. Al resto no le pude quitar el rol de sala de espera.",
+  "noGateRole": "No hay rol de sala de espera. Elige uno en el panel.",
+  "banConfirm": "> [!WARNING]\n> Esto banea a **{count}** {count, plural, =1 {miembro retenido} other {miembros retenidos}} en la sala de espera.\nReacciona con {ok} en 30 segundos para continuar.",
+  "banTimeout": "Sin respuesta, así que no pasó nada.",
+  "bannedAll": "{count, plural, =1 {Baneé a **1** miembro de la sala de espera.} other {Baneé a **#** miembros de la sala de espera.}}",
+  "bannedPartial": "Baneé a **{done}** de {total}. El resto probablemente tiene roles por encima del mío."
+}

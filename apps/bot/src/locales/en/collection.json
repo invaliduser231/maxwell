@@ -1,0 +1,107 @@
+{
+  "commands": {
+    "cards": "Collect cards of your community and custom decks.",
+    "view": "Your collection, someone else's, or one card up close.",
+    "pack": "Open a card pack. Uses one from the shop first, otherwise pays the price.",
+    "trade": "Offer cards to a member for some of theirs. Both have to agree.",
+    "wishlist": "Cards you want. You get pinged when one drops.",
+    "sets": "The sets here and how far along you are.",
+    "optin": "Put your own card into the community deck.",
+    "optout": "Take your card out of the community deck. Every copy disappears.",
+    "claim": "Grab the card that just dropped here."
+  },
+  "communityDeck": "Community",
+  "unknownMember": "That's not a member I can find.",
+  "summary": {
+    "self": "You have **{total, plural, one {# card} other {# cards}}**, {unique} different.",
+    "other": "{user} has **{total, plural, one {# card} other {# cards}}**, {unique} different.",
+    "emptySelf": [
+      "No cards yet. Wait for a drop or open a pack.",
+      "Your collection is empty so far."
+    ],
+    "emptyOther": "{user} has no cards yet.",
+    "hint": "{prefix}cards view for the full list"
+  },
+  "view": {
+    "title": "Collection",
+    "header": "{user}: {total, plural, one {# card} other {# cards}}, {unique} different",
+    "unknown": "No card called {query} here.",
+    "rarity": "Rarity",
+    "deck": "Deck",
+    "owners": "Owners",
+    "yours": "You own",
+    "wished": "Wished by",
+    "retired": "No longer drops."
+  },
+  "pack": {
+    "none": "No packs here yet. An admin can add some in the dashboard.",
+    "unknown": "No pack called {query}. `{prefix}shop` or the dashboard shows what exists.",
+    "pick": "Which one? {names}",
+    "economyOff": "Packs cost money, and Economy is off here.",
+    "funds": "That pack costs {price}. You have {balance}.",
+    "empty": "There are no cards to draw yet.",
+    "opened": "**{name}**, {size, plural, one {# card} other {# cards}}:",
+    "fromInventory": "Paid for in the shop",
+    "isNew": "new"
+  },
+  "claim": {
+    "nothing": "Nothing to claim here.",
+    "got": "**{name}** ({rarity}) is yours."
+  },
+  "drop": {
+    "title": "A card dropped",
+    "hint": "First to type {command} gets it. Gone {until}.",
+    "wished": "Wished by {users}",
+    "claimed": "Claimed by {user}.",
+    "expired": "Nobody claimed it.",
+    "noPool": "There are no cards to drop yet.",
+    "noChannel": "No drop channel set."
+  },
+  "trade": {
+    "off": "Trading is off here.",
+    "self": "You can't trade with yourself.",
+    "bot": "Bots don't collect cards.",
+    "usage": "{prefix}cards trade <member> <your cards> for <their cards>",
+    "empty": "Name at least one card, like #12.",
+    "tooMany": "Up to {max, plural, one {# card} other {# cards}} per side.",
+    "missing": "You don't have #{number}.",
+    "theyLack": "{user} doesn't have #{number}.",
+    "busy": "One of you already has an open trade. Finish that first.",
+    "offer": "{mode, select, both {{from} offers {give} for {want} from {to}.} give {{from} gives {give} to {to}.} other {{from} asks {to} for {want}.}}",
+    "confirm": "Both react with {yes} to trade or {no} to cancel. Open until {until}.",
+    "done": "Traded.",
+    "cancelled": "Cancelled by {user}. Nothing changed hands.",
+    "expired": "No answer, so nothing happened.",
+    "failed": "Someone no longer has those cards, so nothing changed hands.",
+    "nothing": "nothing"
+  },
+  "wishlist": {
+    "title": "Wishlist",
+    "empty": ["Your wishlist is empty.", "Nothing on your wishlist yet."],
+    "which": "Which card?",
+    "added": "**{name}** is on your wishlist. I'll ping you when it drops.",
+    "exists": "**{name}** is already on your wishlist.",
+    "full": "Your wishlist is full at {max}. Remove one first.",
+    "removed": "**{name}** is off your wishlist.",
+    "notOn": "**{name}** wasn't on your wishlist.",
+    "usage": "{prefix}cards wishlist [add|remove] <card>"
+  },
+  "sets": {
+    "title": "Sets",
+    "empty": ["No sets here yet.", "There are no sets to finish yet."],
+    "reward": "Reward: {parts}",
+    "completed": "{hasRewards, select, yes {Set complete: **{name}**. {rewards}.} other {Set complete: **{name}**.}}",
+    "completedBy": "{hasRewards, select, yes {{user} finished the set **{name}**. {rewards}.} other {{user} finished the set **{name}**.}}",
+    "progress": "{owned} / {total}",
+    "roleReason": "Completed the set {name}"
+  },
+  "optin": {
+    "off": "The community deck is off here.",
+    "done": "You are in the community deck now. Others can collect your card.",
+    "already": "You are already in the community deck."
+  },
+  "optout": {
+    "done": "You are out of the community deck. Every copy of your card is gone.",
+    "notIn": "You weren't in the community deck."
+  }
+}

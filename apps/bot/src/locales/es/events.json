@@ -1,0 +1,76 @@
+{
+  "commands": {
+    "event": "Próximos eventos, y planear nuevos.",
+    "create": "Planea un evento con confirmación por reacciones.",
+    "list": "Muestra los próximos eventos.",
+    "cancel": "Cancela un evento.",
+    "poll": "Inicia una encuesta con reacciones numéricas."
+  },
+  "when": {
+    "missing": "Para eso necesito una hora y un título.",
+    "invalid": "No entiendo esa hora. Prueba `fri 20:00`, `2026-11-02 19:30` o `in 3h`.",
+    "past": "Esa hora ya pasó.",
+    "title": "El evento necesita un título.",
+    "long": "El título debe tener menos de 200 caracteres y la descripción menos de 2.000."
+  },
+  "created": "**{title}** es el {when}. Publicado en {channel}.",
+  "createdHint": "Evento {number}. {command} lo cancela.",
+  "noChannel": "No hay ningún canal de eventos configurado y aquí no puedo publicar.",
+  "listTitle": "Próximos eventos",
+  "listLine": "{number}  **{title}**  {when}  {going} van",
+  "listEmpty": [
+    "Todavía no hay nada planeado.",
+    "El calendario está vacío.",
+    "No hay eventos a la vista. Semana tranquila."
+  ],
+  "listHint": "{prefix}event create fri 20:00 Noche de cine",
+  "notFound": "Aquí no hay ningún evento {number}.",
+  "alreadyOver": "El evento {number} ya está {status, select, cancelled {cancelado} ended {terminado} other {{status}}}.",
+  "cancelled": "**{title}** queda cancelado.",
+  "rewardReason": "Evento: {title}",
+  "embed": {
+    "when": "**Cuándo** {date} ({relative})",
+    "until": "**Hasta** {time}",
+    "repeats": "{recurrence, select, daily {**Se repite** todos los días} weekly {**Se repite** cada {weekday, select, mon {lunes} tue {martes} wed {miércoles} thu {jueves} fri {viernes} sat {sábado} sun {domingo} other {{weekday}}}} other {**Se repite** cada mes el día {day}}}",
+    "whereChannel": "**Dónde** {channel}",
+    "where": "**Dónde** {location}",
+    "counts": "**{going}** van, **{maybe}** quizás, **{no}** no pueden",
+    "more": "y {left} más",
+    "hint": "Reacciona con {going} si vas, {maybe} si quizás, {no} si no puedes.",
+    "reward": "**Recompensa** {amount} {unit} para quienes vayan",
+    "cancelled": "**Cancelado.**",
+    "ended": "Este ya terminó.",
+    "footer": "Evento {number}"
+  },
+  "reminder": "**{title}** empieza {when}.",
+  "reminderNote": "{place, select, guild {{guild}. Dijiste que vas.} other {Dijiste que vas.}}",
+  "poll": {
+    "problems": {
+      "question": "Para eso necesito una pregunta.",
+      "few": "Una encuesta necesita al menos dos opciones.",
+      "many": "Diez opciones como máximo. Solo hay diez reacciones numéricas.",
+      "long": "La pregunta debe tener menos de 250 caracteres y cada opción menos de 100.",
+      "duplicate": "Dos de las opciones son iguales."
+    },
+    "yes": "Sí",
+    "no": "No",
+    "single": "Elige una.",
+    "multiple": "Elige todas las que quieras.",
+    "anonymous": "Los votos son anónimos. Tu reacción desaparece, tu voto se queda.",
+    "toggle": "Reacciona otra vez con el mismo número para retirarlo.",
+    "ends": "Termina {when}.",
+    "votersOpen": "{voters, plural, =0 {Todavía no hay votos.} one {**# persona** han votado hasta ahora.} other {**# personas** han votado hasta ahora.}}",
+    "votersClosed": "{voters, plural, =0 {Nadie votó.} one {**# persona** votaron.} other {**# personas** votaron.}}",
+    "closed": "**Cerrada.**",
+    "cancelled": "**Cancelada.**",
+    "footer": "Encuesta {number}",
+    "winner": "{result, select, none {Encuesta cerrada. Nadie votó en **{question}**.} one {Encuesta cerrada. Gana **{winner}** con {votes, number} de {total, plural, one {# voto} other {# votos}}.} other {Encuesta cerrada. Empate entre {winners} con {votes, plural, one {# voto} other {# votos}} cada una.}}",
+    "receiptAdded": "Tu voto en **{question}**: **{option}**.",
+    "receiptMoved": "Cambiaste tu voto en **{question}** a **{option}**.",
+    "receiptRemoved": "Retiraste tu voto por **{option}** en **{question}**.",
+    "cardTitle": "Resultados finales",
+    "cardVoters": "{voters, plural, one {# persona votó} other {# personas votaron}}{multiple, select, yes {, con varias opciones permitidas} other {}}",
+    "tooLong": "Una encuesta puede durar 30 días como máximo.",
+    "noChannel": "Aquí no puedo publicar la encuesta."
+  }
+}

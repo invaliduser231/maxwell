@@ -1,88 +1,38 @@
-import { localized } from '../../i18n/localized.js';
+import { catalog } from '../../i18n/catalog.js';
+import en from '../../locales/en/general.json' with { type: 'json' };
 import { code } from '../../ui/format.js';
-import de from './copy.de.js';
-import es from './copy.es.js';
 
-const en = {
-  commands: {
-    ping: 'Checks that I am awake and how fast I answer.',
-    help: 'Lists what I can do, or explains a module or command.',
-    prefix: 'Shows the prefix, or changes it for this community.',
-    about: 'Who I am and how I am doing.',
-    entropy: 'How orderly it is here.',
-    vote: 'Vote for Maxwell on fluxerlist and unlock every locked module for you.',
-    mydata: 'Sends you everything Maxwell stores about you in this community.',
-    forgetme: 'Deletes your levels, currency, cards and other data in this community.',
-    afk: 'Marks you as away. Mentions of you get your note until you write again.',
-  },
+export const copy = catalog('general', en, (m) => ({
   ping: {
-    first: 'Pong.',
-    measuring: 'measuring',
-    result: (gateway: string, api: string) => `Pong. Gateway **${gateway}**, API **${api}**.`,
+    result: (gateway: string, api: string) => m.ping.result({ gateway, api }),
   },
   help: {
-    nothing: (query: string, prefix: string) =>
-      `Nothing called ${code(query)}. ${code(`${prefix}help`)} lists everything.`,
-    examples: 'Examples',
-    needs: 'Needs',
-    also: 'Also',
-    title: 'Commands',
-    prefix: (prefix: string) => `Prefix here is ${code(prefix)}.`,
-    details: (prefix: string) => `${prefix}help <module> or ${prefix}help <command> for details`,
+    nothing: (query: string, prefix: string) => m.help.nothing({ query: code(query), prefix }),
+    prefix: (prefix: string) => m.help.prefix({ prefix: code(prefix) }),
+    details: (prefix: string) => m.help.details({ prefix }),
   },
   prefix: {
-    current: (prefix: string) => `Prefix here is ${code(prefix)}.`,
-    change: (prefix: string) => `Change it with ${prefix}prefix <new>.`,
-    tooLong: 'Keep it to 8 characters or fewer.',
-    reset: (prefix: string) => `Back to ${code(prefix)}.`,
-    set: (prefix: string) => `I answer to ${code(prefix)} here now.`,
+    current: (prefix: string) => m.prefix.current({ prefix: code(prefix) }),
+    change: (prefix: string) => m.prefix.change({ prefix }),
+    reset: (prefix: string) => m.prefix.reset({ prefix: code(prefix) }),
+    set: (prefix: string) => m.prefix.set({ prefix: code(prefix) }),
   },
-  about: {
-    tagline: 'I keep things in order around here.',
-    communities: 'Communities',
-    online: 'Online since',
-    memory: 'Memory',
-  },
-  entropy: 'Entropy here: low. Keep it that way.',
   vote: {
-    done: 'Your vote is in. Locked modules are open for you in the dashboard.',
-    ask: (link: string) =>
-      `Vote for Maxwell on fluxerlist once and every locked module opens for you.${link}`,
-    again: (prefix: string) => `Run ${code(`${prefix}vote`)} again after voting.`,
+    ask: (link: string) => m.vote.ask({ link }),
+    again: (prefix: string) => m.vote.again({ prefix }),
   },
   greet: {
-    hello: "Hi, I'm Maxwell. I keep things in order around here.",
-    prefix: (prefix: string) => `Prefix is ${code(prefix)}. Start with ${code(`${prefix}help`)}.`,
-    mention: 'Mention me any time you forget the prefix.',
-    missing: (permission: string, feature: string) =>
-      `> I'm missing **${permission}**, so ${feature} won't work yet.`,
-    features: {
-      ManageGuild: 'invite tracking',
-      EmbedLinks: 'anything richer than plain text',
-      AddReactions: 'reactions',
-    },
+    prefix: (prefix: string) => m.greet.prefix({ prefix: code(prefix) }),
+    missing: (permission: string, feature: string) => m.greet.missing({ permission, feature }),
   },
   afk: {
-    set: (reason: string) => (reason ? `You are away: ${reason}` : 'You are away.'),
-    back: (duration: string) => `Welcome back. You were away for ${duration}.`,
+    set: (reason: string) => m.afk.set({ hasReason: reason ? 'yes' : 'no', reason }),
+    back: (duration: string) => m.afk.back({ duration }),
     away: (who: string, reason: string, since: string) =>
-      reason
-        ? `${who} has been away for ${since}: ${reason}`
-        : `${who} has been away for ${since}.`,
+      m.afk.away({ hasReason: reason ? 'yes' : 'no', who, reason, since }),
   },
   privacy: {
-    exported: 'Everything I store about you in that community.',
-    nothingStored: 'I store nothing about you in that community.',
-    noDm: "I can't DM you. Open your DMs and try again.",
-    sent: 'Sent to your DMs.',
-    warning:
-      'This deletes your levels, currency, cards, notes and everything else I keep about you here. Moderation cases stay.',
-    confirm: (prefix: string) => `Run ${code(`${prefix}forgetme confirm`)} to go ahead.`,
-    partial: (modules: string) => `Most of it is gone. ${modules} failed, try again later.`,
-    forgotten: 'Forgotten.',
+    confirm: (prefix: string) => m.privacy.confirm({ prefix }),
+    partial: (modules: string) => m.privacy.partial({ modules }),
   },
-};
-
-export type GeneralCopy = typeof en;
-
-export const copy = localized(en, { de, es });
+}));

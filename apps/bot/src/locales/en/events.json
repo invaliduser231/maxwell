@@ -1,0 +1,76 @@
+{
+  "commands": {
+    "event": "Upcoming events, and planning new ones.",
+    "create": "Plans an event with RSVP reactions.",
+    "list": "Lists upcoming events.",
+    "cancel": "Calls off an event.",
+    "poll": "Starts a poll with number reactions."
+  },
+  "when": {
+    "missing": "I need a time and a title for that.",
+    "invalid": "That's not a time I know. Try `fri 20:00`, `2026-11-02 19:30` or `in 3h`.",
+    "past": "That time has already passed.",
+    "title": "The event needs a title.",
+    "long": "Keep the title under 200 characters and the description under 2,000."
+  },
+  "created": "**{title}** is on {when}. Posted in {channel}.",
+  "createdHint": "Event {number}. {command} calls it off.",
+  "noChannel": "There is no event channel set up, and I cannot post here.",
+  "listTitle": "Upcoming events",
+  "listLine": "{number}  **{title}**  {when}  {going} going",
+  "listEmpty": [
+    "Nothing planned yet.",
+    "The calendar is empty.",
+    "No events coming up. Quiet week."
+  ],
+  "listHint": "{prefix}event create fri 20:00 Movie night",
+  "notFound": "No event {number} here.",
+  "alreadyOver": "Event {number} is already {status, select, cancelled {cancelled} ended {over} other {{status}}}.",
+  "cancelled": "**{title}** is off.",
+  "rewardReason": "Event: {title}",
+  "embed": {
+    "when": "**When** {date} ({relative})",
+    "until": "**Until** {time}",
+    "repeats": "{recurrence, select, daily {**Repeats** every day} weekly {**Repeats** every {weekday, select, mon {Monday} tue {Tuesday} wed {Wednesday} thu {Thursday} fri {Friday} sat {Saturday} sun {Sunday} other {{weekday}}}} other {**Repeats** every month on the {day, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}}}",
+    "whereChannel": "**Where** {channel}",
+    "where": "**Where** {location}",
+    "counts": "**{going}** going, **{maybe}** maybe, **{no}** can't make it",
+    "more": "and {left} more",
+    "hint": "React with {going} if you're going, {maybe} for maybe, {no} if you can't make it.",
+    "reward": "**Reward** {amount} {unit} for everyone going",
+    "cancelled": "**Cancelled.**",
+    "ended": "This one is over.",
+    "footer": "Event {number}"
+  },
+  "reminder": "**{title}** starts {when}.",
+  "reminderNote": "{place, select, guild {{guild}. You said you're going.} other {You said you're going.}}",
+  "poll": {
+    "problems": {
+      "question": "I need a question for that.",
+      "few": "A poll needs at least two options.",
+      "many": "Ten options at most. There are only ten number reactions.",
+      "long": "Keep the question under 250 characters and each option under 100.",
+      "duplicate": "Two of the options are the same."
+    },
+    "yes": "Yes",
+    "no": "No",
+    "single": "Pick one.",
+    "multiple": "Pick as many as you like.",
+    "anonymous": "Votes are anonymous. Your reaction disappears, your vote stays.",
+    "toggle": "React with the same number again to take it back.",
+    "ends": "Ends {when}.",
+    "votersOpen": "{voters, plural, =0 {No votes yet.} one {**# person** voted so far.} other {**# people** voted so far.}}",
+    "votersClosed": "{voters, plural, =0 {Nobody voted.} one {**# person** voted.} other {**# people** voted.}}",
+    "closed": "**Closed.**",
+    "cancelled": "**Cancelled.**",
+    "footer": "Poll {number}",
+    "winner": "{result, select, none {Poll closed. Nobody voted on **{question}**.} one {Poll closed. **{winner}** wins with {votes, number} of {total, plural, one {# vote} other {# votes}}.} other {Poll closed. Tie between {winners} with {votes, plural, one {# vote} other {# votes}} each.}}",
+    "receiptAdded": "Your vote on **{question}**: **{option}**.",
+    "receiptMoved": "Changed your vote on **{question}** to **{option}**.",
+    "receiptRemoved": "Took back your vote for **{option}** on **{question}**.",
+    "cardTitle": "Final results",
+    "cardVoters": "{voters, plural, one {# person} other {# people}} voted{multiple, select, yes {, several picks allowed} other {}}",
+    "tooLong": "A poll can run for 30 days at most.",
+    "noChannel": "I cannot post the poll here."
+  }
+}

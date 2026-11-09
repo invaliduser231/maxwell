@@ -1,6 +1,6 @@
 import { usageLine } from '../../commands/dispatcher.js';
 import type { Command, CommandContext, Module } from '../../commands/types.js';
-import { translate } from '../../i18n/localized.js';
+import { translate } from '../../i18n/catalog.js';
 import { code, count, lines, subtext, timestamp } from '../../ui/format.js';
 import { moduleText } from '../../ui/modules.js';
 import { chunk } from '../../ui/paginator.js';

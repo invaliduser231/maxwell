@@ -1,0 +1,40 @@
+{
+  "level": "Level",
+  "rank": "Rank",
+  "levelWord": "Level ",
+  "unlocked": "Unlocked ",
+  "digest": {
+    "title": "Weekly digest",
+    "range": "{from} to {to}",
+    "joins": "Joins",
+    "leaves": "Leaves",
+    "net": "Net change",
+    "messages": "Messages",
+    "active": "Active members",
+    "inbox": "Open in inbox",
+    "channels": "Busiest channels",
+    "noMessages": "No messages counted",
+    "deletedChannel": "Deleted channel",
+    "moderation": "Moderation",
+    "warn": "Warns",
+    "timeout": "Timeouts",
+    "kick": "Kicks",
+    "ban": "Bans",
+    "same": "Same as last week",
+    "versus": "{change} vs last week"
+  },
+  "activity": {
+    "title": "Last {days} days",
+    "range": "{from} to {to}",
+    "messages": "Messages",
+    "active": "Active members",
+    "members": "Member change",
+    "voice": "Hours in voice",
+    "perDay": "Messages per day",
+    "peak": "Busiest day: {count}",
+    "empty": "No messages counted",
+    "flow": "Joins and leaves",
+    "joined": "{count} joined",
+    "left": "{count} left"
+  }
+}

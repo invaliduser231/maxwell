@@ -1,0 +1,21 @@
+{
+  "commands": {
+    "backup": "Snapshots of roles, channels and settings.",
+    "now": "Takes a snapshot of roles, channels and settings.",
+    "list": "Lists the saved snapshots."
+  },
+  "kinds": {
+    "daily": "daily",
+    "manual": "manual"
+  },
+  "saved": "Snapshot #{number} saved with **{roles}** roles and **{channels}** channels.",
+  "listTitle": "Snapshots",
+  "listLine": "`#{number}`  {when}  {kind}  {roles} roles, {channels} channels",
+  "listLabel": "*{label}*",
+  "listFooter": "Compare and restore them in the dashboard.",
+  "empty": [
+    "No snapshots yet. `{prefix}backup now` takes one.",
+    "Nothing saved yet. `{prefix}backup now` takes the first snapshot."
+  ],
+  "failed": "The snapshot failed. Check that I can see all channels and roles, then try again."
+}

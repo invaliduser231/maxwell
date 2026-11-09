@@ -1,0 +1,92 @@
+{
+  "commands": {
+    "gate": "Der Wartebereich des Raid-Schutzes.",
+    "list": "Wer im Wartebereich wartet.",
+    "let": "Lässt ein Mitglied oder alle aus dem Wartebereich rein.",
+    "ban": "Bannt alle, die im Wartebereich warten."
+  },
+  "rules": {
+    "spam": "Spam",
+    "invites": "Einladungslinks",
+    "links": "Links",
+    "mentions": "Massen-Erwähnungen",
+    "caps": "Großbuchstaben",
+    "words": "Wortliste",
+    "repeats": "Wiederholte Nachrichten",
+    "emoji": "Emoji-Spam",
+    "newAccountLinks": "Links von neuen Konten",
+    "phishing": "Phishing-Links"
+  },
+  "holds": {
+    "raid": "Raid",
+    "lockdown": "Lockdown",
+    "account_age": "neues Konto",
+    "verify": "Captcha",
+    "honeypot": "Honigtopf"
+  },
+  "details": {
+    "spam": "{count} Nachrichten in {seconds} s",
+    "invite": "Einladung {code}",
+    "link": "Link zu {host}",
+    "mentions": "{count} Erwähnungen",
+    "caps": "{percent} % Großbuchstaben",
+    "word": "Treffer: {pattern}",
+    "repeats": "{count}-mal dieselbe Nachricht",
+    "emoji": "{count} Emojis",
+    "newAccountLink": "Link von einem Konto, das erst {age} alt ist",
+    "phishing": "bekannte Phishing-Domain {host}",
+    "lookalike": "{host} gibt sich als {brand} aus"
+  },
+  "brands": {
+    "fluxer": "Fluxer",
+    "discord": "Discord",
+    "steam": "Steam",
+    "nitro": "Nitro"
+  },
+  "actions": {
+    "delete": "Nachricht gelöscht",
+    "warn": "Verwarnt",
+    "timeout": "Timeout für {duration}",
+    "kick": "Gekickt",
+    "ban": "Gebannt",
+    "logOnly": "Keine, nur geloggt"
+  },
+  "theCommunity": "der Community",
+  "warn": "{who}, die Nachricht verstößt hier gegen die Regel **{rule}**.",
+  "dmTimeout": "Du hast in **{guild}** einen Timeout für {duration} bekommen. Grund: {rule}.",
+  "dmKick": "Du wurdest aus **{guild}** gekickt. Grund: {rule}.",
+  "dmBan": "Du wurdest aus **{guild}** gebannt. Grund: {rule}.",
+  "dmFooter": "Bei Fragen wende dich an das Team der Community, nicht an mich.",
+  "warnReason": "{hasDetail, select, yes {AutoMod: {rule}, {detail}} other {AutoMod: {rule}}}",
+  "logTitle": "{logOnly, select, yes {{rule} (nur geloggt)} other {{rule} erwischt}}",
+  "logWhere": "{who} in {channel}",
+  "logAction": "Aktion",
+  "logFooter": "Nutzer {userId} / Nachricht {messageId}",
+  "slowmode": {
+    "raised": "Slowmode in {channel} auf {duration} erhöht, {rate} Nachrichten in der letzten Minute.",
+    "lowered": "Slowmode in {channel} auf {duration} gesenkt.",
+    "restored": "{hasDuration, select, yes {Slowmode in {channel} wieder auf {duration}.} other {Slowmode in {channel} ist wieder aus.}}"
+  },
+  "raidAlert": "> [!CAUTION]\n> Raid-Schutz ist aktiv. **{joins}** Beitritte in {seconds} Sekunden.\nNeue Mitglieder warten bis {until} im Wartebereich.",
+  "raidNoGate": "Es ist keine Wartebereich-Rolle gesetzt, deshalb wird niemand festgehalten. Wähl eine im Dashboard.",
+  "gateHint": "`{prefix}gate list` zeigt, wer wartet.",
+  "lockdownStarted": "Lockdown bis {until}. Neue Mitglieder warten im Wartebereich.",
+  "lockdownEnded": "{held, plural, =0 {Lockdown vorbei. Im Wartebereich ist niemand mehr.} other {Lockdown vorbei. **{held}** warten noch im Wartebereich.}}",
+  "gateTitle": "Im Wartebereich",
+  "gateIncident": "{hasUntil, select, yes {**{held}** festgehalten. Lockdown bis {until}.} other {**{held}** festgehalten.}}",
+  "gateLine": "{who}  {when}  *{reason}*",
+  "gateEmpty": [
+    "Im Wartebereich wartet niemand.",
+    "Der Wartebereich ist leer.",
+    "Niemand im Wartebereich. Ruhiger Tag."
+  ],
+  "notHeld": "{who} wartet nicht im Wartebereich.",
+  "letInOne": "{who} ist drin.",
+  "letInAll": "{count, plural, =1 {**1** Mitglied reingelassen.} other {**#** Mitglieder reingelassen.}}",
+  "letInPartial": "**{done}** von {total} reingelassen. Beim Rest konnte ich die Wartebereich-Rolle nicht entfernen.",
+  "noGateRole": "Es ist keine Wartebereich-Rolle gesetzt. Wähl eine im Dashboard.",
+  "banConfirm": "> [!WARNING]\n> Das bannt **{count}** {count, plural, =1 {Mitglied} other {Mitglieder}} aus dem Wartebereich.\nReagier innerhalb von 30 Sekunden mit {ok}, um fortzufahren.",
+  "banTimeout": "Keine Antwort, also ist nichts passiert.",
+  "bannedAll": "{count, plural, =1 {**1** Mitglied aus dem Wartebereich gebannt.} other {**#** Mitglieder aus dem Wartebereich gebannt.}}",
+  "bannedPartial": "**{done}** von {total} gebannt. Die übrigen haben vermutlich Rollen über meiner."
+}

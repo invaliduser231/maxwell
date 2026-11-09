@@ -1,0 +1,21 @@
+{
+  "commands": {
+    "backup": "Snapshots von Rollen, Kanälen und Einstellungen.",
+    "now": "Macht einen Snapshot von Rollen, Kanälen und Einstellungen.",
+    "list": "Listet die gespeicherten Snapshots auf."
+  },
+  "kinds": {
+    "daily": "täglich",
+    "manual": "manuell"
+  },
+  "saved": "Snapshot #{number} gespeichert, mit **{roles}** Rollen und **{channels}** Kanälen.",
+  "listTitle": "Snapshots",
+  "listLine": "`#{number}`  {when}  {kind}  {roles} Rollen, {channels} Kanäle",
+  "listLabel": "*{label}*",
+  "listFooter": "Vergleichen und wiederherstellen kannst du sie im Dashboard.",
+  "empty": [
+    "Noch keine Snapshots. `{prefix}backup now` macht einen.",
+    "Noch nichts gespeichert. `{prefix}backup now` macht den ersten Snapshot."
+  ],
+  "failed": "Der Snapshot ist fehlgeschlagen. Prüf, ob ich alle Kanäle und Rollen sehe, und versuch es noch mal."
+}

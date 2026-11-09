@@ -1,0 +1,3 @@
+{
+  "menuHint": "{type, select, unique {One role at a time.} add {Roles stay when you remove the reaction.} temporary {Roles last {duration}.} verify {React to get the role.} remove {React to drop the role.} binding {Pick once. The choice is final.} limit {{limit, plural, one {Up to # role.} other {Up to # roles.}}} other {}}"
+}

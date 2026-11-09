@@ -1,20 +1,13 @@
 import { mention } from '../../commands/mentions.js';
-import { localized } from '../../i18n/localized.js';
-import { count } from '../../ui/format.js';
-import de from './copy.de.js';
-import es from './copy.es.js';
+import { catalog } from '../../i18n/catalog.js';
+import en from '../../locales/en/starboard.json' with { type: 'json' };
 
-const en = {
+export const copy = catalog('starboard', en, (m) => ({
   starLine: (emoji: string, stars: number, channelId: string) =>
-    `${emoji} **${count(stars)}** in ${mention.channel(channelId)}`,
-  jump: 'Jump to message',
-  attachment: (name: string) => `Attachment: ${name}`,
-  footer: (messageId: string) => `ID ${messageId}`,
-};
-
-export type StarboardCopy = typeof en;
-
-export const copy = localized(en, { de, es });
+    m.starLine({ emoji, stars, channel: mention.channel(channelId) }),
+  attachment: (name: string) => m.attachment({ name }),
+  footer: (messageId: string) => m.footer({ messageId }),
+}));
 
 export const reasons = {
   removed: 'Starboard post below the threshold',

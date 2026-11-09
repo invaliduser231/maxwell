@@ -1,94 +1,70 @@
 import { mention } from '../../commands/mentions.js';
-import { localized } from '../../i18n/localized.js';
-import { bold, code, count, lines, orList, subtext, timestamp } from '../../ui/format.js';
-import de from './copy.de.js';
-import es from './copy.es.js';
+import { catalog } from '../../i18n/catalog.js';
+import en from '../../locales/en/forms.json' with { type: 'json' };
+import { code, escapeMarkdown, lines, orList, subtext, timestamp } from '../../ui/format.js';
 
 export const audit = {
   accept: (form: string) => `Accepted a ${form} submission`,
   decline: (form: string) => `Declined a ${form} submission`,
 };
 
-const en = {
-  commands: {
-    form: 'Applications and other forms.',
-    start: 'Fills out a form, question by question in DMs.',
-    list: 'Shows the forms you can fill out here.',
-  },
-  listTitle: 'Forms',
-  listEmpty: 'No forms here yet.',
+export const formsCopy = catalog('forms', en, (m) => ({
   listLine: (name: string, id: string, questions: number) =>
-    `${bold(name)} ${code(id)}  ${count(questions)} ${questions === 1 ? 'question' : 'questions'}`,
-  listHint: (prefix: string) => `Start one with ${code(`${prefix}form start <name>`)}.`,
-  pickForm: (prefix: string) => `Which one? ${code(`${prefix}form list`)} shows them.`,
+    m.listLine({ name: escapeMarkdown(name), id: code(id), questions }),
+  listHint: (prefix: string) => m.listHint({ prefix }),
+  pickForm: (prefix: string) => m.pickForm({ prefix }),
   unknownForm: (names: string[]) =>
-    names.length
-      ? `No form by that name. Try ${names.map((name) => code(name)).join(', ')}.`
-      : 'No forms here yet.',
-  closed: (name: string) => `${bold(name)} isn't taking answers right now.`,
+    m.unknownForm({
+      known: names.length ? 'yes' : 'no',
+      names: names.map((name) => code(name)).join(', '),
+    }),
+  closed: (name: string) => m.closed({ name: escapeMarkdown(name) }),
   needsRole: (roleIds: string[]) =>
-    `You need ${orList(roleIds.map((id) => mention.role(id)))} for that form.`,
-  alreadyFilling: (name: string) =>
-    `You're already filling out ${bold(name)}. Finish it or reply ${code('cancel')}.`,
-  pending: (name: string) => `Your ${bold(name)} is still being reviewed.`,
-  once: (name: string) => `You already sent ${bold(name)}.`,
-  cooldown: (at: Date) => `You can send it again ${timestamp(at, 'R')}.`,
-  checkDms: 'Check your DMs.',
-  continueIn: (channelId: string) => `Continue in ${mention.channel(channelId)}.`,
-  unreachable:
-    "I can't DM you and couldn't open a channel. Allow DMs from this community and try again.",
+    m.needsRole({ roles: orList(roleIds.map((id) => mention.role(id))) }),
+  alreadyFilling: (name: string) => m.alreadyFilling({ name: escapeMarkdown(name) }),
+  pending: (name: string) => m.pending({ name: escapeMarkdown(name) }),
+  once: (name: string) => m.once({ name: escapeMarkdown(name) }),
+  cooldown: (at: Date) => m.cooldown({ when: timestamp(at, 'R') }),
+  continueIn: (channelId: string) => m.continueIn({ channel: mention.channel(channelId) }),
   intro: (form: string, guild: string, description: string) =>
     lines(
-      `${bold(form)} for ${bold(guild)}`,
+      m.intro({ form: escapeMarkdown(form), guild: escapeMarkdown(guild) }),
       description || null,
-      subtext(`Answer each question in a message. ${code('cancel')} stops.`),
+      subtext(m.introHint()),
     ),
-  questionHeader: (index: number, total: number) => subtext(`Question ${index} of ${total}`),
-  option: (index: number, text: string) => `${code(String(index))} ${text}`,
-  hintChoice: 'Reply with the number or the option.',
-  hintYesNo: 'Reply yes or no.',
+  questionHeader: (index: number, total: number) => subtext(m.questionHeader({ index, total })),
+  option: (index: number, text: string) => m.option({ index: code(String(index)), text }),
   hintNumber: (min: number | null, max: number | null) =>
-    min !== null && max !== null
-      ? `Reply with a number from ${min} to ${max}.`
-      : min !== null
-        ? `Reply with a number of at least ${min}.`
-        : max !== null
-          ? `Reply with a number up to ${max}.`
-          : 'Reply with a number.',
-  hintOptional: `Optional, ${code('skip')} skips it.`,
-  problemRequired: 'This one needs an answer.',
-  problemNumber: "That's not a number.",
-  problemTooSmall: (min: number) => `It has to be at least ${min}.`,
-  problemTooLarge: (max: number) => `It can be ${max} at most.`,
-  problemTooShort: (min: number) => `That's too short. At least ${count(min)} characters.`,
-  problemTooLong: (max: number) => `That's too long. ${count(max)} characters at most.`,
-  problemChoice: 'Pick one of the options, by number or name.',
-  problemYesNo: 'Answer with yes or no.',
-  cancelled: 'Cancelled. Nothing was sent.',
-  expired: (form: string) => `Your ${bold(form)} timed out. Nothing was sent.`,
-  gone: 'That form is closed now. Nothing was sent.',
-  submitted: "Sent. You'll hear back here.",
-  submittedChannel: 'Sent. This channel closes in a minute.',
-  reviewHint: (accept: string, decline: string) =>
-    `React with ${accept} to accept or ${decline} to decline.`,
-  reviewVotes: (accept: number, decline: number) =>
-    `${count(accept)} accept, ${count(decline)} decline`,
-  reviewFooter: (number: number, userId: string) => `Submission ${number} / User ${userId}`,
+    m.hintNumber({
+      range:
+        min !== null && max !== null
+          ? 'both'
+          : min !== null
+            ? 'min'
+            : max !== null
+              ? 'max'
+              : 'none',
+      min: String(min ?? ''),
+      max: String(max ?? ''),
+    }),
+  problemTooSmall: (min: number) => m.problemTooSmall({ min: String(min) }),
+  problemTooLarge: (max: number) => m.problemTooLarge({ max: String(max) }),
+  problemTooShort: (min: number) => m.problemTooShort({ min }),
+  problemTooLong: (max: number) => m.problemTooLong({ max }),
+  expired: (form: string) => m.expired({ form: escapeMarkdown(form) }),
+  reviewHint: (accept: string, decline: string) => m.reviewHint({ accept, decline }),
+  reviewVotes: (accept: number, decline: number) => m.reviewVotes({ accept, decline }),
+  reviewFooter: (number: number, userId: string) =>
+    m.reviewFooter({ number: String(number), userId }),
   statusAccepted: (by: string | null) =>
-    by ? `**Accepted** by ${mention.user(by)}` : '**Accepted** by votes',
+    m.statusAccepted({ source: by ? 'member' : 'votes', user: by ? mention.user(by) : '' }),
   statusDeclined: (by: string | null) =>
-    by ? `**Declined** by ${mention.user(by)}` : '**Declined** by votes',
-  statusNote: (text: string) => `**Note** ${text}`,
+    m.statusDeclined({ source: by ? 'member' : 'votes', user: by ? mention.user(by) : '' }),
+  statusNote: (text: string) => m.statusNote({ text }),
   dmAccepted: (form: string, guild: string) =>
-    `Your ${bold(form)} for ${bold(guild)} was accepted.`,
+    m.dmAccepted({ form: escapeMarkdown(form), guild: escapeMarkdown(guild) }),
   dmDeclined: (form: string, guild: string) =>
-    `Your ${bold(form)} for ${bold(guild)} was declined.`,
-  ticketIntro: (form: string, userId: string) => `${bold(form)} from ${mention.user(userId)}`,
-  skipped: 'Skipped',
-  yes: 'Yes',
-  no: 'No',
-};
-
-export type FormsCopy = typeof en;
-
-export const formsCopy = localized(en, { de, es });
+    m.dmDeclined({ form: escapeMarkdown(form), guild: escapeMarkdown(guild) }),
+  ticketIntro: (form: string, userId: string) =>
+    m.ticketIntro({ form: escapeMarkdown(form), user: mention.user(userId) }),
+}));

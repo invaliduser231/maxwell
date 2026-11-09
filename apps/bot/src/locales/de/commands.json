@@ -1,0 +1,8 @@
+{
+  "notHere": "Der Befehl geht hier nicht.",
+  "notForYou": "Der Befehl ist nur für bestimmte Rollen.",
+  "needsMember": "Erwähne das Mitglied.",
+  "rolesFailed": "Ich konnte die Rollen nicht ändern. Meine Rolle muss über ihnen stehen.",
+  "sampleUser": "Mitglied",
+  "sampleServer": "Community"
+}

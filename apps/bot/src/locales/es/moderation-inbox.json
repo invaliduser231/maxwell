@@ -1,0 +1,67 @@
+{
+  "command": "Envía un mensaje o un miembro a los moderadores. Responde al mensaje o nombra al miembro.",
+  "sent": "Enviado a los moderadores.",
+  "already": "Ya reportaste eso.",
+  "nothing": "Responde al mensaje que quieres reportar o nombra al miembro.",
+  "self": "No puedes reportarte a ti.",
+  "bot": "Los bots no se reportan, pregúntale a alguien de moderación.",
+  "off": "Los reportes están desactivados aquí.",
+  "reactionSent": "Tu reporte en **{server}** llegó a los moderadores.",
+  "titles": {
+    "report": "Reporte #{n}",
+    "appeal": "Apelación #{n}",
+    "review": "Revisión #{n}",
+    "gate": "Entrada #{n}",
+    "check": "Verificación #{n}"
+  },
+  "fields": {
+    "member": "Miembro",
+    "reporters": "Reportado por",
+    "message": "Mensaje",
+    "report": "Reporte",
+    "appeal": "Apelación",
+    "review": "Motivo",
+    "gate": "En espera",
+    "check": "Verificación",
+    "status": "Estado",
+    "outcome": "Resultado",
+    "note": "Nota"
+  },
+  "reporters": "{n, plural, one {# miembro} other {# miembros}}",
+  "jump": "Ir al mensaje",
+  "gone": "Eliminado",
+  "dashboard": "Abrir en el panel",
+  "status": {
+    "open": "Abierto",
+    "claimed": "Tomado por {who}",
+    "resolved": "Resuelto por {who}",
+    "dismissed": "Descartado por {who}"
+  },
+  "outcomes": {
+    "warn": "Advertido, caso #{n}",
+    "timeout": "Aislado, caso #{n}",
+    "kick": "Expulsado, caso #{n}",
+    "ban": "Baneado, caso #{n}",
+    "unban": "Baneo retirado, caso #{n}",
+    "approved": "Aprobado",
+    "declined": "Rechazado",
+    "deleted": "Mensaje eliminado",
+    "let_in": "Dejado entrar",
+    "banned": "Baneado",
+    "left": "Salió del servidor",
+    "passed": "Resolvió el captcha",
+    "released": "Dejado entrar",
+    "none": "Sin acción"
+  },
+  "gateHeld": "{n, plural, one {# miembro espera} other {# miembros esperan}} en la entrada",
+  "checkStates": {
+    "undelivered": "No se pudo enviar el captcha.",
+    "failed": "No resolvió el captcha.",
+    "expired": "No resolvió el captcha a tiempo."
+  },
+  "riskScore": "{hasReasons, select, yes {Nivel de riesgo {score}: {reasons}} other {Nivel de riesgo {score}}}",
+  "appealAccepted": "Tu apelación en **{server}** fue aceptada. Puedes volver a entrar con una invitación.",
+  "appealDeclined": "Tu apelación en **{server}** fue rechazada.",
+  "more": "y {n} más",
+  "appealLine": "Puedes apelar aquí: {url}"
+}

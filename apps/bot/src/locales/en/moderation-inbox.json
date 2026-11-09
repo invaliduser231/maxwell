@@ -1,0 +1,67 @@
+{
+  "command": "Sends a message or a member to the moderators. Reply to the message, or name the member.",
+  "sent": "Sent to the moderators.",
+  "already": "You already reported that.",
+  "nothing": "Reply to the message you want to report, or name the member.",
+  "self": "You can't report yourself.",
+  "bot": "Bots are not reported, ask a moderator.",
+  "off": "Reports are turned off here.",
+  "reactionSent": "Your report in **{server}** went to the moderators.",
+  "titles": {
+    "report": "Report #{n}",
+    "appeal": "Appeal #{n}",
+    "review": "Review #{n}",
+    "gate": "Gate #{n}",
+    "check": "Verification #{n}"
+  },
+  "fields": {
+    "member": "Member",
+    "reporters": "Reported by",
+    "message": "Message",
+    "report": "Report",
+    "appeal": "Appeal",
+    "review": "Reason",
+    "gate": "Waiting",
+    "check": "Verification",
+    "status": "Status",
+    "outcome": "Outcome",
+    "note": "Note"
+  },
+  "reporters": "{n, plural, one {# member} other {# members}}",
+  "jump": "Jump to message",
+  "gone": "Deleted",
+  "dashboard": "Open in the dashboard",
+  "status": {
+    "open": "Open",
+    "claimed": "Claimed by {who}",
+    "resolved": "Resolved by {who}",
+    "dismissed": "Dismissed by {who}"
+  },
+  "outcomes": {
+    "warn": "Warned, case #{n}",
+    "timeout": "Timed out, case #{n}",
+    "kick": "Kicked, case #{n}",
+    "ban": "Banned, case #{n}",
+    "unban": "Unbanned, case #{n}",
+    "approved": "Approved",
+    "declined": "Declined",
+    "deleted": "Message deleted",
+    "let_in": "Let in",
+    "banned": "Banned",
+    "left": "Left the server",
+    "passed": "Passed the captcha",
+    "released": "Let in",
+    "none": "No action"
+  },
+  "gateHeld": "{n, plural, one {# member} other {# members}} waiting at the gate",
+  "checkStates": {
+    "undelivered": "The captcha could not be sent.",
+    "failed": "Failed the captcha.",
+    "expired": "Did not solve the captcha in time."
+  },
+  "riskScore": "{hasReasons, select, yes {Risk score {score}: {reasons}} other {Risk score {score}}}",
+  "appealAccepted": "Your appeal in **{server}** was accepted. You can join again with an invite.",
+  "appealDeclined": "Your appeal in **{server}** was declined.",
+  "more": "and {n} more",
+  "appealLine": "You can appeal here: {url}"
+}

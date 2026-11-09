@@ -1,0 +1,81 @@
+{
+  "commands": {
+    "trivia": "Stellt eine Quizfrage. Die erste richtige Antwort im Chat gewinnt.",
+    "coinflip": "Wirft eine Münze oder fordert jemanden zum Münzwurf mit Einsatz heraus.",
+    "higherlower": "Rate, ob die nächste Zahl höher oder tiefer ist. Mit Einsatz, wenn du magst.",
+    "top": {
+      "trivia": "Die Quiz-Rangliste.",
+      "counting": "Die Rangliste beim Zählen.",
+      "wordchain": "Die Wortketten-Rangliste.",
+      "higherlower": "Die Rangliste bei Höher oder tiefer.",
+      "coinflip": "Die Münzwurf-Rangliste."
+    }
+  },
+  "off": "{game} ist hier aus.",
+  "wrongChannel": "Spiele laufen hier in anderen Kanälen.",
+  "economyOff": "Einsätze brauchen Economy, und das ist hier aus.",
+  "stakeRange": "Einsätze gehen von {min} bis {max}.",
+  "broke": "Du hast nur {balance}.",
+  "unknownMember": "Dieses Mitglied finde ich nicht.",
+  "names": {
+    "trivia": "Quiz",
+    "counting": "Zählen",
+    "wordchain": "Wortkette",
+    "higherlower": "Höher oder tiefer",
+    "coinflip": "Münzwurf"
+  },
+  "reward": "+{amount}",
+  "trivia": {
+    "title": "Quiz",
+    "none": "Noch keine Fragen. Ein Admin kann im Dashboard welche anlegen.",
+    "running": "Hier ist schon eine Frage offen.",
+    "prompt": "Antworte im Chat. Die Zeit läuft {until} ab.",
+    "won": "{user} hat es: **{answer}**.",
+    "timeout": "Zeit um. Gesucht war **{answer}**."
+  },
+  "counting": {
+    "broke": "{reset, select, yes {{user} hat bei **{reached}** verzählt. Weiter geht es mit **1**.} other {{user}, das passt nicht.}}",
+    "twice": "{reset, select, yes {{user} hat zweimal hintereinander gezählt. Zurück auf **1**.} other {{user}, lass erst jemand anderen.}}",
+    "expected": "Die nächste Zahl wäre {n} gewesen.",
+    "milestone": "**{n}**. {amount} für {user}."
+  },
+  "wordchain": {
+    "letter": "**{word}** fängt nicht mit **{letter}** an.",
+    "repeat": "**{word}** gab es schon.",
+    "twice": "Lass erst jemand anderen.",
+    "reset": "{ended, select, yes {Die Kette endet bei **{reached}**. Fang mit einem beliebigen Wort neu an.} other {Fang mit einem beliebigen Wort neu an.}}"
+  },
+  "hilo": {
+    "running": "Du hast schon ein Spiel in {channel} laufen.",
+    "start": "{staked, select, yes {Die Zahl ist **{n}** (1 bis {max}). {stake} stehen auf dem Spiel.} other {Die Zahl ist **{n}** (1 bis {max}).}}",
+    "how": "Antworte mit `höher` oder `tiefer`, mit `stopp` nimmst du den Gewinn mit. Endet {until}.",
+    "right": "{valued, select, yes {**{n}**. Richtig, {streak} in Folge. Jetzt {worth} wert.} other {**{n}**. Richtig, {streak} in Folge.}}",
+    "wrong": "{staked, select, yes {**{n}**. Falsch. {lost} sind nach {streak, plural, one {# richtigen Tipp} other {# richtigen Tipps}} weg.} other {**{n}**. Falsch. Die Serie endet bei {streak, number}.}}",
+    "cashed": "{amount} mitgenommen nach {streak, plural, one {# richtigen Tipp} other {# richtigen Tipps}}.",
+    "refunded": "Vor dem ersten Tipp aufgehört. {amount} zurück.",
+    "stopped": "Bei einer Serie von {streak} aufgehört.",
+    "timeout": "{user} war zu langsam. {text}"
+  },
+  "coinflip": {
+    "heads": "Kopf.",
+    "tails": "Zahl.",
+    "self": "Gegen dich selbst geht das nicht.",
+    "bot": "Bots zocken nicht.",
+    "busy": "Einer von euch hat schon einen offenen Münzwurf.",
+    "challenge": "{staked, select, yes {{to}, {from} will mit dir um je {stake} eine Münze werfen.} other {{to}, {from} will mit dir eine Münze werfen.}}",
+    "confirm": "Reagier mit {yes} zum Annehmen oder {no} zum Ablehnen. Offen bis {until}.",
+    "won": "{staked, select, yes {**{side}** {winner} bekommt {pot}.} other {**{side}** {winner} gewinnt.}}",
+    "declined": "{user} hat abgelehnt.",
+    "cancelled": "Abgeblasen.",
+    "expired": "Keine Antwort, also ist nichts passiert.",
+    "failed": "Jemand kann den Einsatz nicht mehr zahlen, also ist nichts passiert."
+  },
+  "board": {
+    "title": "Rangliste {game}",
+    "empty": ["Noch steht niemand auf der Liste.", "Die Liste ist leer. Irgendwer muss anfangen."],
+    "wins": "{n, plural, one {# Sieg} other {# Siege}}",
+    "best": "beste Serie {n}",
+    "you": "Du: Platz {rank}, {value}",
+    "notYou": "Du stehst noch nicht auf der Liste"
+  }
+}

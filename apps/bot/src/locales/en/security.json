@@ -1,0 +1,197 @@
+{
+  "colors": {
+    "blue": "blue",
+    "yellow": "yellow"
+  },
+  "permissionNames": {
+    "Administrator": "Administrator",
+    "ManageGuild": "Manage Server",
+    "ManageRoles": "Manage Roles",
+    "ManageChannels": "Manage Channels",
+    "ManageWebhooks": "Manage Webhooks",
+    "BanMembers": "Ban Members",
+    "KickMembers": "Kick Members",
+    "MentionEveryone": "Mention @everyone"
+  },
+  "ruleNames": {
+    "spam": "spam",
+    "mentions": "mass mentions",
+    "newAccountLinks": "links from new accounts",
+    "invites": "invite links"
+  },
+  "reason": "{key, select, ageHours {account younger than {count, plural, one {# hour} other {# hours}}} ageDays {account younger than {count, plural, one {# day} other {# days}}} noAvatar {no profile picture} noName {no display name or nickname} newWithoutAvatar {new account without a picture} randomName {name looks generated} digitName {long number in the name} spamName {name contains \"{word}\"} wave {joined with {count, plural, one {# similar account} other {# similar accounts}}} rejoin {came back {count, plural, one {# minute} other {# minutes}} after leaving} priorKick {kicked here before ({times})} priorBan {banned here before ({times})} shield {reported in {times} other communities} newInviter {invited by a brand new member} established {old account with a picture} raid {joined during raid mode} other {}}",
+  "log": {
+    "title": "Welcome {name}",
+    "clear": "Good to go.",
+    "flaggedDm": "Flagged for a check. Maxwell sent a captcha by DM.",
+    "flaggedChannel": "Flagged for a check. DMs are closed, so the captcha went to {channel}.",
+    "flaggedNowhere": "Flagged for a check, but there was nowhere to send the captcha. Waiting at the gate.",
+    "severe": "Risk score too high. Maxwell {action} the account.",
+    "user": "Member",
+    "verification": "Check",
+    "score": "Risk score",
+    "reasons": "Why",
+    "noReasons": "Nothing unusual",
+    "status": {
+      "clear": "Passed",
+      "pending": "Waiting for captcha",
+      "passed": "Passed after captcha",
+      "failed": "Failed captcha",
+      "expired": "Did not answer in time",
+      "left": "Left before answering",
+      "released": "Let in by a moderator"
+    },
+    "severeActions": {
+      "kick": "kicked",
+      "ban": "banned",
+      "none": "flagged"
+    },
+    "resolved": "{user}: {status}",
+    "noGate": "Security wanted to hold someone back, but there is no gate role. Set it up on the Security page."
+  },
+  "dm": {
+    "title": "Quick check for {guild}",
+    "intro": "Type the **{color}** digits from the picture, from left to right.\nIgnore all other colors.",
+    "how": "Reply here with just the digits, or use `{prefix}verify 12345`. `{prefix}verify new` gives you a new picture.",
+    "expires": "The code runs out {until}.",
+    "wrong": "{left, plural, =1 {That's not it. One try left.} other {That's not it. # tries left.}}",
+    "passed": "You're in. Welcome to **{guild}**.",
+    "failed": "That was the last try. {guild} keeps you at the door for now.",
+    "kicked": "That was the last try, so you were removed from {guild}. You can join again.",
+    "expired": "Time ran out for {guild}. Ask a moderator to let you in.",
+    "expiredKick": "Time ran out, so you were removed from {guild}. You can join again.",
+    "nothing": "There is no check waiting for you.",
+    "which": "You have checks waiting in {guilds}. Answer in the newest one first.",
+    "fresh": "Here is a new picture."
+  },
+  "channel": {
+    "intro": "{user}, your DMs are closed, so the check happens here.\nType the **{color}** digits from the picture with `{prefix}verify 12345`."
+  },
+  "raid": {
+    "started": {
+      "joins": "Raid mode is on. {joins, plural, one {# account} other {# accounts}} joined in {seconds} seconds.",
+      "wave": "Raid mode is on. {size, plural, one {# similar new account} other {# similar new accounts}} joined together.",
+      "flood": "Raid mode is on. {members, plural, one {# new member} other {# new members}} posted the same thing at once.",
+      "manual": "{by, select, user {Raid mode is on, started by {user}.} other {Raid mode is on.}}",
+      "nuke": "Raid mode is on after a nuke attempt."
+    },
+    "effects": "{effects}. Ends {until} unless it stays busy.",
+    "effectCaptcha": "every new member gets a captcha",
+    "effectPaused": "invites are paused",
+    "effectSlowmode": "slowmode is {seconds}s",
+    "ended": "Raid mode is off. {checked, plural, one {# member} other {# members}} went through the check meanwhile.",
+    "calmed": "Raid mode is off, ended by {user}.",
+    "already": "Raid mode is already on.",
+    "notActive": "Raid mode is not on.",
+    "extended": "Raid mode stays on until {until}."
+  },
+  "nuke": {
+    "title": "Nuke attempt stopped",
+    "what": {
+      "channelDelete": "deleted channels",
+      "channelCreate": "created channels",
+      "roleDelete": "deleted roles",
+      "ban": "banned members",
+      "kick": "kicked members",
+      "webhook": "created webhooks",
+      "botAdd": "added bots",
+      "dangerousGrant": "handed out dangerous permissions"
+    },
+    "line": "{actor} {what} {count} times in {seconds} seconds.",
+    "stripped": "Took away {roles, plural, one {# role} other {# roles}} with dangerous permissions.",
+    "kicked": "Kicked the account.",
+    "banned": "Banned the account.",
+    "failed": "Maxwell could not stop the account. Its role is probably above Maxwell.",
+    "restoring": "Restoring {channels, plural, one {# channel} other {# channels}} and {roles, plural, one {# role} other {# roles}} from the last backup.",
+    "noBackup": "No backup has these channels or roles, so nothing was restored."
+  },
+  "honeypot": {
+    "warning": "Do not write in this channel.\nIt is a trap for spam bots. Anything posted here gets the account removed right away.",
+    "topic": "Do not post here. Spam trap.",
+    "caught": "{user} posted in {channel}. Maxwell {action} the account.",
+    "caughtRole": "{user} took the trap role. Maxwell {action} the account.",
+    "actions": {
+      "ban": "banned",
+      "softban": "removed and cleaned up after",
+      "quarantine": "held back"
+    }
+  },
+  "incident": {
+    "kinds": {
+      "raid": "Raid",
+      "manual": "Raid",
+      "nuke": "Nuke",
+      "lockdown": "Lockdown"
+    },
+    "ended": "{kind} over after {minutes, plural, one {# minute} other {# minutes}}.",
+    "parts": {
+      "joins": "{n, plural, one {# join} other {# joins}}",
+      "bans": "{n, plural, one {# ban} other {# bans}}",
+      "kicks": "{n, plural, one {# kick} other {# kicks}}",
+      "timeouts": "{n, plural, one {# timeout} other {# timeouts}}",
+      "deleted": "{n, plural, one {# deleted message} other {# deleted messages}}",
+      "hits": "{n, plural, one {# AutoMod hit} other {# AutoMod hits}}",
+      "channels": "{n, plural, one {# channel change} other {# channel changes}}",
+      "roles": "{n, plural, one {# role change} other {# role changes}}"
+    },
+    "quiet": "Nothing else happened.",
+    "replay": "[Replay and undo]({url})"
+  },
+  "status": {
+    "title": "Security",
+    "verification": "{on, select, yes {Captcha from risk score {threshold}} other {Captcha is off}}",
+    "raid": "{state, select, active {Raid mode on until {until}} on {Raid watch on} other {Raid watch off}}",
+    "nuke": "{on, select, yes {Nuke watch on} other {Nuke watch off}}",
+    "honeypot": "{on, select, yes {{channels, plural, one {# trap channel} other {# trap channels}}} other {No honeypot}}",
+    "pending": "{count, plural, one {# member} other {# members}} waiting for a captcha"
+  },
+  "check": {
+    "title": "Security check: {score} of 100",
+    "clean": "Nothing to fix.",
+    "severity": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "line": "**{severity}**: {text}",
+    "more": "{count, plural, one {# more finding} other {# more findings}} on the dashboard.",
+    "fixHint": "{link, select, yes {Fix them on the [Security page]({url}).} other {Fix them on the Security page in the dashboard.}}",
+    "findings": {
+      "securityOff": "Security is off.",
+      "everyone": "@everyone has {permissions}.",
+      "botPosition": "Maxwell's role is below {roles}, so it cannot act on those members.",
+      "botAdmin": "The bot role {role} has Administrator.",
+      "nukeOff": "Nuke watch is off.",
+      "automodOff": "AutoMod is off.",
+      "automodRules": "AutoMod does not check for {rules}.",
+      "raidOff": "Raid watch is off.",
+      "verificationOff": "The captcha for risky joins is off.",
+      "adminRoles": "{count, plural, one {# role} other {# roles}} grant Administrator: {roles}.",
+      "modRoles": "Not set as mod roles in Moderation: {roles}.",
+      "securityLog": "Security has no log channel.",
+      "modLog": "Moderation has no log channel."
+    }
+  },
+  "commands": {
+    "verify": "Answers your captcha. Use \"new\" for a new picture.",
+    "security": "Shows what Security is watching.",
+    "status": "Shows what Security is watching.",
+    "raid": "Turns raid mode on.",
+    "calm": "Turns raid mode off.",
+    "pass": "Lets a member through the check.",
+    "honeypot": "Creates a trap channel for spam bots.",
+    "shield": "Shares a ban with Maxwell Shield for 90 days.",
+    "unshield": "Takes a member back out of Maxwell Shield.",
+    "check": "Rates how well the community is protected."
+  },
+  "replies": {
+    "passed": "{user} is through.",
+    "notPending": "{user} is not waiting for a check.",
+    "honeypotMade": "Trap set in {channel}.",
+    "shieldOff": "Maxwell Shield is off here. It can be turned on in the dashboard under Security.",
+    "notBanned": "{user} is not banned here.",
+    "shared": "{user} is shared with Maxwell Shield for 90 days.",
+    "unshared": "{user} is out of Maxwell Shield.",
+    "notShared": "{user} was not shared from here."
+  }
+}

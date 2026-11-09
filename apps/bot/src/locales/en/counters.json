@@ -1,0 +1,37 @@
+{
+  "commands": {
+    "counter": "Channel names that keep count.",
+    "add": "Creates a counter channel.",
+    "list": "Lists the counter channels."
+  },
+  "types": {
+    "members": "Members",
+    "online": "Online",
+    "goal": "Member goal",
+    "voice": "In voice",
+    "channels": "Channels",
+    "roles": "Roles",
+    "countdown": "Countdown"
+  },
+  "templates": {
+    "members": "Members: {count}",
+    "online": "Online: {count}",
+    "goal": "Goal: {count} / {goal}",
+    "voice": "In voice: {count}",
+    "channels": "Channels: {count}",
+    "roles": "Roles: {count}",
+    "countdown": "{count} days to go"
+  },
+  "unknownType": "Pick one of these: {types}.",
+  "needsGoal": "A goal needs a number, like `{prefix}counter add goal 1000`.",
+  "needsDate": "A countdown needs a date, like `{prefix}counter add countdown 2027-01-01`.",
+  "full": "This community already has {limit} counters.",
+  "created": "Counting in {channel}. The name updates every few minutes.",
+  "failed": "I could not create the channel. Check that I can manage channels.",
+  "listTitle": "Counters",
+  "listLine": "{channel}  {type}",
+  "empty": [
+    "No counters yet. `{prefix}counter add members` sets one up.",
+    "Nothing is counting yet. Try `{prefix}counter add members`."
+  ]
+}

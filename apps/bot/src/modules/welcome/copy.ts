@@ -1,16 +1,10 @@
-import { localized } from '../../i18n/localized.js';
+import { catalog } from '../../i18n/catalog.js';
+import en from '../../locales/en/welcome.json' with { type: 'json' };
 import { subtext } from '../../ui/format.js';
-import de from './copy.de.js';
-import es from './copy.es.js';
 
-const en = {
-  unknownServer: 'the server',
-  rulesHint: (emoji: string) => subtext(`React with ${emoji} to get access.`),
-};
-
-export type WelcomeCopy = typeof en;
-
-export const copy = localized(en, { de, es });
+export const copy = catalog('welcome', en, (m) => ({
+  rulesHint: (emoji: string) => subtext(m.rulesHint({ emoji })),
+}));
 
 export const reasons = {
   accepted: 'Accepted the rules',

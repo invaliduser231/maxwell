@@ -1,19 +1,7 @@
-import { localized } from '../../i18n/localized.js';
-import de from './copy.de.js';
-import es from './copy.es.js';
+import { catalog } from '../../i18n/catalog.js';
+import en from '../../locales/en/commands.json' with { type: 'json' };
 
-const en = {
-  notHere: 'That command does not work here.',
-  notForYou: 'That command is for certain roles only.',
-  needsMember: 'Mention the member.',
-  rolesFailed: 'I could not change those roles. My role has to be above them.',
-  sampleUser: 'Member',
-  sampleServer: 'Server',
-};
-
-export type CommandsCopy = typeof en;
-
-export const copy = localized(en, { de, es });
+export const copy = catalog('commands', en, () => ({}));
 
 export const reasons = {
   role: (name: string) => `Custom command ${name}`,

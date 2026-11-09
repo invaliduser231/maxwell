@@ -1,23 +1,23 @@
-import { catalog } from '@maxwell/core';
-import { localized } from '../i18n/localized.js';
-import de from './modules.de.js';
-import es from './modules.es.js';
+import { catalog as definitions } from '@maxwell/core';
+import { catalog } from '../i18n/catalog.js';
+import en from '../locales/en/modules.json' with { type: 'json' };
 
 export interface ModuleText {
   name: string;
   description: string;
 }
 
-const en: Record<string, ModuleText> = Object.fromEntries(
-  catalog.map((definition) => [
+export const moduleSource: Record<string, ModuleText> = Object.fromEntries(
+  definitions.map((definition) => [
     definition.key,
     { name: definition.name, description: definition.description },
   ]),
 );
 
-export type ModuleCopy = typeof en;
-
-export const moduleCopy = localized(en, { de, es });
+export const moduleCopy = catalog('modules', en, () => ({})) as unknown as Record<
+  string,
+  ModuleText | undefined
+>;
 
 export function moduleText(key: string, fallback: ModuleText): ModuleText {
   const text = moduleCopy[key];

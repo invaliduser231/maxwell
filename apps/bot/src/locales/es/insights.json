@@ -1,0 +1,23 @@
+{
+  "commands": {
+    "stats": "Gráficas de lo activa que está la comunidad.",
+    "channels": "Los canales de texto y de voz con más actividad.",
+    "members": "Los miembros que más escriben.",
+    "user": "Lo activo que ha estado un miembro."
+  },
+  "channelsTitle": "Canales más activos, últimos {days} días",
+  "text": "Texto",
+  "voice": "Voz",
+  "channelLine": "{rank}. {channel}  {value}",
+  "messages": "{value, plural, one {# mensaje} other {# mensajes}}",
+  "minutes": "{unit, select, hours {{hours} horas} other {{minutes} min}}",
+  "nothing": "Todavía no hay nada contado.",
+  "membersTitle": "Miembros más activos, últimos {days} días",
+  "memberLine": "{rank}. {user}  {value}",
+  "userTitle": "Actividad de {name}",
+  "userLines": "{messages, plural, one {# mensaje} other {# mensajes}} en {days} de los últimos {range} días.",
+  "lastSeen": "Activo por última vez {when}.",
+  "quiet": "Ningún mensaje en los últimos {range} días.",
+  "others": "Solo los moderadores pueden consultar a otros miembros.",
+  "failed": "No se pudo dibujar la gráfica. Vuelve a intentarlo en un momento."
+}

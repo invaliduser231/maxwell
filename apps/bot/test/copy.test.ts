@@ -8,8 +8,15 @@ function sources(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) return sources(path);
-    return entry.name.endsWith('.ts') ? [path] : [];
+    return entry.name.endsWith('.ts') || entry.name.endsWith('.json') ? [path] : [];
   });
+}
+
+function jsonTexts(value: unknown): string[] {
+  if (typeof value === 'string') return [value];
+  if (Array.isArray(value)) return value.flatMap(jsonTexts);
+  if (value && typeof value === 'object') return Object.values(value).flatMap(jsonTexts);
+  return [];
 }
 
 function literals(source: string): string[] {
@@ -44,10 +51,13 @@ const bannedGerman: [string, RegExp][] = [
 describe('user-facing copy', () => {
   for (const file of sources(root)) {
     const name = file.slice(root.length + 1);
-    const rules = file.endsWith('.de.ts') ? [...banned, ...bannedGerman] : banned;
+    const german = /[/]locales[/]de[/]/.test(file);
+    const rules = german ? [...banned, ...bannedGerman] : banned;
     it(name, () => {
       const problems: string[] = [];
-      for (const text of literals(readFileSync(file, 'utf8'))) {
+      const source = readFileSync(file, 'utf8');
+      const found = file.endsWith('.json') ? jsonTexts(JSON.parse(source)) : literals(source);
+      for (const text of found) {
         for (const [label, pattern] of rules) {
           if (pattern.test(text)) problems.push(`${label}: ${text}`);
         }

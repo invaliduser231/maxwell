@@ -1,0 +1,188 @@
+{
+  "commands": {
+    "ban": "Banea a un miembro, para siempre o por un tiempo.",
+    "unban": "Quita un baneo.",
+    "kick": "Expulsa a un miembro. Puede volver con una invitación.",
+    "timeout": "Aísla a un miembro por un tiempo. Puede leer, pero no escribir.",
+    "untimeout": "Termina un aislamiento antes de tiempo.",
+    "warn": "Advierte a un miembro. Las advertencias suman en la escala de sanciones.",
+    "caseVoid": "Anula un caso. Deja de contar para la escala de sanciones.",
+    "case": "Muestra un caso.",
+    "cases": "Muestra los casos recientes o el historial de un miembro.",
+    "reason": "Pone o cambia el motivo de un caso.",
+    "warningsClear": "Anula todas las advertencias activas de un miembro.",
+    "warnings": "Muestra las advertencias activas de un miembro.",
+    "lock": "Impide que los miembros escriban en un canal. La moderación puede seguir hablando.",
+    "unlock": "Vuelve a abrir un canal bloqueado.",
+    "slowmode": "Define cuánto esperan los miembros entre mensajes en un canal.",
+    "purge": "Borra los mensajes recientes de este canal, con filtro si quieres.",
+    "massban": "Banea a varios miembros a la vez por ID o mención.",
+    "noteRemove": "Elimina una nota.",
+    "note": "Añade una nota privada a la ficha de un miembro. Solo la moderación ve las notas.",
+    "notes": "Te envía por MD las notas sobre un miembro."
+  },
+  "actions": {
+    "ban": "Baneo",
+    "unban": "Baneo retirado",
+    "kick": "Expulsión",
+    "timeout": "Aislamiento",
+    "untimeout": "Aislamiento retirado",
+    "warn": "Advertencia",
+    "flag": "Revisión"
+  },
+  "noReason": "Sin motivo",
+  "maxwell": "Maxwell",
+  "unknown": "Desconocido",
+  "permanent": "Permanente",
+  "dmTemplate": "Te {action} en **{server}**.\nMotivo: {reason}\n-# Las preguntas van al equipo de la comunidad, no a mí.",
+  "done": {
+    "ban": "{hasDuration, select, yes {{who} está baneado durante {duration}. Caso #{n}.} other {{who} fue baneado. Caso #{n}.}}",
+    "unban": "Se retiró el baneo de {who}. Caso #{n}.",
+    "kick": "{who} fue expulsado. Caso #{n}.",
+    "timeout": "{who} está aislado durante {duration}. Caso #{n}.",
+    "untimeout": "{who} puede volver a hablar. Caso #{n}.",
+    "warn": "{who} recibió una advertencia ({active}.ª). Caso #{n}."
+  },
+  "addReason": "Sin motivo. Añade uno con {prefix}reason {n} <texto>.",
+  "dmFailed": "No acepta MD, así que no se le avisó.",
+  "escalated": "Son {active} advertencias en {days} días, así que {who} {action, select, timeout {queda aislado durante {duration}} kick {fue expulsado} other {{hasDuration, select, yes {queda baneado durante {duration}} other {fue baneado}}}}. Caso #{n}.",
+  "escalatedReview": "Son {active} advertencias en {days} días. {action, select, timeout {Un aislamiento} kick {Una expulsión} other {Un baneo}} espera revisión en el registro de moderación. Caso #{n}.",
+  "escalationFailed": "No pude aplicar la sanción a {who}. Revisa mi rol y mis permisos.",
+  "reviewSuggestion": "Sugerencia: {action, select, timeout {aislamiento} kick {expulsión} other {baneo}}{hasDuration, select, yes { durante {duration}} other {}}.",
+  "reviewApproved": "Aprobado por {by}.",
+  "reviewDeclined": "Rechazado por {by}.",
+  "dmAction": {
+    "warn": "advirtieron",
+    "timeout": "aislaron durante {duration}",
+    "kick": "expulsaron",
+    "ban": "{hasDuration, select, yes {banearon durante {duration}} other {banearon}}"
+  },
+  "errors": {
+    "reasonRequired": "Aquí hace falta un motivo.",
+    "self": "No puedes hacerte eso a ti.",
+    "me": "Conmigo no.",
+    "notMember": "{who} no está en esta comunidad.",
+    "higher": "{who} tiene un rol igual o superior al tuyo.",
+    "admin": "{who} es admin.",
+    "botLower": "No puedo actuar sobre {who}. Mi rol más alto tiene que estar por encima del suyo.",
+    "forbidden": "Fluxer no me dejó {verb} a {who}. Revisa mi rol y mis permisos.",
+    "notBanned": "{who} no está baneado.",
+    "notTimedOut": "{who} no está aislado.",
+    "timeoutRange": "Un aislamiento puede durar hasta 365 días.",
+    "banRange": "Un baneo temporal puede durar de 1 minuto a 2 años.",
+    "noCase": "No existe el caso #{n}.",
+    "alreadyVoid": "El caso #{n} ya está anulado.",
+    "noNote": "No existe la nota #{number}.",
+    "noChannel": "No veo ese canal."
+  },
+  "verbs": {
+    "ban": "banear",
+    "unban": "desbanear",
+    "kick": "expulsar",
+    "timeout": "aislar",
+    "untimeout": "quitarle el aislamiento"
+  },
+  "fields": {
+    "member": "Miembro",
+    "moderator": "Moderación",
+    "duration": "Duración",
+    "reason": "Motivo",
+    "evidence": "Pruebas",
+    "excerpt": "Mensaje",
+    "editedBy": "Editado por",
+    "voided": "Anulado",
+    "channel": "Canal",
+    "ended": "Terminado"
+  },
+  "caseTitle": "Caso {n}: {title}{voided, select, yes { (anulado)} other {}}",
+  "caseFooter": "{hasUser, select, yes {Usuario {userId} / Caso {n}} other {Caso {n}}}",
+  "channelFooter": "Canal {id}",
+  "userFooter": "Usuario {id}",
+  "reasonHint": "Sin motivo. `{prefix}reason {n} <texto>` añade uno.",
+  "voidedLine": "{hasReason, select, yes {Por {by} {when}. {reason}} other {Por {by} {when}.}}",
+  "risk": {
+    "newAccount": "La cuenta tiene {age}.",
+    "recentJoin": "Entró en las últimas 24 horas.",
+    "names": "Cambió de nombre {n} veces.",
+    "warns": "{n, plural, one {# advertencia activa} other {# advertencias activas}}.",
+    "banned": "{n, plural, =1 {Ya fue baneado aquí antes.} other {Ya fue baneado aquí # veces.}}"
+  },
+  "cases": {
+    "title": "Casos",
+    "titleFor": "Casos de {name}",
+    "empty": [
+      "Todavía no hay casos. Todo tranquilo.",
+      "No hay casos registrados.",
+      "Todavía no hay nada registrado."
+    ],
+    "emptyFor": "No hay casos de {who}. Historial limpio.",
+    "by": "por {who}",
+    "summary": "{total, plural, one {# caso} other {# casos}}, {warns, plural, one {# advertencia activa} other {# advertencias activas}}, {notes, plural, one {# nota} other {# notas}}",
+    "names": "Nombres anteriores"
+  },
+  "warnings": {
+    "title": "Advertencias de {name}",
+    "empty": "{who} no tiene advertencias activas. Historial limpio.",
+    "expires": "caduca {when}",
+    "cleared": "Se quitaron {n, plural, one {# advertencia} other {# advertencias}} a {who}.",
+    "undoHint": "¿Cambiaste de idea? Deshazlo en el registro de auditoría."
+  },
+  "reason": {
+    "set": "El caso #{n} tiene un motivo nuevo."
+  },
+  "voided": "El caso #{n} está anulado.",
+  "notes": {
+    "added": "Nota añadida sobre {who}.",
+    "title": "Notas sobre {name}",
+    "empty": "No hay notas sobre {who}.",
+    "sent": "Te lo envié por MD.",
+    "removed": "Nota #{number} eliminada.",
+    "line": "**#{number}** {when} {by}"
+  },
+  "purge": {
+    "working": "Trabajando en ello.",
+    "progress": "Borrados {done} de {total}.",
+    "done": "Borré {n, plural, one {# mensaje} other {# mensajes}}{withTime, select, yes { en {seconds, plural, one {# segundo} other {# segundos}}} other {}}.",
+    "nothing": "Nada coincidió, así que no se borró nada.",
+    "badFilter": "No conozco el filtro {token}. Usa un miembro, `bots`, `links` o `contains <texto>`.",
+    "confirm": "> [!WARNING]\n> Esto borra hasta **{n}** mensajes en {channel}.",
+    "confirmHint": "Reacciona con {icon} en 30 segundos para continuar.",
+    "expired": "Sin respuesta, así que no pasó nada.",
+    "summary": "Borrados {n, plural, one {# mensaje} other {# mensajes}} en {channel}"
+  },
+  "massban": {
+    "none": "Indica al menos un miembro por ID o mención.",
+    "tooMany": "Son más de {max} miembros. Divide la lista.",
+    "confirm": "> [!WARNING]\n> Esto banea a **{n, plural, one {# miembro} other {# miembros}}**.",
+    "reason": "Motivo: {reason}",
+    "confirmHint": "Reacciona con {icon} en 30 segundos para continuar.",
+    "expired": "Sin respuesta, así que no se baneó a nadie.",
+    "progress": "Revisados {done} de {total}.",
+    "done": "Baneados {banned} de {total, plural, one {# miembro} other {# miembros}}.",
+    "cases": "{range, select, yes {Casos #{first} a #{last}.} other {Caso #{first}.}}",
+    "skipped": "Omitidos {n}: ya baneados, con rango demasiado alto o fuera de mi alcance.",
+    "failed": "{n} fallaron. Revisa mi rol y mis permisos.",
+    "casesField": "Casos",
+    "logTitle": "Baneo masivo",
+    "logSummary": "Baneados {banned} de {total, plural, one {# miembro} other {# miembros}}."
+  },
+  "lock": {
+    "locked": "{channel} está bloqueado.",
+    "lockedUntil": "{channel} está bloqueado hasta {when}.",
+    "already": "{channel} ya está bloqueado.",
+    "unlocked": "{channel} vuelve a estar abierto.",
+    "notLocked": "{channel} no está bloqueado."
+  },
+  "slowmode": {
+    "set": "El modo lento en {channel} ahora es de {delay}.",
+    "off": "El modo lento en {channel} está desactivado.",
+    "range": "El modo lento puede ser de hasta 6 horas.",
+    "bad": "No conozco ese intervalo. Prueba `10s`, `1m` o `off`."
+  },
+  "logTitles": {
+    "lock": "Canal bloqueado",
+    "unlock": "Canal desbloqueado",
+    "slowmode": "Modo lento cambiado",
+    "purge": "Mensajes borrados"
+  }
+}

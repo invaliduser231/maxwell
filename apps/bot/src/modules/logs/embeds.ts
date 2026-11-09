@@ -300,7 +300,7 @@ export function channelEmbed(
 ): Embed | null {
   const { channel } = change;
   const label = channel.name ? code(channel.name) : code(channel.id);
-  const type = copy.channelTypes[channel.type];
+  const type = (copy.channelTypes as Record<number, string | undefined>)[channel.type];
   const base = { footer: copy.channelFooter(channel.id), timestamp: new Date() };
   const parent = (id: string | null) => (id ? mention.channel(id) : copy.noCategory);
   const thread = THREAD_TYPES.has(channel.type);

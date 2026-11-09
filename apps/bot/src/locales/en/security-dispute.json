@@ -1,0 +1,6 @@
+{
+  "removed": "Your Maxwell Shield dispute was accepted. You are no longer listed.",
+  "kept": "Your Maxwell Shield dispute was declined. The listing stays.",
+  "note": "Note: {note}",
+  "link": "Details: {url}"
+}

@@ -1,0 +1,35 @@
+{
+  "done": ["Sorted.", "Done.", "Saved."],
+  "missingPermissions": "You need {list} for that.",
+  "botMissingPermissions": "I need {list} {where} for that.",
+  "here": "here",
+  "there": "there",
+  "inCommunity": "in this community",
+  "moduleOff": "{name} is off here. An admin can turn it on in the dashboard.",
+  "guildOnly": "That only works inside a community.",
+  "cooldown": ["Easy.", "One at a time."],
+  "tryAgain": "Try again {when}.",
+  "failed": "That didn't work on my side. It's logged as {errorCode}. Try again in a minute.",
+  "pickOne": "Pick one.",
+  "args": {
+    "missing": "I need a {name} for that.",
+    "user": "That's not a {name} I can find.",
+    "channel": "That's not a channel I can see.",
+    "role": "That's not a role here.",
+    "durationMissing": "I need a {name} for that, like `10m` or `2h`.",
+    "duration": "That's not a duration I know. Try `10m`, `2h` or `3d`.",
+    "between": "The {name} has to be between {min} and {max}.",
+    "whole": "The {name} has to be a whole number."
+  },
+  "unknownCommand": "No command called {typed}. Did you mean {suggestion}?",
+  "prefixHint": "Prefix here is {prefix}. `{prefix}help` lists everything.",
+  "prefixAgain": "Still here. Still {prefix}.",
+  "prefixThird": "I heard you the first two times.",
+  "page": "Page {index} of {total}",
+  "eggs": {
+    "demon": "Only the thermodynamic kind.",
+    "sort": "Fast ones left, slow ones right. Sorted.",
+    "who": "Maxwell. I keep things in order around here."
+  },
+  "ordinal": "{n, selectordinal, one {{value}st} two {{value}nd} few {{value}rd} other {{value}th}}"
+}

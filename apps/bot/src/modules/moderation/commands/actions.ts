@@ -164,7 +164,11 @@ function failure(error: ActionError, action: ExecutableAction, name: string): st
     if (action === 'unban') return copy.errors.notBanned(name);
     return copy.errors.notMember(name);
   }
-  if (error.status === 403) return copy.errors.forbidden(copy.verbs[action] ?? action, name);
+  if (error.status === 403)
+    return copy.errors.forbidden(
+      (copy.verbs as Record<string, string | undefined>)[action] ?? action,
+      name,
+    );
   return null;
 }
 

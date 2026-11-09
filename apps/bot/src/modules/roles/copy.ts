@@ -1,36 +1,17 @@
 import type { MenuType } from '@maxwell/core/modules/roles';
 import { formatDuration } from '../../commands/duration.js';
-import { localized } from '../../i18n/localized.js';
+import { catalog } from '../../i18n/catalog.js';
+import en from '../../locales/en/roles.json' with { type: 'json' };
 import { subtext } from '../../ui/format.js';
-import de from './copy.de.js';
-import es from './copy.es.js';
 
-const en = {
-  menuHint(type: MenuType, minutes: number, limit = 1): string | null {
-    switch (type) {
-      case 'unique':
-        return subtext('One role at a time.');
-      case 'add':
-        return subtext('Roles stay when you remove the reaction.');
-      case 'temporary':
-        return subtext(`Roles last ${formatDuration(minutes * 60_000)}.`);
-      case 'verify':
-        return subtext('React to get the role.');
-      case 'remove':
-        return subtext('React to drop the role.');
-      case 'binding':
-        return subtext('Pick once. The choice is final.');
-      case 'limit':
-        return subtext(limit === 1 ? 'Up to 1 role.' : `Up to ${limit} roles.`);
-      default:
-        return null;
-    }
-  },
-};
+function hint(text: string): string | null {
+  return text ? subtext(text) : null;
+}
 
-export type RolesCopy = typeof en;
-
-export const copy = localized(en, { de, es });
+export const copy = catalog('roles', en, (m) => ({
+  menuHint: (type: MenuType, minutes: number, limit = 1) =>
+    hint(m.menuHint({ type, duration: formatDuration(minutes * 60_000), limit })),
+}));
 
 export const reasons = {
   menu: 'Role menu',

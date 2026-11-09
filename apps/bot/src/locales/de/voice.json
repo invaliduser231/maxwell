@@ -1,0 +1,31 @@
+{
+  "fallbackName": "Sprachraum",
+  "notInRoom": "Du bist in keinem Sprachraum.",
+  "notOwner": "Nur {owner} kann diesen Raum ändern.",
+  "renamed": "Der Raum heißt jetzt **{name}**.",
+  "limit": "{value, plural, =0 {Kein Limit mehr.} other {Limit ist jetzt #.}}",
+  "locked": "Raum abgeschlossen. Niemand Neues kommt rein.",
+  "unlocked": "Raum wieder offen.",
+  "alreadyLocked": "Der Raum ist schon abgeschlossen.",
+  "alreadyUnlocked": "Der Raum ist nicht abgeschlossen.",
+  "transferred": "Der Raum gehört jetzt {user}.",
+  "transferSelf": "Der Raum gehört schon dir.",
+  "transferAbsent": "{user} muss erst im Raum sein.",
+  "transferBot": "Bots können keinen Raum besitzen.",
+  "info": "{channel} gehört {owner}.",
+  "infoInside": "{members, plural, one {# Person} other {# Personen}} drin{locked, select, yes {, abgeschlossen} other {}}",
+  "where": "in {channel}",
+  "reasons": {
+    "created": "Join to create",
+    "empty": "Voice room was empty",
+    "command": "Room owner"
+  },
+  "commands": {
+    "room": "Zeigt, wem der Sprachraum gehört, in dem du bist.",
+    "name": "Benennt deinen Sprachraum um.",
+    "limit": "Legt fest, wie viele in deinen Sprachraum passen. 0 heißt kein Limit.",
+    "lock": "Hält neue Leute aus deinem Sprachraum raus.",
+    "unlock": "Öffnet deinen Sprachraum wieder.",
+    "transfer": "Gibt deinen Sprachraum an jemanden ab, der drin ist."
+  }
+}

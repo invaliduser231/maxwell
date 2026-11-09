@@ -1,5 +1,5 @@
 import type { ArgSpec } from '../commands/args.js';
-import { translate } from '../i18n/localized.js';
+import { translate } from '../i18n/catalog.js';
 import type { Permission } from '../platform/types.js';
 import { uiCopy as copy } from './copy.js';
 import { andList, code, lines, subtext, timestamp } from './format.js';

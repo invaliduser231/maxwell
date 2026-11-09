@@ -1,0 +1,43 @@
+{
+  "rankDescription": "Tu nivel y rango, o los de otra persona.",
+  "levelsDescription": "La clasificación.",
+  "xpDescription": "Ajusta XP a mano.",
+  "giveDescription": "Da XP a un miembro.",
+  "takeDescription": "Quita XP a un miembro.",
+  "resetDescription": "Devuelve a un miembro a cero.",
+  "hideDescription": "Te oculta de la página pública de la comunidad.",
+  "showDescription": "Vuelve a mostrarte en la página pública de la comunidad.",
+  "noXpSelf": [
+    "Todavía no tienes XP. Primero di algo.",
+    "Todavía no apareces en la clasificación."
+  ],
+  "noXpOther": "{user} todavía no tiene XP.",
+  "emptyBoard": [
+    "La clasificación está vacía. Alguien tiene que decir algo primero.",
+    "Nadie tiene XP todavía. Esto está tranquilo."
+  ],
+  "pageTooFar": "Solo hay {pages, plural, one {# página} other {# páginas}}.",
+  "boardTitle": "Clasificación",
+  "community": "Esta comunidad",
+  "boardSubtitle": "{community}, página {page} de {pages}",
+  "boardYou": "Tú: #{rank}, nivel {level}",
+  "boardNotYou": "Todavía no apareces en la clasificación",
+  "boardNext": "Página siguiente: `{prefix}levels {page}`",
+  "levelValue": "Nivel {level}",
+  "xpValue": "{xp} XP",
+  "rankLine": "**Nivel {level}**  {into} / {needed} XP para el {next}",
+  "rankPlace": "**Rango** #{rank} de {total}",
+  "totalXp": "**Total** {xp} XP",
+  "gave": "{user} recibió {amount} XP y está en el nivel {level}.",
+  "took": "Le quité {amount} XP a {user}. Ahora está en el nivel {level}.",
+  "reset": "{user} vuelve a estar en cero.",
+  "nothingToReset": "{user} no tiene XP que reiniciar.",
+  "botTarget": "Los bots no acumulan XP.",
+  "hidden": "Ya no apareces en la página pública de la comunidad. Las clasificaciones en el chat te siguen mostrando.",
+  "alreadyHidden": "Ya estás fuera de la página pública de la comunidad.",
+  "shown": "Puedes volver a aparecer en la página pública de la comunidad.",
+  "alreadyShown": "Ya apareces en la página pública de la comunidad.",
+  "rewardReason": "Recompensa del nivel {level}",
+  "levelUp": "**{name}** ahora está en el nivel {level}.",
+  "levelUpReward": "**{name}** ahora está en el nivel {level} y recibe **{role}**."
+}

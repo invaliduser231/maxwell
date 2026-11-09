@@ -1,0 +1,23 @@
+{
+  "statusNames": {
+    "open": "Open",
+    "planned": "Planned",
+    "done": "Done",
+    "declined": "Declined"
+  },
+  "suggestDescription": "Posts a suggestion for everyone to vote on.",
+  "title": "Suggestion {id}",
+  "status": "**Status** {name}",
+  "reason": "**Reason** {reason}",
+  "votes": "**Votes** {up} for, {down} against",
+  "author": "{name} (@{username})",
+  "threadName": "{id}: {content}",
+  "posted": "Posted in {channel}.",
+  "inChannel": "in {channel}",
+  "noChannel": "Suggestions don't have a channel yet. An admin can pick one in the dashboard.",
+  "channelGone": "The suggestions channel is gone. An admin can pick a new one in the dashboard.",
+  "tooLong": "Keep it under 2,000 characters.",
+  "empty": "I need the suggestion itself.",
+  "statusDirect": "Your suggestion {number} in **{server}** is now **{name}**.\n> {content}",
+  "statusDirectReason": "**Reason** {reason}"
+}

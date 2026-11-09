@@ -1,0 +1,23 @@
+{
+  "statusNames": {
+    "open": "Abierta",
+    "planned": "Planeada",
+    "done": "Hecha",
+    "declined": "Rechazada"
+  },
+  "suggestDescription": "Publica una sugerencia para que todos voten.",
+  "title": "Sugerencia {id}",
+  "status": "**Estado** {name}",
+  "reason": "**Motivo** {reason}",
+  "votes": "**Votos** {up} a favor, {down} en contra",
+  "author": "{name} (@{username})",
+  "threadName": "{id}: {content}",
+  "posted": "Publicada en {channel}.",
+  "inChannel": "en {channel}",
+  "noChannel": "Las sugerencias todavía no tienen canal. Un admin puede elegir uno en el panel.",
+  "channelGone": "El canal de sugerencias ya no existe. Un admin puede elegir otro en el panel.",
+  "tooLong": "Máximo 2000 caracteres.",
+  "empty": "Me falta la sugerencia.",
+  "statusDirect": "Tu sugerencia {number} en **{server}** ahora está **{name}**.\n> {content}",
+  "statusDirectReason": "**Motivo** {reason}"
+}

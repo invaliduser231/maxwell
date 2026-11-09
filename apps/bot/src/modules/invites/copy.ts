@@ -1,82 +1,44 @@
 import { formatDuration } from '../../commands/duration.js';
 import { mention } from '../../commands/mentions.js';
-import { localized } from '../../i18n/localized.js';
-import { count, plural } from '../../ui/format.js';
-import de from './copy.de.js';
-import es from './copy.es.js';
+import { catalog } from '../../i18n/catalog.js';
+import en from '../../locales/en/invites.json' with { type: 'json' };
 
-const en = {
-  commands: {
-    invites: 'How many members someone brought in.',
-    top: 'Who brought in the most members that stayed.',
-    who: 'How a member got here and who invited them.',
-    log: 'Posts every join with its invite to a channel.',
-  },
+export const copy = catalog('invites', en, (m) => ({
   top: {
-    empty: [
-      'Nobody has brought anyone in yet.',
-      'The board is empty. Someone has to start.',
-      'No invites on the board yet. Quiet in here.',
-    ],
-    you: (rank: number, active: number) => `You: #${rank} with ${plural(active, 'member')}`,
-    notOnBoard: "You're not on the board yet",
-    title: 'Top inviters',
-    left: (n: number) => `${count(n)} left`,
+    you: (rank: number, active: number) => m.top.you({ rank: String(rank), active }),
+    left: (n: number) => m.top.left({ n }),
   },
   who: {
-    before: (who: string) => `${who} was here before me, so I don't know how they joined.`,
-    looking: (who: string, when: string) => `${who} joined ${when}. I'm still looking up how.`,
-    unknown: (who: string, when: string) => `${who} joined ${when}. Fluxer didn't tell me how.`,
-    through: (who: string, when: string, source: string) =>
-      `${who} joined ${when} through ${source}.`,
+    before: (who: string) => m.who.before({ who }),
+    looking: (who: string, when: string) => m.who.looking({ who, when }),
+    unknown: (who: string, when: string) => m.who.unknown({ who, when }),
+    through: (who: string, when: string, source: string) => m.who.through({ who, when, source }),
   },
   log: {
-    current: (channel: string) => `Joins are posted to ${channel}.`,
-    off: 'Join posts are off.',
-    turnOn: (prefix: string) => `Turn them on with ${prefix}invites log #channel.`,
-    notChannel: "That's not a channel I can see.",
-    where: (channel: string) => `in ${channel}`,
-    set: (channel: string) => `Joins go to ${channel} from now on.`,
+    current: (channel: string) => m.log.current({ channel }),
+    turnOn: (prefix: string) => m.log.turnOn({ prefix }),
+    where: (channel: string) => m.log.where({ channel }),
+    set: (channel: string) => m.log.set({ channel }),
   },
   stats: {
-    selfEmpty: ["You haven't brought anyone in yet.", 'Nobody joined through you yet.'],
-    otherEmpty: (who: string) => `${who} hasn't brought anyone in yet.`,
-    you: 'You',
-    stayedOne: 'They stayed.',
-    stayedAll: 'All of them stayed.',
-    stillHere: (n: number) => `${count(n)} still here.`,
+    otherEmpty: (who: string) => m.stats.otherEmpty({ who }),
+    stillHere: (n: number) => m.stats.stillHere({ n }),
     brought: (subject: string, total: number, stayed: string) =>
-      `${subject} brought in **${plural(total, 'member')}**. ${stayed}`,
-    leftAgain: (n: number) => `${count(n)} left again`,
+      m.stats.brought({ subject, total, stayed }),
+    leftAgain: (n: number) => m.stats.leftAgain({ n }),
   },
   source: {
-    inviteFrom: (code: string, inviterId: string) => `\`${code}\` from ${mention.user(inviterId)}`,
-    invite: 'an invite',
-    vanity: 'the vanity link',
-    discovery: 'discovery',
-    bot: 'a bot invite',
-    creator: 'creating the community',
-    admin: 'an instance admin',
-    unknown: 'an unknown route',
+    inviteFrom: (code: string, inviterId: string) =>
+      m.source.inviteFrom({ code, inviter: mention.user(inviterId) }),
   },
   join: {
-    through: (who: string, source: string) => `${who} joined through ${source}.`,
-    plain: (who: string) => `${who} joined.`,
-    needsPermission: 'I need Manage Community to see which invite was used.',
-    notTold: 'Fluxer did not tell me which invite was used.',
-    botTitle: 'Bot added',
-    memberTitle: 'Member joined',
-    inviterNow: (inviter: string, active: number) =>
-      `${inviter} now has **${plural(active, 'member')}** here.`,
-    created: 'Account created',
-    young: (age: number) => `The account is only ${formatDuration(age)} old.`,
-    number: (n: number) => `Member #${count(n)}`,
+    through: (who: string, source: string) => m.join.through({ who, source }),
+    plain: (who: string) => m.join.plain({ who }),
+    inviterNow: (inviter: string, active: number) => m.join.inviterNow({ inviter, active }),
+    young: (age: number) => m.join.young({ age: formatDuration(age) }),
+    number: (n: number) => m.join.number({ n }),
   },
-};
-
-export type InvitesCopy = typeof en;
-
-export const copy = localized(en, { de, es });
+}));
 
 export const audit = {
   logOff: 'Turned off join posts',

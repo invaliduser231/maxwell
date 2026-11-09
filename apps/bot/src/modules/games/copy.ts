@@ -1,123 +1,72 @@
 import { mention } from '../../commands/mentions.js';
-import { localized } from '../../i18n/localized.js';
-import { code, count, plural, timestamp } from '../../ui/format.js';
-import de from './copy.de.js';
-import es from './copy.es.js';
+import { catalog } from '../../i18n/catalog.js';
+import en from '../../locales/en/games.json' with { type: 'json' };
+import { timestamp } from '../../ui/format.js';
 
-const en = {
-  commands: {
-    trivia: 'Ask a trivia question. First right answer in chat wins.',
-    coinflip: 'Flip a coin, or challenge a member to a flip with a stake.',
-    higherlower: 'Guess if the next number is higher or lower. Stake something if you like.',
-    top: {
-      trivia: 'The trivia leaderboard.',
-      counting: 'The counting leaderboard.',
-      wordchain: 'The word chain leaderboard.',
-      higherlower: 'The higher or lower leaderboard.',
-      coinflip: 'The coinflip leaderboard.',
-    },
-  },
-  off: (game: string) => `${game} is off here.`,
-  wrongChannel: 'Games run in other channels here.',
-  economyOff: 'Stakes need Economy, and it is off here.',
-  stakeRange: (min: string, max: string) => `Stakes go from ${min} to ${max}.`,
-  broke: (balance: string) => `You only have ${balance}.`,
-  unknownMember: "That's not a member I can find.",
-  names: {
-    trivia: 'Trivia',
-    counting: 'Counting',
-    wordchain: 'Word chain',
-    higherlower: 'Higher or lower',
-    coinflip: 'Coinflip',
-  },
-  reward: (amount: string) => `+${amount}`,
+export const copy = catalog('games', en, (m) => ({
+  off: (game: string) => m.off({ game }),
+  stakeRange: (min: string, max: string) => m.stakeRange({ min, max }),
+  broke: (balance: string) => m.broke({ balance }),
+  reward: (amount: string) => m.reward({ amount }),
   trivia: {
-    title: 'Trivia',
-    none: 'No questions yet. An admin can add some in the dashboard.',
-    running: 'A question is already open here.',
-    prompt: (until: Date) => `Answer in chat. Time runs out ${timestamp(until, 'R')}.`,
-    won: (userId: string, answer: string) => `${mention.user(userId)} got it: **${answer}**.`,
-    timeout: (answer: string) => `Time's up. It was **${answer}**.`,
+    prompt: (until: Date) => m.trivia.prompt({ until: timestamp(until, 'R') }),
+    won: (userId: string, answer: string) => m.trivia.won({ user: mention.user(userId), answer }),
+    timeout: (answer: string) => m.trivia.timeout({ answer }),
   },
   counting: {
     broke: (userId: string, reached: number, reset: boolean) =>
-      reset
-        ? `${mention.user(userId)} broke the count at **${count(reached)}**. Next number is **1**.`
-        : `${mention.user(userId)}, that's not it.`,
+      m.counting.broke({ reset: reset ? 'yes' : 'no', user: mention.user(userId), reached }),
     twice: (userId: string, reset: boolean) =>
-      reset
-        ? `${mention.user(userId)} counted twice in a row. Back to **1**.`
-        : `${mention.user(userId)}, wait for someone else.`,
-    expected: (n: number) => `The next number was ${count(n)}.`,
+      m.counting.twice({ reset: reset ? 'yes' : 'no', user: mention.user(userId) }),
+    expected: (n: number) => m.counting.expected({ n }),
     milestone: (n: number, userId: string, amount: string) =>
-      `**${count(n)}**. ${amount} for ${mention.user(userId)}.`,
+      m.counting.milestone({ n, user: mention.user(userId), amount }),
   },
   wordchain: {
-    letter: (word: string, letter: string) => `**${word}** doesn't start with **${letter}**.`,
-    repeat: (word: string) => `**${word}** was used already.`,
-    twice: 'Wait for someone else.',
-    reset: (reached: number) =>
-      reached > 0
-        ? `Chain ends at **${count(reached)}**. Start fresh with any word.`
-        : 'Start fresh with any word.',
+    letter: (word: string, letter: string) => m.wordchain.letter({ word, letter }),
+    repeat: (word: string) => m.wordchain.repeat({ word }),
+    reset: (reached: number) => m.wordchain.reset({ ended: reached > 0 ? 'yes' : 'no', reached }),
   },
   hilo: {
-    running: (channelId: string) =>
-      `You already have a game running in ${mention.channel(channelId)}.`,
+    running: (channelId: string) => m.hilo.running({ channel: mention.channel(channelId) }),
     start: (n: number, max: number, stake: string | null) =>
-      stake
-        ? `The number is **${count(n)}** (1 to ${count(max)}). ${stake} on the line.`
-        : `The number is **${count(n)}** (1 to ${count(max)}).`,
-    how: (until: Date) =>
-      `Reply ${code('higher')} or ${code('lower')}, ${code('stop')} to cash out. Ends ${timestamp(until, 'R')}.`,
+      m.hilo.start({ staked: stake ? 'yes' : 'no', n, max, stake: stake ?? '' }),
+    how: (until: Date) => m.hilo.how({ until: timestamp(until, 'R') }),
     right: (n: number, streak: number, worth: string | null) =>
-      worth
-        ? `**${count(n)}**. Right, ${count(streak)} in a row. Worth ${worth} now.`
-        : `**${count(n)}**. Right, ${count(streak)} in a row.`,
+      m.hilo.right({ valued: worth ? 'yes' : 'no', n, streak, worth: worth ?? '' }),
     wrong: (n: number, streak: number, lost: string | null) =>
-      lost
-        ? `**${count(n)}**. Wrong. ${lost} gone after ${plural(streak, 'right guess', 'right guesses')}.`
-        : `**${count(n)}**. Wrong. Streak ends at ${count(streak)}.`,
-    cashed: (amount: string, streak: number) =>
-      `Cashed out ${amount} after ${plural(streak, 'right guess', 'right guesses')}.`,
-    refunded: (amount: string) => `Stopped before the first guess. ${amount} back.`,
-    stopped: (streak: number) => `Stopped at a streak of ${count(streak)}.`,
-    timeout: (userId: string, text: string) => `${mention.user(userId)} ran out of time. ${text}`,
+      m.hilo.wrong({ staked: lost ? 'yes' : 'no', n, streak, lost: lost ?? '' }),
+    cashed: (amount: string, streak: number) => m.hilo.cashed({ amount, streak }),
+    refunded: (amount: string) => m.hilo.refunded({ amount }),
+    stopped: (streak: number) => m.hilo.stopped({ streak }),
+    timeout: (userId: string, text: string) => m.hilo.timeout({ user: mention.user(userId), text }),
   },
   coinflip: {
-    heads: 'Heads.',
-    tails: 'Tails.',
-    self: "You can't flip against yourself.",
-    bot: "Bots don't gamble.",
-    busy: 'One of you already has an open coinflip.',
     challenge: (from: string, to: string, stake: string | null) =>
-      stake
-        ? `${mention.user(to)}, ${mention.user(from)} wants to flip a coin with you for ${stake} each.`
-        : `${mention.user(to)}, ${mention.user(from)} wants to flip a coin with you.`,
+      m.coinflip.challenge({
+        staked: stake ? 'yes' : 'no',
+        to: mention.user(to),
+        from: mention.user(from),
+        stake: stake ?? '',
+      }),
     confirm: (yes: string, no: string, until: Date) =>
-      `React with ${yes} to accept or ${no} to decline. Open until ${timestamp(until, 't')}.`,
+      m.coinflip.confirm({ yes, no, until: timestamp(until, 't') }),
     won: (side: string, winner: string, pot: string | null) =>
-      pot
-        ? `**${side}** ${mention.user(winner)} takes ${pot}.`
-        : `**${side}** ${mention.user(winner)} wins.`,
-    declined: (userId: string) => `${mention.user(userId)} declined.`,
-    cancelled: 'Called off.',
-    expired: 'No answer, so nothing happened.',
-    failed: "Someone can't cover the stake anymore, so nothing happened.",
+      m.coinflip.won({
+        staked: pot ? 'yes' : 'no',
+        side,
+        winner: mention.user(winner),
+        pot: pot ?? '',
+      }),
+    declined: (userId: string) => m.coinflip.declined({ user: mention.user(userId) }),
   },
   board: {
-    title: (game: string) => `${game} leaderboard`,
-    empty: ['Nobody is on the board yet.', 'The board is empty. Someone has to start.'],
-    wins: (n: number) => plural(n, 'win'),
-    best: (n: number) => `best streak ${count(n)}`,
-    you: (rank: number, value: string) => `You: #${count(rank)}, ${value}`,
-    notYou: 'You are not on the board yet',
+    title: (game: string) => m.board.title({ game }),
+    wins: (n: number) => m.board.wins({ n }),
+    best: (n: number) => m.board.best({ n }),
+    you: (rank: number, value: string) => m.board.you({ rank, value }),
   },
-};
-
-export type GamesCopy = typeof en;
-
-export const copy = localized(en, { de, es });
+}));
 
 export const gameNames = en.names;
 

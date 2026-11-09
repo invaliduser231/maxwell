@@ -1,0 +1,23 @@
+{
+  "statusNames": {
+    "open": "Offen",
+    "planned": "Geplant",
+    "done": "Umgesetzt",
+    "declined": "Abgelehnt"
+  },
+  "suggestDescription": "Postet einen Vorschlag, über den alle abstimmen können.",
+  "title": "Vorschlag {id}",
+  "status": "**Status** {name}",
+  "reason": "**Begründung** {reason}",
+  "votes": "**Stimmen** {up} dafür, {down} dagegen",
+  "author": "{name} (@{username})",
+  "threadName": "{id}: {content}",
+  "posted": "Steht jetzt in {channel}.",
+  "inChannel": "in {channel}",
+  "noChannel": "Für Vorschläge gibt es noch keinen Kanal. Ein Admin kann im Dashboard einen auswählen.",
+  "channelGone": "Der Kanal für Vorschläge ist weg. Ein Admin kann im Dashboard einen neuen auswählen.",
+  "tooLong": "Höchstens 2.000 Zeichen.",
+  "empty": "Mir fehlt der Vorschlag selbst.",
+  "statusDirect": "Dein Vorschlag {number} in **{server}** ist jetzt **{name}**.\n> {content}",
+  "statusDirectReason": "**Begründung** {reason}"
+}

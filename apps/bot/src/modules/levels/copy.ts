@@ -1,61 +1,28 @@
 import { mention } from '../../commands/mentions.js';
-import { localized } from '../../i18n/localized.js';
-import { code, count, plural } from '../../ui/format.js';
-import de from './copy.de.js';
-import es from './copy.es.js';
+import { catalog } from '../../i18n/catalog.js';
+import en from '../../locales/en/levels.json' with { type: 'json' };
 
-const en = {
-  rankDescription: "Your level and rank, or someone else's.",
-  levelsDescription: 'The leaderboard.',
-  xpDescription: 'Adjusts XP by hand.',
-  giveDescription: 'Gives a member XP.',
-  takeDescription: 'Takes XP from a member.',
-  resetDescription: 'Sets a member back to zero.',
-  hideDescription: 'Hides you from the public community page.',
-  showDescription: 'Shows you on the public community page again.',
-
-  noXpSelf: ['No XP yet. Say something first.', 'Nothing on the board for you yet.'],
-  noXpOther: (userId: string) => `${mention.user(userId)} has no XP yet.`,
-  emptyBoard: [
-    'The leaderboard is empty. Someone has to say something first.',
-    'Nobody has any XP yet. Quiet in here.',
-  ],
-  pageTooFar: (pages: number) =>
-    `There ${pages === 1 ? 'is' : 'are'} only ${plural(pages, 'page')}.`,
-  boardTitle: 'Leaderboard',
-  community: 'This community',
+export const copy = catalog('levels', en, (m) => ({
+  noXpOther: (userId: string) => m.noXpOther({ user: mention.user(userId) }),
+  pageTooFar: (pages: number) => m.pageTooFar({ pages }),
   boardSubtitle: (community: string, page: number, pages: number) =>
-    pages > 1 ? `${community}, page ${page} of ${pages}` : community,
-  boardYou: (rank: number, level: number) => `You: #${count(rank)}, level ${count(level)}`,
-  boardNotYou: "You're not on the board yet",
-  boardNext: (prefix: string, page: number) => `Next page: ${code(`${prefix}levels ${page}`)}`,
-  levelValue: (level: number) => `Level ${count(level)}`,
-  xpValue: (xp: number) => `${count(xp)} XP`,
+    pages > 1 ? m.boardSubtitle({ community, page, pages }) : community,
+  boardYou: (rank: number, level: number) => m.boardYou({ rank, level }),
+  boardNext: (prefix: string, page: number) => m.boardNext({ prefix, page }),
+  levelValue: (level: number) => m.levelValue({ level }),
+  xpValue: (xp: number) => m.xpValue({ xp }),
   rankLine: (level: number, into: number, needed: number) =>
-    `**Level ${count(level)}**  ${count(into)} / ${count(needed)} XP to ${count(level + 1)}`,
-  rankPlace: (rank: number, total: number) => `**Rank** #${count(rank)} of ${count(total)}`,
-  totalXp: (xp: number) => `**Total** ${count(xp)} XP`,
-
+    m.rankLine({ level, into, needed, next: level + 1 }),
+  rankPlace: (rank: number, total: number) => m.rankPlace({ rank, total }),
+  totalXp: (xp: number) => m.totalXp({ xp }),
   gave: (amount: number, userId: string, level: number) =>
-    `${mention.user(userId)} got ${count(amount)} XP and is level ${count(level)}.`,
+    m.gave({ amount, user: mention.user(userId), level }),
   took: (amount: number, userId: string, level: number) =>
-    `Took ${count(amount)} XP from ${mention.user(userId)}. Level ${count(level)} now.`,
-  reset: (userId: string) => `${mention.user(userId)} is back at zero.`,
-  nothingToReset: (userId: string) => `${mention.user(userId)} has no XP to reset.`,
-  botTarget: "Bots don't collect XP.",
-  hidden: 'You are off the public community page. Leaderboards in chat still show you.',
-  alreadyHidden: 'You are already off the public community page.',
-  shown: 'You can show up on the public community page again.',
-  alreadyShown: 'You are not hidden from the public community page.',
-
-  rewardReason: (level: number) => `Level ${level} reward`,
-  levelUp: '**{name}** is now level {level}.',
-  levelUpReward: '**{name}** is now level {level} and gets **{role}**.',
-};
-
-export type LevelsCopy = typeof en;
-
-export const copy = localized(en, { de, es });
+    m.took({ amount, user: mention.user(userId), level }),
+  reset: (userId: string) => m.reset({ user: mention.user(userId) }),
+  nothingToReset: (userId: string) => m.nothingToReset({ user: mention.user(userId) }),
+  rewardReason: (level: number) => m.rewardReason({ level: String(level) }),
+}));
 
 export function levelUpTemplate(template: string, reward: boolean): string {
   if (reward) return template === en.levelUpReward ? copy.levelUpReward : template;

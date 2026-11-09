@@ -1,7 +1,8 @@
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { IntlMessageFormat } from 'intl-messageformat';
 import { afterEach, describe, expect, it } from 'vitest';
+import { formatMessage, translate } from '../src/i18n/catalog.js';
 import {
   inGuild,
   language,
@@ -9,79 +10,89 @@ import {
   setLanguageSource,
   withLanguage,
 } from '../src/i18n/language.js';
-import { catalogOf, localized, translate } from '../src/i18n/localized.js';
+import { copy as levels } from '../src/modules/levels/copy.js';
 import { humanDuration } from '../src/modules/moderation/text.js';
 import { andList, count, ordinal } from '../src/ui/format.js';
+import { moduleSource } from '../src/ui/modules.js';
 import { withPageFooter } from '../src/ui/paginator.js';
 
-const root = join(import.meta.dirname, '..', 'src');
+const locales = join(import.meta.dirname, '..', 'src', 'locales');
 
-function translationFiles(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) return translationFiles(path);
-    return /\.(de|es)\.ts$/.test(entry.name) ? [path] : [];
-  });
+function readJson(lang: string, file: string): unknown {
+  return JSON.parse(readFileSync(join(locales, lang, file), 'utf8'));
 }
 
-function shape(value: unknown, path = ''): string[] {
-  if (typeof value === 'function') return [`${path}()`];
-  if (Array.isArray(value)) return [`${path}[]`];
+function leaves(value: unknown, path = ''): [string, unknown][] {
+  if (typeof value === 'string' || Array.isArray(value)) return [[path, value]];
   if (value && typeof value === 'object') {
-    return Object.keys(value)
-      .sort()
-      .flatMap((key) => shape((value as Record<string, unknown>)[key], `${path}.${key}`));
+    return Object.entries(value).flatMap(([key, item]) =>
+      leaves(item, path ? `${path}.${key}` : key),
+    );
   }
-  return [path];
+  return [[path, value]];
 }
 
-function sampleCall(fn: (...args: unknown[]) => unknown): unknown {
-  const args = Array.from({ length: fn.length }, (_, index) => (index % 2 === 0 ? 'x' : 2));
-  try {
-    return fn(...args);
-  } catch {
-    return undefined;
-  }
+function texts(value: unknown): string[] {
+  if (typeof value === 'string') return [value];
+  if (Array.isArray(value)) return value.filter((item) => typeof item === 'string');
+  return [];
 }
 
-describe('localized', () => {
-  const sample = localized(
-    {
-      hello: 'Hello',
-      nested: { deep: { word: 'Room' }, greet: (name: string) => `Hi ${name}` },
-      list: ['One', 'Two'],
-    },
-    {
-      de: {
-        hello: 'Hallo',
-        nested: { deep: { word: 'Raum' }, greet: (name: string) => `Hallo ${name}` },
-        list: ['Eins', 'Zwei'],
-      },
-    },
-  );
+function argumentNames(text: string): Set<string> {
+  const names = new Set<string>();
+  const walk = (elements: readonly unknown[]): void => {
+    for (const element of elements) {
+      if (!element || typeof element !== 'object') continue;
+      const node = element as {
+        value?: unknown;
+        options?: Record<string, { value: unknown[] }>;
+        children?: unknown[];
+      };
+      if (typeof node.value === 'string' && 'type' in node && node.type !== 0)
+        names.add(node.value);
+      for (const option of Object.values(node.options ?? {})) walk(option.value);
+      if (node.children) walk(node.children);
+    }
+  };
+  walk(new IntlMessageFormat(text, 'en', undefined, { ignoreTag: true }).getAst());
+  return names;
+}
 
-  it('answers in English outside a community', () => {
-    expect(sample.hello).toBe('Hello');
-    expect(sample.nested.greet('Lena')).toBe('Hi Lena');
+describe('catalogs', () => {
+  it('formats plurals and numbers in the community language', () => {
+    expect(levels.pageTooFar(1)).toBe('There is only 1 page.');
+    expect(levels.xpValue(12_000)).toBe('12,000 XP');
+    withLanguage('de', () => {
+      expect(levels.pageTooFar(3)).toBe('Es gibt nur 3 Seiten.');
+      expect(levels.xpValue(12_000)).toBe('12.000 XP');
+      expect(levels.boardTitle).toBe('Rangliste');
+    });
   });
 
-  it('switches with the current language, also through captured objects', () => {
-    const deep = sample.nested.deep;
+  it('keeps the language through captured objects', () => {
+    const variants = levels.noXpSelf;
+    withLanguage('de', () =>
+      expect(levels.noXpSelf[0]).toBe('Noch keine XP. Schreib erst mal was.'),
+    );
+    expect(variants[0]).toBe('No XP yet. Say something first.');
+  });
+
+  it('falls back to English when a translation is broken', () => {
     withLanguage('de', () => {
-      expect(sample.hello).toBe('Hallo');
-      expect(deep.word).toBe('Raum');
-      expect(sample.nested.greet('Lena')).toBe('Hallo Lena');
-      expect(sample.list).toEqual(['Eins', 'Zwei']);
+      expect(formatMessage('{n} pages', '{n, plural, one {# Seite}', { n: 2 })).toBe('2 pages');
+      expect(formatMessage('{n} pages', '', { n: 2 })).toBe('2 pages');
     });
-    expect(deep.word).toBe('Room');
   });
 
   it('translates known English strings back', () => {
-    expect(translate('Hello')).toBe('Hello');
     withLanguage('de', () => {
-      expect(translate('Room')).toBe('Raum');
+      expect(translate('Leaderboard')).toBe('Rangliste');
       expect(translate('Unknown text')).toBe('Unknown text');
     });
+  });
+
+  it('keeps the English module names in step with core', () => {
+    expect(readJson('en', 'modules.json')).toEqual(moduleSource);
   });
 
   it('keeps the language across awaits', async () => {
@@ -133,40 +144,56 @@ describe('formats in Spanish', () => {
 });
 
 describe('translation files', () => {
-  for (const file of translationFiles(root)) {
-    const name = file.slice(root.length + 1);
-    const lang = file.endsWith('.es.ts') ? 'es' : 'de';
-    it(`${name} matches its English source`, async () => {
-      const source = file.replace(/\.(de|es)\.ts$/, '.ts');
-      const english = (await import(pathToFileURL(source).href)) as Record<string, unknown>;
-      const translated = ((await import(pathToFileURL(file).href)) as { default: unknown }).default;
-      const catalogs = Object.values(english)
-        .map(catalogOf)
-        .filter((catalog) => catalog !== null);
-      const owner = catalogs.find((catalog) => catalog.translations[lang] === translated);
-      expect(owner, 'English file must wrap this translation with localized()').toBeDefined();
-      if (!owner) return;
-      expect(shape(translated)).toEqual(shape(owner.en));
+  const sources = readdirSync(join(locales, 'en'));
+  const langs = readdirSync(locales).filter((lang) => lang !== 'en');
+
+  for (const file of sources) {
+    const english = new Map(leaves(readJson('en', file)));
+
+    it(`en/${file} holds valid messages`, () => {
+      for (const [path, value] of english) {
+        for (const text of texts(value)) {
+          expect(() => argumentNames(text), `${path}: ${text}`).not.toThrow();
+        }
+      }
     });
 
-    it(`${name} holds no English text`, async () => {
-      const german = ((await import(pathToFileURL(file).href)) as { default: unknown }).default;
-      const texts: string[] = [];
-      const walk = (value: unknown): void => {
-        if (typeof value === 'string') texts.push(value);
-        else if (typeof value === 'function') {
-          const out = sampleCall(value as (...args: unknown[]) => unknown);
-          if (typeof out === 'string') texts.push(out);
-        } else if (Array.isArray(value)) value.forEach(walk);
-        else if (value && typeof value === 'object') Object.values(value).forEach(walk);
-      };
-      walk(german);
-      const english = texts.filter((text) =>
-        /\b(the|you|your|that|this|with|for|isn't|can't|won't|don't)\b/i.test(
-          text.replace(/`[^`]*`/g, ''),
-        ),
-      );
-      expect(english).toEqual([]);
-    });
+    for (const lang of langs) {
+      const name = `${lang}/${file}`;
+      it(`${name} matches its English source`, () => {
+        const problems: string[] = [];
+        let translated: unknown;
+        try {
+          translated = readJson(lang, file);
+        } catch {
+          return;
+        }
+        for (const [path, value] of leaves(translated)) {
+          const source = english.get(path);
+          if (source === undefined) {
+            problems.push(`${path}: not in English`);
+            continue;
+          }
+          if (Array.isArray(source) !== Array.isArray(value)) {
+            problems.push(`${path}: shape differs`);
+            continue;
+          }
+          const allowed = new Set(texts(source).flatMap((text) => [...argumentNames(text)]));
+          for (const text of texts(value)) {
+            let names: Set<string>;
+            try {
+              names = argumentNames(text);
+            } catch {
+              problems.push(`${path}: broken ICU ${text}`);
+              continue;
+            }
+            for (const arg of names) {
+              if (!allowed.has(arg)) problems.push(`${path}: unknown {${arg}}`);
+            }
+          }
+        }
+        expect(problems).toEqual([]);
+      });
+    }
   }
 });

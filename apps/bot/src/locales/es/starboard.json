@@ -1,0 +1,6 @@
+{
+  "starLine": "{emoji} **{stars}** en {channel}",
+  "jump": "Ir al mensaje",
+  "attachment": "Adjunto: {name}",
+  "footer": "ID {messageId}"
+}

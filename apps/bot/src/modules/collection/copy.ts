@@ -1,138 +1,82 @@
 import { mention } from '../../commands/mentions.js';
-import { localized } from '../../i18n/localized.js';
-import { andList, code, count, plural, timestamp } from '../../ui/format.js';
-import de from './copy.de.js';
-import es from './copy.es.js';
+import { catalog } from '../../i18n/catalog.js';
+import en from '../../locales/en/collection.json' with { type: 'json' };
+import { andList, code, timestamp } from '../../ui/format.js';
 
-const en = {
-  commands: {
-    cards: 'Collect cards of your community and custom decks.',
-    view: "Your collection, someone else's, or one card up close.",
-    pack: 'Open a card pack. Uses one from the shop first, otherwise pays the price.',
-    trade: 'Offer cards to a member for some of theirs. Both have to agree.',
-    wishlist: 'Cards you want. You get pinged when one drops.',
-    sets: 'The sets here and how far along you are.',
-    optin: 'Put your own card into the community deck.',
-    optout: 'Take your card out of the community deck. Every copy disappears.',
-    claim: 'Grab the card that just dropped here.',
-  },
-  communityDeck: 'Community',
-  unknownMember: "That's not a member I can find.",
+export const copy = catalog('collection', en, (m) => ({
   summary: {
-    self: (total: number, unique: number) =>
-      `You have **${plural(total, 'card')}**, ${count(unique)} different.`,
+    self: (total: number, unique: number) => m.summary.self({ total, unique }),
     other: (userId: string, total: number, unique: number) =>
-      `${mention.user(userId)} has **${plural(total, 'card')}**, ${count(unique)} different.`,
-    emptySelf: [
-      'No cards yet. Wait for a drop or open a pack.',
-      'Your collection is empty so far.',
-    ],
-    emptyOther: (userId: string) => `${mention.user(userId)} has no cards yet.`,
-    hint: (prefix: string) => `${prefix}cards view for the full list`,
+      m.summary.other({ user: mention.user(userId), total, unique }),
+    emptyOther: (userId: string) => m.summary.emptyOther({ user: mention.user(userId) }),
+    hint: (prefix: string) => m.summary.hint({ prefix }),
   },
   view: {
-    title: 'Collection',
     header: (userId: string, total: number, unique: number) =>
-      `${mention.user(userId)}: ${plural(total, 'card')}, ${count(unique)} different`,
-    unknown: (query: string) => `No card called ${code(query)} here.`,
-    rarity: 'Rarity',
-    deck: 'Deck',
-    owners: 'Owners',
-    yours: 'You own',
-    wished: 'Wished by',
-    retired: 'No longer drops.',
+      m.view.header({ user: mention.user(userId), total, unique }),
+    unknown: (query: string) => m.view.unknown({ query: code(query) }),
   },
   pack: {
-    none: 'No packs here yet. An admin can add some in the dashboard.',
-    unknown: (query: string, prefix: string) =>
-      `No pack called ${code(query)}. ${code(`${prefix}shop`)} or the dashboard shows what exists.`,
-    pick: (names: string) => `Which one? ${names}`,
-    economyOff: 'Packs cost money, and Economy is off here.',
-    funds: (price: string, balance: string) => `That pack costs ${price}. You have ${balance}.`,
-    empty: 'There are no cards to draw yet.',
-    opened: (name: string, size: number) => `**${name}**, ${plural(size, 'card')}:`,
-    fromInventory: 'Paid for in the shop',
-    isNew: 'new',
+    unknown: (query: string, prefix: string) => m.pack.unknown({ query: code(query), prefix }),
+    pick: (names: string) => m.pack.pick({ names }),
+    funds: (price: string, balance: string) => m.pack.funds({ price, balance }),
+    opened: (name: string, size: number) => m.pack.opened({ name, size }),
   },
   claim: {
-    nothing: 'Nothing to claim here.',
-    got: (name: string, rarity: string) => `**${name}** (${rarity}) is yours.`,
+    got: (name: string, rarity: string) => m.claim.got({ name, rarity }),
   },
   drop: {
-    title: 'A card dropped',
     hint: (command: string, until: Date) =>
-      `First to type ${code(command)} gets it. Gone ${timestamp(until, 'R')}.`,
-    wished: (users: string[]) => `Wished by ${users.map((id) => mention.user(id)).join(' ')}`,
-    claimed: (userId: string) => `Claimed by ${mention.user(userId)}.`,
-    expired: 'Nobody claimed it.',
-    noPool: 'There are no cards to drop yet.',
-    noChannel: 'No drop channel set.',
+      m.drop.hint({ command: code(command), until: timestamp(until, 'R') }),
+    wished: (users: string[]) =>
+      m.drop.wished({ users: users.map((id) => mention.user(id)).join(' ') }),
+    claimed: (userId: string) => m.drop.claimed({ user: mention.user(userId) }),
   },
   trade: {
-    off: 'Trading is off here.',
-    self: "You can't trade with yourself.",
-    bot: "Bots don't collect cards.",
-    usage: (prefix: string) => `${prefix}cards trade <member> <your cards> for <their cards>`,
-    empty: 'Name at least one card, like #12.',
-    tooMany: (max: number) => `Up to ${plural(max, 'card')} per side.`,
-    missing: (number: string) => `You don't have #${number}.`,
+    usage: (prefix: string) => m.trade.usage({ prefix }),
+    tooMany: (max: number) => m.trade.tooMany({ max }),
+    missing: (number: string) => m.trade.missing({ number }),
     theyLack: (userId: string, number: string) =>
-      `${mention.user(userId)} doesn't have #${number}.`,
-    busy: 'One of you already has an open trade. Finish that first.',
+      m.trade.theyLack({ user: mention.user(userId), number }),
     offer: (from: string, to: string, give: string, want: string) =>
-      give && want
-        ? `${mention.user(from)} offers ${give} for ${want} from ${mention.user(to)}.`
-        : give
-          ? `${mention.user(from)} gives ${give} to ${mention.user(to)}.`
-          : `${mention.user(from)} asks ${mention.user(to)} for ${want}.`,
+      m.trade.offer({
+        mode: give && want ? 'both' : give ? 'give' : 'want',
+        from: mention.user(from),
+        to: mention.user(to),
+        give,
+        want,
+      }),
     confirm: (yes: string, no: string, until: Date) =>
-      `Both react with ${yes} to trade or ${no} to cancel. Open until ${timestamp(until, 't')}.`,
-    done: 'Traded.',
-    cancelled: (userId: string) => `Cancelled by ${mention.user(userId)}. Nothing changed hands.`,
-    expired: 'No answer, so nothing happened.',
-    failed: 'Someone no longer has those cards, so nothing changed hands.',
-    nothing: 'nothing',
+      m.trade.confirm({ yes, no, until: timestamp(until, 't') }),
+    cancelled: (userId: string) => m.trade.cancelled({ user: mention.user(userId) }),
   },
   wishlist: {
-    title: 'Wishlist',
-    empty: ['Your wishlist is empty.', 'Nothing on your wishlist yet.'],
-    which: 'Which card?',
-    added: (name: string) => `**${name}** is on your wishlist. I'll ping you when it drops.`,
-    exists: (name: string) => `**${name}** is already on your wishlist.`,
-    full: (max: number) => `Your wishlist is full at ${count(max)}. Remove one first.`,
-    removed: (name: string) => `**${name}** is off your wishlist.`,
-    notOn: (name: string) => `**${name}** wasn't on your wishlist.`,
-    usage: (prefix: string) => `${prefix}cards wishlist [add|remove] <card>`,
+    added: (name: string) => m.wishlist.added({ name }),
+    exists: (name: string) => m.wishlist.exists({ name }),
+    full: (max: number) => m.wishlist.full({ max }),
+    removed: (name: string) => m.wishlist.removed({ name }),
+    notOn: (name: string) => m.wishlist.notOn({ name }),
+    usage: (prefix: string) => m.wishlist.usage({ prefix }),
   },
   sets: {
-    title: 'Sets',
-    empty: ['No sets here yet.', 'There are no sets to finish yet.'],
-    reward: (parts: string[]) => `Reward: ${andList(parts)}`,
+    reward: (parts: string[]) => m.sets.reward({ parts: andList(parts) }),
     completed: (name: string, rewards: string[]) =>
-      rewards.length > 0
-        ? `Set complete: **${name}**. ${andList(rewards)}.`
-        : `Set complete: **${name}**.`,
+      m.sets.completed({
+        hasRewards: rewards.length > 0 ? 'yes' : 'no',
+        name,
+        rewards: andList(rewards),
+      }),
     completedBy: (userId: string, name: string, rewards: string[]) =>
-      rewards.length > 0
-        ? `${mention.user(userId)} finished the set **${name}**. ${andList(rewards)}.`
-        : `${mention.user(userId)} finished the set **${name}**.`,
-    progress: (owned: number, total: number) => `${count(owned)} / ${count(total)}`,
-    roleReason: (name: string) => `Completed the set ${name}`,
+      m.sets.completedBy({
+        hasRewards: rewards.length > 0 ? 'yes' : 'no',
+        user: mention.user(userId),
+        name,
+        rewards: andList(rewards),
+      }),
+    progress: (owned: number, total: number) => m.sets.progress({ owned, total }),
+    roleReason: (name: string) => m.sets.roleReason({ name }),
   },
-  optin: {
-    off: 'The community deck is off here.',
-    done: 'You are in the community deck now. Others can collect your card.',
-    already: 'You are already in the community deck.',
-  },
-  optout: {
-    done: 'You are out of the community deck. Every copy of your card is gone.',
-    notIn: "You weren't in the community deck.",
-  },
-};
-
-export type CollectionCopy = typeof en;
-
-export const copy = localized(en, { de, es });
+}));
 
 export const auditText = {
   granted: (name: string, userId: string, n: number) =>

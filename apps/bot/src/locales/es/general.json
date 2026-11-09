@@ -1,0 +1,72 @@
+{
+  "commands": {
+    "ping": "Comprueba que estoy despierto y lo rápido que respondo.",
+    "help": "Muestra lo que puedo hacer o explica un módulo o comando.",
+    "prefix": "Muestra el prefijo o lo cambia para esta comunidad.",
+    "about": "Quién soy y cómo estoy.",
+    "entropy": "Qué tan ordenado está esto.",
+    "vote": "Vota por Maxwell en fluxerlist y desbloquea para ti todos los módulos bloqueados.",
+    "mydata": "Te envía todo lo que Maxwell guarda sobre ti en esta comunidad.",
+    "forgetme": "Borra tus niveles, moneda, cartas y otros datos en esta comunidad.",
+    "afk": "Te marca como ausente. Quien te mencione verá tu nota hasta que vuelvas a escribir."
+  },
+  "ping": {
+    "first": "Pong.",
+    "measuring": "midiendo",
+    "result": "Pong. Gateway **{gateway}**, API **{api}**."
+  },
+  "help": {
+    "nothing": "No hay nada llamado {query}. `{prefix}help` lo muestra todo.",
+    "examples": "Ejemplos",
+    "needs": "Requiere",
+    "also": "También",
+    "title": "Comandos",
+    "prefix": "El prefijo aquí es {prefix}.",
+    "details": "{prefix}help <módulo> o {prefix}help <comando> para más detalles"
+  },
+  "prefix": {
+    "current": "El prefijo aquí es {prefix}.",
+    "change": "Cámbialo con {prefix}prefix <nuevo>.",
+    "tooLong": "Máximo 8 caracteres.",
+    "reset": "De vuelta a {prefix}.",
+    "set": "Ahora aquí respondo a {prefix}."
+  },
+  "about": {
+    "tagline": "Aquí mantengo el orden.",
+    "communities": "Comunidades",
+    "online": "En línea desde",
+    "memory": "Memoria"
+  },
+  "entropy": "Entropía aquí: baja. Que siga así.",
+  "vote": {
+    "done": "Tu voto ya cuenta. Los módulos bloqueados están abiertos para ti en el panel.",
+    "ask": "Vota una vez por Maxwell en fluxerlist y todos los módulos bloqueados se abren para ti.{link}",
+    "again": "Después de votar, vuelve a usar `{prefix}vote`."
+  },
+  "greet": {
+    "hello": "Hola, soy Maxwell. Aquí mantengo el orden.",
+    "prefix": "El prefijo es {prefix}. Empieza con `{prefix}help`.",
+    "mention": "Mencióname cuando olvides el prefijo.",
+    "missing": "> Me falta **{permission}**, así que todavía no funciona: {feature}.",
+    "features": {
+      "ManageGuild": "el seguimiento de invitaciones",
+      "EmbedLinks": "todo lo que no sea texto plano",
+      "AddReactions": "las reacciones"
+    }
+  },
+  "afk": {
+    "set": "{hasReason, select, yes {Estás ausente: {reason}} other {Estás ausente.}}",
+    "back": "Hola de nuevo. Estuviste fuera {duration}.",
+    "away": "{hasReason, select, yes {{who} está ausente desde hace {since}: {reason}} other {{who} está ausente desde hace {since}.}}"
+  },
+  "privacy": {
+    "exported": "Todo lo que guardo sobre ti en esa comunidad.",
+    "nothingStored": "No guardo nada sobre ti en esa comunidad.",
+    "noDm": "No puedo enviarte DMs. Abre tus DMs y vuelve a intentarlo.",
+    "sent": "Enviado a tus DMs.",
+    "warning": "Esto borra tus niveles, moneda, cartas, notas y todo lo demás que guardo sobre ti aquí. Los casos de moderación se quedan.",
+    "confirm": "Usa `{prefix}forgetme confirm` para continuar.",
+    "partial": "Casi todo está borrado. Falló {modules}, vuelve a intentarlo más tarde.",
+    "forgotten": "Olvidado."
+  }
+}

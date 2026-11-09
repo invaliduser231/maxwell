@@ -1,0 +1,40 @@
+{
+  "level": "Nivel",
+  "rank": "Rango",
+  "levelWord": "Nivel ",
+  "unlocked": "Desbloqueado: ",
+  "digest": {
+    "title": "Resumen semanal",
+    "range": "{from} a {to}",
+    "joins": "Entradas",
+    "leaves": "Salidas",
+    "net": "Cambio neto",
+    "messages": "Mensajes",
+    "active": "Miembros activos",
+    "inbox": "Abiertos en la bandeja",
+    "channels": "Canales más activos",
+    "noMessages": "Ningún mensaje contado",
+    "deletedChannel": "Canal eliminado",
+    "moderation": "Moderación",
+    "warn": "Advertencias",
+    "timeout": "Aislamientos",
+    "kick": "Expulsiones",
+    "ban": "Baneos",
+    "same": "Igual que la semana pasada",
+    "versus": "{change} vs. la semana pasada"
+  },
+  "activity": {
+    "title": "Últimos {days} días",
+    "range": "{from} a {to}",
+    "messages": "Mensajes",
+    "active": "Miembros activos",
+    "members": "Cambio de miembros",
+    "voice": "Horas en voz",
+    "perDay": "Mensajes por día",
+    "peak": "Día más activo: {count}",
+    "empty": "Ningún mensaje contado",
+    "flow": "Entradas y salidas",
+    "joined": "{count} entraron",
+    "left": "{count} se fueron"
+  }
+}

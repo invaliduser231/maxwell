@@ -1,0 +1,76 @@
+{
+  "commands": {
+    "event": "Kommende Events und neue planen.",
+    "create": "Plant ein Event mit Zusagen per Reaktion.",
+    "list": "Zeigt die kommenden Events.",
+    "cancel": "Sagt ein Event ab.",
+    "poll": "Startet eine Umfrage mit Zahlen-Reaktionen."
+  },
+  "when": {
+    "missing": "Dafür brauche ich eine Zeit und einen Titel.",
+    "invalid": "Mit dieser Zeit kann ich nichts anfangen. Versuch `fr 20:00`, `2026-11-02 19:30` oder `in 3h`.",
+    "past": "Diese Zeit ist schon vorbei.",
+    "title": "Das Event braucht einen Titel.",
+    "long": "Der Titel darf höchstens 200 Zeichen haben, die Beschreibung höchstens 2.000."
+  },
+  "created": "**{title}** ist am {when}. Steht in {channel}.",
+  "createdHint": "Event {number}. {command} sagt es ab.",
+  "noChannel": "Es ist kein Event-Kanal eingerichtet, und hier darf ich nicht posten.",
+  "listTitle": "Kommende Events",
+  "listLine": "{number}  **{title}**  {when}  {going} dabei",
+  "listEmpty": [
+    "Noch nichts geplant.",
+    "Der Kalender ist leer.",
+    "Keine Events in Sicht. Ruhige Woche."
+  ],
+  "listHint": "{prefix}event create fr 20:00 Filmabend",
+  "notFound": "Ein Event {number} gibt es hier nicht.",
+  "alreadyOver": "Event {number} ist schon {status, select, cancelled {abgesagt} ended {vorbei} other {{status}}}.",
+  "cancelled": "**{title}** ist abgesagt.",
+  "rewardReason": "Event: {title}",
+  "embed": {
+    "when": "**Wann** {date} ({relative})",
+    "until": "**Bis** {time}",
+    "repeats": "{recurrence, select, daily {**Wiederholt sich** jeden Tag} weekly {**Wiederholt sich** jeden {weekday, select, mon {Montag} tue {Dienstag} wed {Mittwoch} thu {Donnerstag} fri {Freitag} sat {Samstag} sun {Sonntag} other {{weekday}}}} other {**Wiederholt sich** jeden Monat am {day}.}}",
+    "whereChannel": "**Wo** {channel}",
+    "where": "**Wo** {location}",
+    "counts": "**{going}** dabei, **{maybe}** vielleicht, **{no}** können nicht",
+    "more": "und {left} weitere",
+    "hint": "Reagier mit {going}, wenn du dabei bist, mit {maybe} für vielleicht und mit {no}, wenn du nicht kannst.",
+    "reward": "**Belohnung** {amount} {unit} für alle, die dabei sind",
+    "cancelled": "**Abgesagt.**",
+    "ended": "Das ist vorbei.",
+    "footer": "Event {number}"
+  },
+  "reminder": "**{title}** beginnt {when}.",
+  "reminderNote": "{place, select, guild {{guild}. Du hast zugesagt.} other {Du hast zugesagt.}}",
+  "poll": {
+    "problems": {
+      "question": "Dafür brauche ich eine Frage.",
+      "few": "Eine Umfrage braucht mindestens zwei Optionen.",
+      "many": "Höchstens zehn Optionen. Es gibt nur zehn Zahlen-Reaktionen.",
+      "long": "Die Frage darf höchstens 250 Zeichen haben, jede Option höchstens 100.",
+      "duplicate": "Zwei Optionen sind gleich."
+    },
+    "yes": "Ja",
+    "no": "Nein",
+    "single": "Wähl eine.",
+    "multiple": "Wähl so viele, wie du willst.",
+    "anonymous": "Die Abstimmung ist anonym. Deine Reaktion verschwindet, deine Stimme bleibt.",
+    "toggle": "Reagier noch mal mit derselben Zahl, um sie zurückzunehmen.",
+    "ends": "Endet {when}.",
+    "votersOpen": "{voters, plural, =0 {Noch keine Stimmen.} one {Bisher hat **# Person** abgestimmt.} other {Bisher haben **# Personen** abgestimmt.}}",
+    "votersClosed": "{voters, plural, =0 {Niemand hat abgestimmt.} one {**# Person** hat abgestimmt.} other {**# Personen** haben abgestimmt.}}",
+    "closed": "**Beendet.**",
+    "cancelled": "**Abgebrochen.**",
+    "footer": "Umfrage {number}",
+    "winner": "{result, select, none {Umfrage beendet. Bei **{question}** hat niemand abgestimmt.} one {Umfrage beendet. **{winner}** gewinnt mit {votes, number} von {total, plural, one {# Stimme} other {# Stimmen}}.} other {Umfrage beendet. Gleichstand zwischen {winners} mit je {votes, plural, one {# Stimme} other {# Stimmen}}.}}",
+    "receiptAdded": "Deine Stimme bei **{question}**: **{option}**.",
+    "receiptMoved": "Deine Stimme bei **{question}** steht jetzt auf **{option}**.",
+    "receiptRemoved": "Deine Stimme für **{option}** bei **{question}** ist zurückgenommen.",
+    "cardTitle": "Endergebnis",
+    "cardVoters": "{voters, plural, one {# Person hat} other {# Personen haben}} abgestimmt{multiple, select, yes {, mehrere Antworten erlaubt} other {}}",
+    "tooLong": "Eine Umfrage läuft höchstens 30 Tage.",
+    "noChannel": "Hier kann ich die Umfrage nicht posten."
+  }
+}

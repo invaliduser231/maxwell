@@ -1,0 +1,27 @@
+{
+  "commands": {
+    "remind": "Reminds you of something later.",
+    "cancel": "Drops one of your reminders.",
+    "reminders": "Lists your reminders in this community."
+  },
+  "remindersOff": "Member reminders are off here.",
+  "tooFar": "A reminder can be at most {days, plural, one {# day} other {# days}} away.",
+  "tooMany": "You already have {max, plural, one {# reminder} other {# reminders}} here. That's the limit.",
+  "tooManyHint": "{prefix}reminders lists them, {prefix}reminders cancel <number> drops one.",
+  "set": "I'll remind you {when}.",
+  "setHint": "Reminder {number}. {command} drops it.",
+  "deliver": "{user} {content}",
+  "deliverNote": "You asked {when}.",
+  "deliverDm": "{place, select, guild {You asked in {guild} {when}.} other {You asked {when}.}}",
+  "listTitle": "Your reminders",
+  "listLine": "{number}  {due}  {content}",
+  "listFooter": "{prefix}reminders cancel <number> drops one.",
+  "empty": [
+    "No reminders. Your future self is on their own.",
+    "Nothing scheduled for you here.",
+    "No reminders waiting."
+  ],
+  "emptyHint": "{prefix}remind 2h stretch your legs",
+  "cancelled": "Reminder {number} is gone.",
+  "notFound": "You have no reminder {number} here."
+}

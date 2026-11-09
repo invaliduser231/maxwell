@@ -1,0 +1,184 @@
+{
+  "commands": {
+    "ban": "Bans a member, for good or for a while.",
+    "unban": "Lifts a ban.",
+    "kick": "Removes a member. They can come back with an invite.",
+    "timeout": "Mutes a member for a while. They can read but not write.",
+    "untimeout": "Ends a timeout early.",
+    "warn": "Warns a member. Warnings add up on the escalation ladder.",
+    "caseVoid": "Marks a case as void. It stops counting towards escalation.",
+    "case": "Shows one case.",
+    "cases": "Lists recent cases, or the record of one member.",
+    "reason": "Sets or changes the reason of a case.",
+    "warningsClear": "Voids all active warnings of a member.",
+    "warnings": "Lists the active warnings of a member.",
+    "lock": "Stops members from writing in a channel. Moderators can still talk.",
+    "unlock": "Opens a locked channel again.",
+    "slowmode": "Sets how long members wait between messages in a channel.",
+    "purge": "Deletes recent messages in this channel, optionally filtered.",
+    "massban": "Bans several members at once by ID or mention.",
+    "noteRemove": "Removes a note.",
+    "note": "Adds a private note to a member file. Only moderators see notes.",
+    "notes": "Sends you the notes on a member as a DM."
+  },
+  "actions": {
+    "ban": "Ban",
+    "unban": "Unban",
+    "kick": "Kick",
+    "timeout": "Timeout",
+    "untimeout": "Timeout lifted",
+    "warn": "Warning",
+    "flag": "Review"
+  },
+  "noReason": "No reason given",
+  "maxwell": "Maxwell",
+  "unknown": "Unknown",
+  "permanent": "Permanent",
+  "dmTemplate": "You were {action} in **{server}**.\nReason: {reason}\n-# Questions go to the server staff, not to me.",
+  "done": {
+    "ban": "{hasDuration, select, yes {{who} is banned for {duration}. Case #{n}.} other {{who} was banned. Case #{n}.}}",
+    "unban": "{who} was unbanned. Case #{n}.",
+    "kick": "{who} was kicked. Case #{n}.",
+    "timeout": "{who} is timed out for {duration}. Case #{n}.",
+    "untimeout": "{who} can talk again. Case #{n}.",
+    "warn": "{who} was warned ({active, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} warning). Case #{n}."
+  },
+  "addReason": "No reason given. Add one with {prefix}reason {n} <text>.",
+  "dmFailed": "They don't accept DMs, so they weren't told.",
+  "escalated": "That's {active} warnings in {days} days, so {who} {action, select, timeout {is timed out for {duration}} kick {was kicked} other {{hasDuration, select, yes {is banned for {duration}} other {was banned}}}}. Case #{n}.",
+  "escalatedReview": "That's {active} warnings in {days} days. A {action, select, timeout {timeout} kick {kick} other {ban}} is waiting for review in the mod log. Case #{n}.",
+  "escalationFailed": "I couldn't escalate against {who}. Check my role and permissions.",
+  "reviewSuggestion": "Suggested: {action, select, timeout {timeout} kick {kick} other {ban}}{hasDuration, select, yes { for {duration}} other {}}.",
+  "reviewApproved": "Approved by {by}.",
+  "reviewDeclined": "Declined by {by}.",
+  "dmAction": {
+    "warn": "warned",
+    "timeout": "timed out for {duration}",
+    "kick": "kicked",
+    "ban": "{hasDuration, select, yes {banned for {duration}} other {banned}}"
+  },
+  "errors": {
+    "reasonRequired": "A reason is required here.",
+    "self": "You can't do that to yourself.",
+    "me": "Not on me.",
+    "notMember": "{who} isn't in this community.",
+    "higher": "{who} has a role at or above yours.",
+    "admin": "{who} is an admin.",
+    "botLower": "I can't act on {who}. My highest role has to sit above theirs.",
+    "forbidden": "Fluxer didn't let me {verb} {who}. Check my role and permissions.",
+    "notBanned": "{who} isn't banned.",
+    "notTimedOut": "{who} isn't timed out.",
+    "timeoutRange": "Timeouts can last up to 365 days.",
+    "banRange": "Timed bans can last from 1 minute to 2 years.",
+    "noCase": "There's no case #{n}.",
+    "alreadyVoid": "Case #{n} is already void.",
+    "noNote": "There's no note #{number}.",
+    "noChannel": "That's not a channel I can see."
+  },
+  "verbs": {
+    "ban": "ban",
+    "unban": "unban",
+    "kick": "kick",
+    "timeout": "time out",
+    "untimeout": "lift the timeout of"
+  },
+  "fields": {
+    "member": "Member",
+    "moderator": "Moderator",
+    "duration": "Duration",
+    "reason": "Reason",
+    "evidence": "Evidence",
+    "excerpt": "Message",
+    "editedBy": "Edited by",
+    "voided": "Voided",
+    "channel": "Channel",
+    "ended": "Ended"
+  },
+  "caseTitle": "Case {n}: {title}{voided, select, yes { (void)} other {}}",
+  "caseFooter": "{hasUser, select, yes {User {userId} / Case {n}} other {Case {n}}}",
+  "channelFooter": "Channel {id}",
+  "userFooter": "User {id}",
+  "reasonHint": "No reason given. `{prefix}reason {n} <text>` adds one.",
+  "voidedLine": "{hasReason, select, yes {By {by} {when}. {reason}} other {By {by} {when}.}}",
+  "risk": {
+    "newAccount": "Account is {age} old.",
+    "recentJoin": "Joined in the last 24 hours.",
+    "names": "Changed names {n} times.",
+    "warns": "{n, plural, one {# active warning} other {# active warnings}}.",
+    "banned": "{n, plural, =1 {Banned here before.} other {Banned here # times before.}}"
+  },
+  "cases": {
+    "title": "Cases",
+    "titleFor": "Cases for {name}",
+    "empty": ["No cases yet. Quiet so far.", "No cases on record.", "Nothing on record yet."],
+    "emptyFor": "No cases for {who}. Clean record.",
+    "by": "by {who}",
+    "summary": "{total, plural, one {# case} other {# cases}}, {warns, plural, one {# active warning} other {# active warnings}}, {notes, plural, one {# note} other {# notes}}",
+    "names": "Earlier names"
+  },
+  "warnings": {
+    "title": "Warnings for {name}",
+    "empty": "No active warnings for {who}. Clean record.",
+    "expires": "expires {when}",
+    "cleared": "Removed {n, plural, one {# warning} other {# warnings}} from {who}.",
+    "undoHint": "Changed your mind? Undo it in the audit trail."
+  },
+  "reason": {
+    "set": "Case #{n} has a new reason."
+  },
+  "voided": "Case #{n} is void.",
+  "notes": {
+    "added": "Note added for {who}.",
+    "title": "Notes on {name}",
+    "empty": "No notes on {who}.",
+    "sent": "Sent to your DMs.",
+    "removed": "Note #{number} removed.",
+    "line": "**#{number}** {when} {by}"
+  },
+  "purge": {
+    "working": "Working on it.",
+    "progress": "Deleted {done} of {total}.",
+    "done": "Deleted {n, plural, one {# message} other {# messages}}{withTime, select, yes { in {seconds, plural, one {# second} other {# seconds}}} other {}}.",
+    "nothing": "Nothing matched, so nothing was deleted.",
+    "badFilter": "I don't know the filter {token}. Use a member, `bots`, `links` or `contains <text>`.",
+    "confirm": "> [!WARNING]\n> This deletes up to **{n}** messages in {channel}.",
+    "confirmHint": "React with {icon} within 30 seconds to go ahead.",
+    "expired": "No answer, so nothing happened.",
+    "summary": "Deleted {n, plural, one {# message} other {# messages}} in {channel}"
+  },
+  "massban": {
+    "none": "Name at least one member by ID or mention.",
+    "tooMany": "That's more than {max} members. Split the list.",
+    "confirm": "> [!WARNING]\n> This bans **{n, plural, one {# member} other {# members}}**.",
+    "reason": "Reason: {reason}",
+    "confirmHint": "React with {icon} within 30 seconds to go ahead.",
+    "expired": "No answer, so nobody was banned.",
+    "progress": "Checked {done} of {total}.",
+    "done": "Banned {banned} of {total, plural, one {# member} other {# members}}.",
+    "cases": "{range, select, yes {Cases #{first} to #{last}.} other {Case #{first}.}}",
+    "skipped": "Skipped {n}: already banned, ranked too high or out of my reach.",
+    "failed": "{n} failed. Check my role and permissions.",
+    "casesField": "Cases",
+    "logTitle": "Mass ban",
+    "logSummary": "Banned {banned} of {total, plural, one {# member} other {# members}}."
+  },
+  "lock": {
+    "locked": "{channel} is locked.",
+    "lockedUntil": "{channel} is locked until {when}.",
+    "already": "{channel} is already locked.",
+    "unlocked": "{channel} is open again.",
+    "notLocked": "{channel} isn't locked."
+  },
+  "slowmode": {
+    "set": "Slowmode in {channel} is {delay} now.",
+    "off": "Slowmode in {channel} is off.",
+    "range": "Slowmode can be up to 6 hours.",
+    "bad": "That's not a delay I know. Try `10s`, `1m` or `off`."
+  },
+  "logTitles": {
+    "lock": "Channel locked",
+    "unlock": "Channel unlocked",
+    "slowmode": "Slowmode changed",
+    "purge": "Messages purged"
+  }
+}

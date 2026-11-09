@@ -1,0 +1,92 @@
+{
+  "commands": {
+    "gate": "The raid shield waiting area.",
+    "list": "Who is waiting at the gate.",
+    "let": "Lets one member or everyone at the gate in.",
+    "ban": "Bans everyone waiting at the gate."
+  },
+  "rules": {
+    "spam": "Spam",
+    "invites": "Invite links",
+    "links": "Links",
+    "mentions": "Mass mentions",
+    "caps": "Caps",
+    "words": "Word list",
+    "repeats": "Repeated messages",
+    "emoji": "Emoji spam",
+    "newAccountLinks": "Links from new accounts",
+    "phishing": "Phishing links"
+  },
+  "holds": {
+    "raid": "raid",
+    "lockdown": "lockdown",
+    "account_age": "new account",
+    "verify": "captcha",
+    "honeypot": "honeypot"
+  },
+  "details": {
+    "spam": "{count} messages in {seconds}s",
+    "invite": "invite {code}",
+    "link": "link to {host}",
+    "mentions": "{count} mentions",
+    "caps": "{percent}% capitals",
+    "word": "matched {pattern}",
+    "repeats": "same message {count} times",
+    "emoji": "{count} emojis",
+    "newAccountLink": "link from an account {age} old",
+    "phishing": "known phishing domain {host}",
+    "lookalike": "{host} imitates {brand}"
+  },
+  "brands": {
+    "fluxer": "Fluxer",
+    "discord": "Discord",
+    "steam": "Steam",
+    "nitro": "Nitro"
+  },
+  "actions": {
+    "delete": "Message deleted",
+    "warn": "Warned",
+    "timeout": "Timed out for {duration}",
+    "kick": "Kicked",
+    "ban": "Banned",
+    "logOnly": "None, log only"
+  },
+  "theCommunity": "the community",
+  "warn": "{who}, that message broke the **{rule}** rule here.",
+  "dmTimeout": "You were timed out in **{guild}** for {duration}. Reason: {rule}.",
+  "dmKick": "You were kicked from **{guild}**. Reason: {rule}.",
+  "dmBan": "You were banned from **{guild}**. Reason: {rule}.",
+  "dmFooter": "Questions go to the server staff, not to me.",
+  "warnReason": "{hasDetail, select, yes {AutoMod: {rule}, {detail}} other {AutoMod: {rule}}}",
+  "logTitle": "{logOnly, select, yes {{rule} (log only)} other {{rule} caught}}",
+  "logWhere": "{who} in {channel}",
+  "logAction": "Action",
+  "logFooter": "User {userId} / Message {messageId}",
+  "slowmode": {
+    "raised": "Slowmode in {channel} raised to {duration}, {rate} messages in the last minute.",
+    "lowered": "Slowmode in {channel} lowered to {duration}.",
+    "restored": "{hasDuration, select, yes {Slowmode in {channel} back to {duration}.} other {Slowmode in {channel} is off again.}}"
+  },
+  "raidAlert": "> [!CAUTION]\n> Raid shield is up. **{joins}** joins in {seconds} seconds.\nNew joins wait at the gate until {until}.",
+  "raidNoGate": "No gate role is set, so nobody is held. Pick one in the dashboard.",
+  "gateHint": "`{prefix}gate list` shows who is waiting.",
+  "lockdownStarted": "Lockdown until {until}. New joins wait at the gate.",
+  "lockdownEnded": "{held, plural, =0 {Lockdown over. Nobody is left at the gate.} other {Lockdown over. **{held}** still waiting at the gate.}}",
+  "gateTitle": "At the gate",
+  "gateIncident": "{hasUntil, select, yes {**{held}** held. Lockdown until {until}.} other {**{held}** held.}}",
+  "gateLine": "{who}  {when}  *{reason}*",
+  "gateEmpty": [
+    "Nobody is waiting at the gate.",
+    "The gate is empty.",
+    "Nobody at the gate. Quiet day."
+  ],
+  "notHeld": "{who} isn't waiting at the gate.",
+  "letInOne": "Let {who} in.",
+  "letInAll": "{count, plural, =1 {Let **1** member in.} other {Let **#** members in.}}",
+  "letInPartial": "Let **{done}** of {total} in. I couldn't remove the gate role from the rest.",
+  "noGateRole": "No gate role is set. Pick one in the dashboard.",
+  "banConfirm": "> [!WARNING]\n> This bans **{count}** {count, plural, =1 {member} other {members}} held at the gate.\nReact with {ok} within 30 seconds to go ahead.",
+  "banTimeout": "No answer, so nothing happened.",
+  "bannedAll": "{count, plural, =1 {Banned **1** member from the gate.} other {Banned **#** members from the gate.}}",
+  "bannedPartial": "Banned **{done}** of {total}. The rest probably have roles above mine."
+}

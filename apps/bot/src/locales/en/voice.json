@@ -1,0 +1,31 @@
+{
+  "fallbackName": "Voice room",
+  "notInRoom": "You're not in a voice room.",
+  "notOwner": "Only {owner} can change this room.",
+  "renamed": "The room is called **{name}** now.",
+  "limit": "{value, plural, =0 {No user limit now.} other {Limit is # now.}}",
+  "locked": "Room locked. Nobody new gets in.",
+  "unlocked": "Room open again.",
+  "alreadyLocked": "The room is already locked.",
+  "alreadyUnlocked": "The room isn't locked.",
+  "transferred": "{user} owns this room now.",
+  "transferSelf": "You already own this room.",
+  "transferAbsent": "{user} has to be in the room first.",
+  "transferBot": "Bots cannot own a room.",
+  "info": "{channel} belongs to {owner}.",
+  "infoInside": "{members, plural, one {# person} other {# people}} inside{locked, select, yes {, locked} other {}}",
+  "where": "in {channel}",
+  "reasons": {
+    "created": "Join to create",
+    "empty": "Voice room was empty",
+    "command": "Room owner"
+  },
+  "commands": {
+    "room": "Shows who owns the voice room you are in.",
+    "name": "Renames your voice room.",
+    "limit": "Sets how many people fit in your voice room. 0 means no limit.",
+    "lock": "Keeps new people out of your voice room.",
+    "unlock": "Opens your voice room again.",
+    "transfer": "Hands your voice room to someone inside it."
+  }
+}

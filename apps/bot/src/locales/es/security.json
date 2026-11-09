@@ -1,0 +1,197 @@
+{
+  "colors": {
+    "blue": "azul",
+    "yellow": "amarillo"
+  },
+  "permissionNames": {
+    "Administrator": "Administrador",
+    "ManageGuild": "Gestionar comunidad",
+    "ManageRoles": "Gestionar roles",
+    "ManageChannels": "Gestionar canales",
+    "ManageWebhooks": "Gestionar webhooks",
+    "BanMembers": "Banear miembros",
+    "KickMembers": "Expulsar miembros",
+    "MentionEveryone": "Mencionar @everyone"
+  },
+  "ruleNames": {
+    "spam": "spam",
+    "mentions": "menciones masivas",
+    "newAccountLinks": "enlaces de cuentas nuevas",
+    "invites": "enlaces de invitación"
+  },
+  "reason": "{key, select, ageHours {cuenta con menos de {count, plural, one {# hora} other {# horas}}} ageDays {cuenta con menos de {count, plural, one {# día} other {# días}}} noAvatar {sin foto de perfil} noName {sin nombre visible ni apodo} newWithoutAvatar {cuenta nueva sin foto} randomName {el nombre parece generado} digitName {número largo en el nombre} spamName {el nombre contiene \"{word}\"} wave {entró junto con {count, plural, one {# cuenta similar} other {# cuentas similares}}} rejoin {volvió {count, plural, one {# minuto} other {# minutos}} después de salir} priorKick {expulsado aquí antes ({times})} priorBan {baneado aquí antes ({times})} shield {reportado en {times} comunidades más} newInviter {invitado por un miembro recién llegado} established {cuenta antigua con foto} raid {entró durante el modo raid} other {}}",
+  "log": {
+    "title": "Entrada de {name}",
+    "clear": "Todo en orden.",
+    "flaggedDm": "Marcado para revisión. Maxwell envió un captcha por MD.",
+    "flaggedChannel": "Marcado para revisión. Tiene los MD cerrados, así que el captcha fue a {channel}.",
+    "flaggedNowhere": "Marcado para revisión, pero no había dónde enviar el captcha. Espera en la sala de espera.",
+    "severe": "Puntuación de riesgo demasiado alta. Maxwell {action} la cuenta.",
+    "user": "Miembro",
+    "verification": "Revisión",
+    "score": "Puntuación de riesgo",
+    "reasons": "Por qué",
+    "noReasons": "Nada fuera de lo normal",
+    "status": {
+      "clear": "Superada",
+      "pending": "Esperando el captcha",
+      "passed": "Superada con captcha",
+      "failed": "Captcha fallido",
+      "expired": "No respondió a tiempo",
+      "left": "Se fue antes de responder",
+      "released": "Admitido por la moderación"
+    },
+    "severeActions": {
+      "kick": "expulsó",
+      "ban": "baneó",
+      "none": "marcó"
+    },
+    "resolved": "{user}: {status}",
+    "noGate": "Security quería retener a alguien, pero no hay rol de sala de espera. Configúralo en la página de Security."
+  },
+  "dm": {
+    "title": "Verificación rápida para {guild}",
+    "intro": "Escribe los dígitos en **{color}** de la imagen, de izquierda a derecha.\nIgnora los demás colores.",
+    "how": "Responde aquí solo con los dígitos o usa `{prefix}verify 12345`. `{prefix}verify new` te da una imagen nueva.",
+    "expires": "El código caduca {until}.",
+    "wrong": "{left, plural, =1 {Ese no es. Te queda un intento.} other {Ese no es. Te quedan # intentos.}}",
+    "passed": "Ya estás dentro. Te damos la bienvenida a **{guild}**.",
+    "failed": "Ese era el último intento. {guild} te deja en la puerta por ahora.",
+    "kicked": "Ese era el último intento, así que te sacaron de {guild}. Puedes volver a entrar.",
+    "expired": "Se acabó el tiempo para {guild}. Pide a la moderación que te deje entrar.",
+    "expiredKick": "Se acabó el tiempo, así que te sacaron de {guild}. Puedes volver a entrar.",
+    "nothing": "No tienes ninguna verificación pendiente.",
+    "which": "Tienes verificaciones pendientes en {guilds}. Responde primero a la más reciente.",
+    "fresh": "Aquí tienes una imagen nueva."
+  },
+  "channel": {
+    "intro": "{user}, tienes los MD cerrados, así que la verificación es aquí.\nEscribe los dígitos en **{color}** de la imagen con `{prefix}verify 12345`."
+  },
+  "raid": {
+    "started": {
+      "joins": "Modo raid activado. Entraron {joins, plural, one {# cuenta} other {# cuentas}} en {seconds} segundos.",
+      "wave": "Modo raid activado. Entraron juntas {size, plural, one {# cuenta nueva similar} other {# cuentas nuevas similares}}.",
+      "flood": "Modo raid activado. {members, plural, one {# miembro nuevo publicó} other {# miembros nuevos publicaron}} lo mismo a la vez.",
+      "manual": "{by, select, user {Modo raid activado por {user}.} other {Modo raid activado.}}",
+      "nuke": "Modo raid activado tras un intento de nuke."
+    },
+    "effects": "{effects}. Termina {until} salvo que siga habiendo movimiento.",
+    "effectCaptcha": "cada miembro nuevo recibe un captcha",
+    "effectPaused": "las invitaciones están en pausa",
+    "effectSlowmode": "el modo lento es de {seconds} s",
+    "ended": "Modo raid desactivado. Mientras tanto, {checked, plural, one {# miembro pasó} other {# miembros pasaron}} la verificación.",
+    "calmed": "Modo raid desactivado por {user}.",
+    "already": "El modo raid ya está activado.",
+    "notActive": "El modo raid no está activado.",
+    "extended": "El modo raid sigue activado hasta {until}."
+  },
+  "nuke": {
+    "title": "Intento de nuke detenido",
+    "what": {
+      "channelDelete": "borró canales",
+      "channelCreate": "creó canales",
+      "roleDelete": "borró roles",
+      "ban": "baneó miembros",
+      "kick": "expulsó miembros",
+      "webhook": "creó webhooks",
+      "botAdd": "añadió bots",
+      "dangerousGrant": "repartió permisos peligrosos"
+    },
+    "line": "{actor} {what} {count} veces en {seconds} segundos.",
+    "stripped": "Le quité {roles, plural, one {# rol} other {# roles}} con permisos peligrosos.",
+    "kicked": "Expulsé la cuenta.",
+    "banned": "Baneé la cuenta.",
+    "failed": "Maxwell no pudo detener la cuenta. Seguramente su rol está por encima del de Maxwell.",
+    "restoring": "Restaurando {channels, plural, one {# canal} other {# canales}} y {roles, plural, one {# rol} other {# roles}} desde la última copia de seguridad.",
+    "noBackup": "Ninguna copia de seguridad tiene estos canales o roles, así que no se restauró nada."
+  },
+  "honeypot": {
+    "warning": "No escribas en este canal.\nEs una trampa para bots de spam. Cualquier cuenta que publique aquí se elimina al instante.",
+    "topic": "No publiques aquí. Trampa de spam.",
+    "caught": "{user} publicó en {channel}. Maxwell {action} la cuenta.",
+    "caughtRole": "{user} tomó el rol trampa. Maxwell {action} la cuenta.",
+    "actions": {
+      "ban": "baneó",
+      "softban": "expulsó y limpió los mensajes de",
+      "quarantine": "retuvo"
+    }
+  },
+  "incident": {
+    "kinds": {
+      "raid": "Raid",
+      "manual": "Raid",
+      "nuke": "Nuke",
+      "lockdown": "Cierre"
+    },
+    "ended": "{kind} terminado después de {minutes, plural, one {# minuto} other {# minutos}}.",
+    "parts": {
+      "joins": "{n, plural, one {# entrada} other {# entradas}}",
+      "bans": "{n, plural, one {# baneo} other {# baneos}}",
+      "kicks": "{n, plural, one {# expulsión} other {# expulsiones}}",
+      "timeouts": "{n, plural, one {# aislamiento} other {# aislamientos}}",
+      "deleted": "{n, plural, one {# mensaje borrado} other {# mensajes borrados}}",
+      "hits": "{n, plural, one {# detección de AutoMod} other {# detecciones de AutoMod}}",
+      "channels": "{n, plural, one {# cambio de canal} other {# cambios de canal}}",
+      "roles": "{n, plural, one {# cambio de rol} other {# cambios de rol}}"
+    },
+    "quiet": "No pasó nada más.",
+    "replay": "[Repetir y deshacer]({url})"
+  },
+  "status": {
+    "title": "Security",
+    "verification": "{on, select, yes {Captcha desde puntuación de riesgo {threshold}} other {Captcha desactivado}}",
+    "raid": "{state, select, active {Modo raid activado hasta {until}} on {Vigilancia de raids activada} other {Vigilancia de raids desactivada}}",
+    "nuke": "{on, select, yes {Vigilancia de nukes activada} other {Vigilancia de nukes desactivada}}",
+    "honeypot": "{on, select, yes {{channels, plural, one {# canal trampa} other {# canales trampa}}} other {Sin trampa}}",
+    "pending": "{count, plural, one {# miembro espera} other {# miembros esperan}} un captcha"
+  },
+  "check": {
+    "title": "Revisión de seguridad: {score} de 100",
+    "clean": "Nada que arreglar.",
+    "severity": {
+      "high": "Alta",
+      "medium": "Media",
+      "low": "Baja"
+    },
+    "line": "**{severity}**: {text}",
+    "more": "{count, plural, one {# hallazgo más} other {# hallazgos más}} en el panel.",
+    "fixHint": "{link, select, yes {Arréglalos en la [página de Security]({url}).} other {Arréglalos en la página de Security del panel.}}",
+    "findings": {
+      "securityOff": "Security está desactivado.",
+      "everyone": "@everyone tiene {permissions}.",
+      "botPosition": "El rol de Maxwell está por debajo de {roles}, así que no puede actuar sobre esos miembros.",
+      "botAdmin": "El rol de bot {role} tiene Administrador.",
+      "nukeOff": "La vigilancia de nukes está desactivada.",
+      "automodOff": "AutoMod está desactivado.",
+      "automodRules": "AutoMod no revisa {rules}.",
+      "raidOff": "La vigilancia de raids está desactivada.",
+      "verificationOff": "El captcha para entradas de riesgo está desactivado.",
+      "adminRoles": "{count, plural, one {# rol da} other {# roles dan}} Administrador: {roles}.",
+      "modRoles": "No están como roles de moderación en Moderation: {roles}.",
+      "securityLog": "Security no tiene canal de registro.",
+      "modLog": "Moderation no tiene canal de registro."
+    }
+  },
+  "commands": {
+    "verify": "Responde a tu captcha. Usa \"new\" para una imagen nueva.",
+    "security": "Muestra qué está vigilando Security.",
+    "status": "Muestra qué está vigilando Security.",
+    "raid": "Activa el modo raid.",
+    "calm": "Desactiva el modo raid.",
+    "pass": "Deja pasar a un miembro sin la verificación.",
+    "honeypot": "Crea un canal trampa para bots de spam.",
+    "shield": "Comparte un baneo con Maxwell Shield durante 90 días.",
+    "unshield": "Saca a un miembro de Maxwell Shield.",
+    "check": "Evalúa qué tan protegida está la comunidad."
+  },
+  "replies": {
+    "passed": "{user} ya pasó.",
+    "notPending": "{user} no está esperando una verificación.",
+    "honeypotMade": "Trampa puesta en {channel}.",
+    "shieldOff": "Maxwell Shield está desactivado aquí. Se puede activar en el panel, en Security.",
+    "notBanned": "{user} no está baneado aquí.",
+    "shared": "{user} está compartido con Maxwell Shield durante 90 días.",
+    "unshared": "{user} ya no está en Maxwell Shield.",
+    "notShared": "{user} no se compartió desde aquí."
+  }
+}
