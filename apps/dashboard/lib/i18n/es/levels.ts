@@ -54,6 +54,10 @@ export const levels = {
   'Nobody has XP yet.': 'Nadie tiene XP todavía.',
   'Use a file under 25 MB.': 'Usa un archivo de menos de 25 MB.',
   'I cannot read that file.': 'No puedo leer ese archivo.',
+  'That is a personal data export. It only holds the XP of whoever downloaded it. Use a leaderboard export of the whole community.':
+    'Eso es una exportación de datos personal. Solo tiene la XP de quien la descargó. Usa una exportación de la clasificación de toda la comunidad.',
+  'That file only has levels from other communities.':
+    'Ese archivo solo tiene niveles de otras comunidades.',
   'No members with XP or a level in that file.': 'No hay miembros con XP o nivel en ese archivo.',
   'Importing {count} members, {skipped} rows skipped.':
     'Importando {count} miembros, {skipped} filas omitidas.',

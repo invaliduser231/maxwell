@@ -141,17 +141,24 @@ function candidates(input: unknown, depth = 0, out: unknown[][] = [], parent = '
   return out;
 }
 
-function rowsOf(input: unknown): unknown[] | null {
+function bestList(lists: unknown[][], guildId: string | null): unknown[] | null {
   let best: unknown[] | null = null;
   let bestCount = 0;
-  for (const list of candidates(input)) {
-    const count = list.filter((item) => isRecord(item) && readRecord(item)).length;
+  for (const list of lists) {
+    const count = list.filter((item) => isRecord(item) && readRecord(item, guildId)).length;
     if (count > bestCount) {
       best = list;
       bestCount = count;
     }
   }
-  return best ?? (Array.isArray(input) ? input : null);
+  return best;
+}
+
+function rowsOf(input: unknown, guildId: string): unknown[] | null {
+  const lists = candidates(input);
+  return (
+    bestList(lists, guildId) ?? bestList(lists, null) ?? (Array.isArray(input) ? input : null)
+  );
 }
 
 function toNumber(value: unknown): number | null {
@@ -169,9 +176,16 @@ function firstNumber(record: Record<string, unknown>, keys: readonly string[]): 
   return null;
 }
 
-function readRecord(record: Record<string, unknown>): ImportRow | null {
+function guildOf(record: Record<string, unknown>): string | null {
+  const value = record.guildId ?? record.guild_id ?? record.guildid ?? record.guild;
+  return typeof value === 'string' || typeof value === 'number' ? String(value).trim() : null;
+}
+
+function readRecord(record: Record<string, unknown>, guildId: string | null): ImportRow | null {
   const id = idOf(record);
   if (!SNOWFLAKE.test(id)) return null;
+  const guild = guildOf(record);
+  if (guildId !== null && guild !== null && guild !== guildId) return null;
   const xp = firstNumber(record, XP_KEYS);
   if (xp !== null) return { id, xp: Math.min(xp, 1_000_000_000_000) };
   const level = firstNumber(record, LEVEL_KEYS);
@@ -190,26 +204,42 @@ function parseCsv(text: string): Record<string, unknown>[] | null {
   });
 }
 
-function parseImportFile(file: string): { rows: ImportRow[]; skipped: number } | null {
+interface ParsedImport {
+  rows: ImportRow[];
+  skipped: number;
+  otherGuilds: number;
+  personal: boolean;
+}
+
+function isPersonalExport(input: unknown): boolean {
+  return isRecord(input) && isRecord(input.data) && isRecord(input.data.account);
+}
+
+function parseImportFile(file: string, guildId: string): ParsedImport | null {
   const text = file.charCodeAt(0) === 0xfeff ? file.slice(1) : file;
   let records: unknown[] | null = null;
+  let personal = false;
   try {
-    records = rowsOf(JSON.parse(text));
+    const json: unknown = JSON.parse(text);
+    personal = isPersonalExport(json);
+    records = rowsOf(json, guildId);
   } catch {
     records = parseCsv(text);
   }
   if (!records) return null;
   const seen = new Map<string, ImportRow>();
   let skipped = 0;
+  let otherGuilds = 0;
   for (const item of records) {
-    const row = isRecord(item) ? readRecord(item) : null;
+    const row = isRecord(item) ? readRecord(item, guildId) : null;
     if (!row) {
-      skipped++;
+      if (isRecord(item) && guildOf(item) !== null && guildOf(item) !== guildId) otherGuilds++;
+      else skipped++;
       continue;
     }
     seen.set(row.id, row);
   }
-  return { rows: [...seen.values()], skipped };
+  return { rows: [...seen.values()], skipped, otherGuilds, personal };
 }
 
 function XpPanel() {
@@ -721,13 +751,28 @@ function ImportPanel({ lastImport }: { lastImport: { rows: number; at: string } 
         setStatus({ text: t('Use a file under 25 MB.'), error: true });
         return;
       }
-      const parsed = parseImportFile(await file.text());
+      const parsed = parseImportFile(await file.text(), guildId);
       if (!parsed) {
         setStatus({ text: t('I cannot read that file.'), error: true });
         return;
       }
+      if (parsed.personal) {
+        setStatus({
+          text: t(
+            'That is a personal data export. It only holds the XP of whoever downloaded it. Use a leaderboard export of the whole community.',
+          ),
+          error: true,
+        });
+        return;
+      }
       if (parsed.rows.length === 0) {
-        setStatus({ text: t('No members with XP or a level in that file.'), error: true });
+        setStatus({
+          text:
+            parsed.otherGuilds > 0
+              ? t('That file only has levels from other communities.')
+              : t('No members with XP or a level in that file.'),
+          error: true,
+        });
         return;
       }
       for (let i = 0; i < parsed.rows.length; i += CHUNK) {
