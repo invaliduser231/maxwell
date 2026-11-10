@@ -124,37 +124,38 @@
   border-bottom: 1px solid var(--mx-line-strong);
 }
 .mx-lang {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3px;
-  padding: 3px;
-  background: var(--mx-sunk);
-  border-radius: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
-.mx-lang button {
+.mx-lang-title {
+  font-size: 12px;
+  color: var(--mx-muted);
+  padding: 4px 8px 2px;
+}
+.mx-lang-item {
   font: inherit;
   font-size: 13px;
-  color: var(--mx-text-2);
+  width: 100%;
+  justify-content: space-between;
   background: transparent;
   border: 0;
-  border-radius: 7px;
-  min-height: 32px;
   cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
+  text-align: left;
 }
-.mx-lang button:hover:not([aria-checked="true"]) {
+.mx-lang-item:hover:not([aria-checked="true"]) {
+  background: #2f2f37;
   color: var(--mx-text);
-  background: #26262d;
 }
-.mx-lang button[aria-checked="true"] {
-  color: #17171b;
-  background: var(--mx-north);
+.mx-lang-item[aria-checked="true"] {
+  color: var(--mx-text);
   font-weight: 600;
   cursor: default;
 }
-.mx-lang button:disabled {
+.mx-lang-item[aria-checked="true"] svg {
+  color: var(--mx-north);
+}
+.mx-lang-item:disabled {
   opacity: 0.6;
 }
 .mx-account-foot {

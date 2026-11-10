@@ -37,6 +37,9 @@ export async function SiteHeader({ sections = false }: { sections?: boolean }) {
             GitHub
           </a>
         ) : null}
+        <Link href="/communities" className="mx-land-link">
+          {user ? t('Dashboard') : t('Sign in')}
+        </Link>
         {invite ? (
           <a href={invite} className="mx-btn mx-btn-primary mx-land-head-invite">
             {t('Invite')}

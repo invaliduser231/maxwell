@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useId, useRef, useState, useTransition } from 'react';
 import { setLanguage } from '@/lib/actions';
 import { useT } from './i18n';
@@ -97,25 +98,53 @@ export function AccountMenu({ user }: { user: { name: string; avatarUrl: string 
               </span>
             </div>
           ) : null}
-          <span className="mx-sub" style={{ padding: '4px 4px 0' }}>
-            {t('Language')}
-          </span>
+          {user ? (
+            <Link href="/communities" role="menuitem" className="mx-popover-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              {t('Dashboard')}
+            </Link>
+          ) : null}
           <div className="mx-lang" role="group" aria-label={t('Language')}>
-            {languages.map((language) => (
-              <button
-                key={language.code}
-                type="button"
-                role="menuitemradio"
-                lang={language.code}
-                aria-checked={t.lang === language.code}
-                disabled={pending}
-                onClick={() => {
-                  if (t.lang !== language.code) start(() => setLanguage(language.code));
-                }}
-              >
-                {language.label}
-              </button>
-            ))}
+            <span className="mx-lang-title">{t('Language')}</span>
+            {languages.map((language) => {
+              const active = t.lang === language.code;
+              return (
+                <button
+                  key={language.code}
+                  type="button"
+                  role="menuitemradio"
+                  lang={language.code}
+                  aria-checked={active}
+                  disabled={pending}
+                  className="mx-popover-item mx-lang-item"
+                  onClick={() => {
+                    if (!active) start(() => setLanguage(language.code));
+                  }}
+                >
+                  <span>{language.label}</span>
+                  {active ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M5 12.5l4.5 4.5L19 7.5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  ) : null}
+                </button>
+              );
+            })}
           </div>
           {user ? (
             <form action="/auth/logout" method="post" className="mx-account-foot">
