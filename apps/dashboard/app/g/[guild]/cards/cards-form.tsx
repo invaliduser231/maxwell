@@ -11,6 +11,7 @@ import { failed, type Status, StatusText } from '@/components/status-text';
 import { TwoStep } from '@/components/two-step';
 import { Field, Grid, Panel, PanelBody } from '@/components/ui';
 import type { Key } from '@/lib/i18n';
+import { shrinkImage } from '@/lib/image';
 import { removeBackground, uploadBackground } from './actions';
 
 const swatches: { hex: string; name: Key }[] = [
@@ -52,25 +53,6 @@ function checkHex(raw: string): { hex: string } | { problem: Key } {
   return { hex };
 }
 
-async function prepare(file: File): Promise<Blob> {
-  const fits = ['image/png', 'image/jpeg', 'image/webp'].includes(file.type);
-  if (fits && file.size <= UPLOAD_LIMIT) return file;
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-  canvas.getContext('2d')?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-  for (const quality of [0.88, 0.75, 0.6]) {
-    const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, 'image/jpeg', quality),
-    );
-    if (blob && blob.size <= UPLOAD_LIMIT) return blob;
-  }
-  throw new Error('too large');
-}
-
 function ImageControls({
   version,
   onVersion,
@@ -90,7 +72,7 @@ function ImageControls({
     start(async () => {
       let blob: Blob;
       try {
-        blob = await prepare(file);
+        blob = await shrinkImage(file, { maxSide: MAX_SIDE, limit: UPLOAD_LIMIT });
       } catch {
         setStatus(failed(t('That image could not be read.')));
         return;
