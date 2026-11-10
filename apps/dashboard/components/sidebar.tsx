@@ -8,6 +8,7 @@ import { lockedCount, type PageGroup, POLE_COLOR } from '@/lib/pages';
 import { CommunitySwitcher, type SwitcherCommunity } from './community-switcher';
 import { useT } from './i18n';
 import { useLive } from './live';
+import { SettingsSearch } from './settings-search';
 import { LockIcon, ModuleIcon } from './ui';
 
 export interface SidebarProps {
@@ -29,6 +30,8 @@ export function Sidebar(props: SidebarProps) {
   const active =
     pathname === base ? 'overview' : (pathname.slice(base.length + 1).split('/')[0] ?? '');
   const [inbox, setInbox] = useState(props.inboxCount);
+  const [query, setQuery] = useState('');
+  const searching = query.trim().length >= 2;
   useLive(['moderation'], () => {
     if (props.inboxCount === null) return;
     openCount(props.guildId)
@@ -64,7 +67,14 @@ export function Sidebar(props: SidebarProps) {
         others={props.others}
       />
 
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <SettingsSearch
+        base={base}
+        pages={props.groups.flatMap((group) => group.pages)}
+        query={query}
+        setQuery={setQuery}
+      />
+
+      <div style={{ display: searching ? 'none' : 'flex', flexDirection: 'column' }}>
         {props.groups.map((group) => (
           <div key={group.title || 'top'} style={{ display: 'flex', flexDirection: 'column' }}>
             {group.title ? <span className="mx-nav-group">{t(group.title)}</span> : null}

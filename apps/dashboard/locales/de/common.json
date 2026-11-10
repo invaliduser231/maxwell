@@ -59,5 +59,7 @@
   "Categories": "Kategorien",
   "Loading": "Lädt",
   "Default": "Standard",
-  "{n, plural, one {# member} other {# members}}": "{n, plural, one {# Mitglied} other {# Mitglieder}}"
+  "{n, plural, one {# member} other {# members}}": "{n, plural, one {# Mitglied} other {# Mitglieder}}",
+  "Search settings": "Einstellungen suchen",
+  "No settings found.": "Keine Einstellung gefunden."
 }

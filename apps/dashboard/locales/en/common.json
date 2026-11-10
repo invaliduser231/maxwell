@@ -59,5 +59,7 @@
   "Categories": "Categories",
   "Loading": "Loading",
   "Default": "Default",
-  "{n, plural, one {# member} other {# members}}": "{n, plural, one {# member} other {# members}}"
+  "{n, plural, one {# member} other {# members}}": "{n, plural, one {# member} other {# members}}",
+  "Search settings": "Search settings",
+  "No settings found.": "No settings found."
 }

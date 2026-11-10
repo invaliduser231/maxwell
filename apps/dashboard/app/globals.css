@@ -61,6 +61,22 @@
   color: var(--mx-text);
   font-weight: 600;
 }
+.mx-nav-search {
+  background: var(--mx-panel);
+}
+.mx-found {
+  border-radius: 8px;
+  animation: mx-found 2.4s ease;
+}
+@keyframes mx-found {
+  0%,
+  60% {
+    box-shadow: 0 0 0 2px var(--mx-north);
+  }
+  100% {
+    box-shadow: 0 0 0 2px transparent;
+  }
+}
 .mx-nav-group {
   font-size: 12px;
   color: #8a8f98;

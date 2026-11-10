@@ -1,0 +1,2086 @@
+[
+  {
+    "page": "access",
+    "label": "Who can open the dashboard"
+  },
+  {
+    "page": "access",
+    "label": "Access per module"
+  },
+  {
+    "page": "audit",
+    "label": "Search"
+  },
+  {
+    "page": "audit",
+    "label": "Who"
+  },
+  {
+    "page": "audit",
+    "label": "Module"
+  },
+  {
+    "page": "audit",
+    "label": "When"
+  },
+  {
+    "page": "automod",
+    "label": "Messages"
+  },
+  {
+    "page": "automod",
+    "label": "Seconds"
+  },
+  {
+    "page": "automod",
+    "label": "Mentions"
+  },
+  {
+    "page": "automod",
+    "label": "Count role mentions"
+  },
+  {
+    "page": "automod",
+    "label": "Percent"
+  },
+  {
+    "page": "automod",
+    "label": "Min length"
+  },
+  {
+    "page": "automod",
+    "label": "Repeats"
+  },
+  {
+    "page": "automod",
+    "label": "Emojis"
+  },
+  {
+    "page": "automod",
+    "label": "Account age under"
+  },
+  {
+    "page": "automod",
+    "label": "Catch lookalike domains"
+  },
+  {
+    "page": "automod",
+    "label": "Rules"
+  },
+  {
+    "page": "automod",
+    "label": "Action"
+  },
+  {
+    "page": "automod",
+    "label": "Timeout"
+  },
+  {
+    "page": "automod",
+    "label": "Delete the message too"
+  },
+  {
+    "page": "automod",
+    "label": "Ignore moderators"
+  },
+  {
+    "page": "automod",
+    "label": "Raid shield"
+  },
+  {
+    "page": "automod",
+    "label": "Trigger"
+  },
+  {
+    "page": "automod",
+    "label": "Lockdown length"
+  },
+  {
+    "page": "automod",
+    "label": "Hold accounts younger than"
+  },
+  {
+    "page": "automod",
+    "label": "Waiting room"
+  },
+  {
+    "page": "automod",
+    "label": "Ping"
+  },
+  {
+    "page": "automod",
+    "label": "Adaptive slowmode"
+  },
+  {
+    "page": "automod",
+    "label": "Messages per minute"
+  },
+  {
+    "page": "automod",
+    "label": "Lowest slowmode"
+  },
+  {
+    "page": "automod",
+    "label": "Highest slowmode"
+  },
+  {
+    "page": "automod",
+    "label": "Step"
+  },
+  {
+    "page": "automod",
+    "label": "Wait between changes"
+  },
+  {
+    "page": "automod",
+    "label": "General"
+  },
+  {
+    "page": "automod",
+    "label": "Log channel"
+  },
+  {
+    "page": "automod",
+    "label": "Options"
+  },
+  {
+    "page": "automod",
+    "label": "Ignore bots and webhooks"
+  },
+  {
+    "page": "automod",
+    "label": "Tell members why"
+  },
+  {
+    "page": "automod",
+    "label": "Keep 7 days of messages for dry runs"
+  },
+  {
+    "page": "backups",
+    "label": "Snapshots"
+  },
+  {
+    "page": "backups",
+    "label": "Schedule"
+  },
+  {
+    "page": "backups",
+    "label": "Keep daily"
+  },
+  {
+    "page": "backups",
+    "label": "Keep manual"
+  },
+  {
+    "page": "backups",
+    "label": "Import a template"
+  },
+  {
+    "page": "backups",
+    "label": "Publish as template"
+  },
+  {
+    "page": "backups",
+    "label": "Snapshot"
+  },
+  {
+    "page": "backups",
+    "label": "Title"
+  },
+  {
+    "page": "backups",
+    "label": "Description"
+  },
+  {
+    "page": "cards",
+    "label": "Style"
+  },
+  {
+    "page": "cards",
+    "label": "Dim"
+  },
+  {
+    "page": "cards",
+    "label": "Preview"
+  },
+  {
+    "page": "collection",
+    "label": "Sample card"
+  },
+  {
+    "page": "collection",
+    "label": "Card name"
+  },
+  {
+    "page": "collection",
+    "label": "Rarity"
+  },
+  {
+    "page": "collection",
+    "label": "Description"
+  },
+  {
+    "page": "collection",
+    "label": "Deck name"
+  },
+  {
+    "page": "collection",
+    "label": "Decks"
+  },
+  {
+    "page": "collection",
+    "label": "Activity counted over"
+  },
+  {
+    "page": "collection",
+    "label": "Drops"
+  },
+  {
+    "page": "collection",
+    "label": "Drop after (messages)"
+  },
+  {
+    "page": "collection",
+    "label": "At most every (minutes)"
+  },
+  {
+    "page": "collection",
+    "label": "Claim window (minutes)"
+  },
+  {
+    "page": "collection",
+    "label": "Packs"
+  },
+  {
+    "page": "collection",
+    "label": "Sets"
+  },
+  {
+    "page": "collection",
+    "label": "Name"
+  },
+  {
+    "page": "collection",
+    "label": "Cards"
+  },
+  {
+    "page": "collection",
+    "label": "Reward role"
+  },
+  {
+    "page": "collection",
+    "label": "Trading"
+  },
+  {
+    "page": "collection",
+    "label": "Packs and sets"
+  },
+  {
+    "page": "commands",
+    "label": "Commands"
+  },
+  {
+    "page": "commands",
+    "label": "Try it"
+  },
+  {
+    "page": "commands",
+    "label": "Match"
+  },
+  {
+    "page": "commands",
+    "label": "Case sensitive"
+  },
+  {
+    "page": "commands",
+    "label": "Reply to the message"
+  },
+  {
+    "page": "commands",
+    "label": "Delete the trigger message"
+  },
+  {
+    "page": "commands",
+    "label": "Cooldown"
+  },
+  {
+    "page": "commands",
+    "label": "Counted"
+  },
+  {
+    "page": "commands",
+    "label": "Command"
+  },
+  {
+    "page": "commands",
+    "label": "Keyword"
+  },
+  {
+    "page": "commands",
+    "label": "Regex"
+  },
+  {
+    "page": "commands",
+    "label": "Command name"
+  },
+  {
+    "page": "commands",
+    "label": "Words"
+  },
+  {
+    "page": "commands",
+    "label": "Pattern"
+  },
+  {
+    "page": "counters",
+    "label": "Counters"
+  },
+  {
+    "page": "counters",
+    "label": "Members"
+  },
+  {
+    "page": "counters",
+    "label": "Online"
+  },
+  {
+    "page": "counters",
+    "label": "Member goal"
+  },
+  {
+    "page": "counters",
+    "label": "In voice"
+  },
+  {
+    "page": "counters",
+    "label": "Channels"
+  },
+  {
+    "page": "counters",
+    "label": "Roles"
+  },
+  {
+    "page": "counters",
+    "label": "Countdown"
+  },
+  {
+    "page": "economy",
+    "label": "Currency"
+  },
+  {
+    "page": "economy",
+    "label": "Name"
+  },
+  {
+    "page": "economy",
+    "label": "Name for one"
+  },
+  {
+    "page": "economy",
+    "label": "Symbol"
+  },
+  {
+    "page": "economy",
+    "label": "Starting balance"
+  },
+  {
+    "page": "economy",
+    "label": "Daily cap per member"
+  },
+  {
+    "page": "economy",
+    "label": "Transfer tax (%)"
+  },
+  {
+    "page": "economy",
+    "label": "Message cooldown (seconds)"
+  },
+  {
+    "page": "economy",
+    "label": "Streak bonus per day"
+  },
+  {
+    "page": "economy",
+    "label": "Longest streak (days)"
+  },
+  {
+    "page": "economy",
+    "label": "Supply, 30 days"
+  },
+  {
+    "page": "economy",
+    "label": "Role"
+  },
+  {
+    "page": "economy",
+    "label": "Keep for (hours)"
+  },
+  {
+    "page": "economy",
+    "label": "Pack"
+  },
+  {
+    "page": "economy",
+    "label": "Shop"
+  },
+  {
+    "page": "economy",
+    "label": "Type"
+  },
+  {
+    "page": "economy",
+    "label": "Stock"
+  },
+  {
+    "page": "economy",
+    "label": "Per member"
+  },
+  {
+    "page": "economy",
+    "label": "Description"
+  },
+  {
+    "page": "economy",
+    "label": "For sale"
+  },
+  {
+    "page": "economy",
+    "label": "Transactions"
+  },
+  {
+    "page": "economy",
+    "label": "Richest members"
+  },
+  {
+    "page": "economy",
+    "label": "Reset"
+  },
+  {
+    "page": "economy",
+    "label": "Card pack"
+  },
+  {
+    "page": "economy",
+    "label": "Profile background"
+  },
+  {
+    "page": "economy",
+    "label": "Giveaway entry"
+  },
+  {
+    "page": "events",
+    "label": "Title"
+  },
+  {
+    "page": "events",
+    "label": "Starts"
+  },
+  {
+    "page": "events",
+    "label": "Length"
+  },
+  {
+    "page": "events",
+    "label": "Voice channel"
+  },
+  {
+    "page": "events",
+    "label": "Location"
+  },
+  {
+    "page": "events",
+    "label": "Announce in"
+  },
+  {
+    "page": "events",
+    "label": "Ping"
+  },
+  {
+    "page": "events",
+    "label": "Description"
+  },
+  {
+    "page": "events",
+    "label": "Monday"
+  },
+  {
+    "page": "events",
+    "label": "Tuesday"
+  },
+  {
+    "page": "events",
+    "label": "Wednesday"
+  },
+  {
+    "page": "events",
+    "label": "Thursday"
+  },
+  {
+    "page": "events",
+    "label": "Friday"
+  },
+  {
+    "page": "events",
+    "label": "Saturday"
+  },
+  {
+    "page": "events",
+    "label": "Sunday"
+  },
+  {
+    "page": "events",
+    "label": "Result card"
+  },
+  {
+    "page": "events",
+    "label": "Recent polls"
+  },
+  {
+    "page": "events",
+    "label": "New poll"
+  },
+  {
+    "page": "events",
+    "label": "Question"
+  },
+  {
+    "page": "events",
+    "label": "Channel"
+  },
+  {
+    "page": "events",
+    "label": "Ends"
+  },
+  {
+    "page": "events",
+    "label": "Anonymous votes"
+  },
+  {
+    "page": "events",
+    "label": "Allow more than one choice"
+  },
+  {
+    "page": "events",
+    "label": "Not posted"
+  },
+  {
+    "page": "events",
+    "label": "Running"
+  },
+  {
+    "page": "events",
+    "label": "Ended"
+  },
+  {
+    "page": "events",
+    "label": "Cancelled"
+  },
+  {
+    "page": "events",
+    "label": "Events"
+  },
+  {
+    "page": "events",
+    "label": "Timezone"
+  },
+  {
+    "page": "events",
+    "label": "Default length"
+  },
+  {
+    "page": "events",
+    "label": "Reminder DM"
+  },
+  {
+    "page": "events",
+    "label": "Reward for everyone going"
+  },
+  {
+    "page": "events",
+    "label": "Polls"
+  },
+  {
+    "page": "events",
+    "label": "Post polls in"
+  },
+  {
+    "page": "events",
+    "label": "Result image when a poll ends"
+  },
+  {
+    "page": "events",
+    "label": "Vote receipts by DM"
+  },
+  {
+    "page": "feeds",
+    "label": "Sources"
+  },
+  {
+    "page": "feeds",
+    "label": "Type"
+  },
+  {
+    "page": "feeds",
+    "label": "Name"
+  },
+  {
+    "page": "feeds",
+    "label": "Check every"
+  },
+  {
+    "page": "feeds",
+    "label": "Channel"
+  },
+  {
+    "page": "feeds",
+    "label": "Ping"
+  },
+  {
+    "page": "feeds",
+    "label": "Message"
+  },
+  {
+    "page": "feeds",
+    "label": "Show as embed"
+  },
+  {
+    "page": "feeds",
+    "label": "Include Shorts"
+  },
+  {
+    "page": "feeds",
+    "label": "Include reposts"
+  },
+  {
+    "page": "feeds",
+    "label": "Recent posts"
+  },
+  {
+    "page": "feeds",
+    "label": "RSS"
+  },
+  {
+    "page": "feeds",
+    "label": "YouTube"
+  },
+  {
+    "page": "feeds",
+    "label": "Twitch"
+  },
+  {
+    "page": "feeds",
+    "label": "Reddit"
+  },
+  {
+    "page": "feeds",
+    "label": "Bluesky"
+  },
+  {
+    "page": "feeds",
+    "label": "GitHub"
+  },
+  {
+    "page": "feeds",
+    "label": "Fluxer blog"
+  },
+  {
+    "page": "feeds",
+    "label": "Feed address"
+  },
+  {
+    "page": "feeds",
+    "label": "Channel ID or link"
+  },
+  {
+    "page": "feeds",
+    "label": "Subreddit"
+  },
+  {
+    "page": "feeds",
+    "label": "Handle"
+  },
+  {
+    "page": "feeds",
+    "label": "Repository"
+  },
+  {
+    "page": "feeds",
+    "label": "Blog"
+  },
+  {
+    "page": "feeds",
+    "label": "The source is not a valid address or name."
+  },
+  {
+    "page": "feeds",
+    "label": "The address is not a public https address."
+  },
+  {
+    "page": "feeds",
+    "label": "The feed does not exist anymore."
+  },
+  {
+    "page": "feeds",
+    "label": "The address does not return a feed."
+  },
+  {
+    "page": "feeds",
+    "label": "The feed is larger than 2 MB."
+  },
+  {
+    "page": "feeds",
+    "label": "The feed took too long to answer."
+  },
+  {
+    "page": "feeds",
+    "label": "The feed could not be reached."
+  },
+  {
+    "page": "feeds",
+    "label": "The feed is rate limiting requests."
+  },
+  {
+    "page": "feeds",
+    "label": "The feed redirects too often."
+  },
+  {
+    "page": "feeds",
+    "label": "Twitch is not set up on this Maxwell."
+  },
+  {
+    "page": "feeds",
+    "label": "Twitch rejected the credentials."
+  },
+  {
+    "page": "feeds",
+    "label": "I could not post in the target channel."
+  },
+  {
+    "page": "feeds",
+    "label": "No target channel is set."
+  },
+  {
+    "page": "feeds",
+    "label": "The feed answered with an error."
+  },
+  {
+    "page": "forms",
+    "label": "Text"
+  },
+  {
+    "page": "forms",
+    "label": "Choice"
+  },
+  {
+    "page": "forms",
+    "label": "Number"
+  },
+  {
+    "page": "forms",
+    "label": "Yes or no"
+  },
+  {
+    "page": "forms",
+    "label": "is"
+  },
+  {
+    "page": "forms",
+    "label": "is not"
+  },
+  {
+    "page": "forms",
+    "label": "contains"
+  },
+  {
+    "page": "forms",
+    "label": "is more than"
+  },
+  {
+    "page": "forms",
+    "label": "is less than"
+  },
+  {
+    "page": "forms",
+    "label": "Questions"
+  },
+  {
+    "page": "forms",
+    "label": "Show"
+  },
+  {
+    "page": "forms",
+    "label": "Rule"
+  },
+  {
+    "page": "forms",
+    "label": "Answer"
+  },
+  {
+    "page": "forms",
+    "label": "Ticket panel"
+  },
+  {
+    "page": "forms",
+    "label": "Question"
+  },
+  {
+    "page": "forms",
+    "label": "Lowest"
+  },
+  {
+    "page": "forms",
+    "label": "Highest"
+  },
+  {
+    "page": "forms",
+    "label": "Shortest"
+  },
+  {
+    "page": "forms",
+    "label": "Longest"
+  },
+  {
+    "page": "forms",
+    "label": "Required"
+  },
+  {
+    "page": "forms",
+    "label": "Forms"
+  },
+  {
+    "page": "forms",
+    "label": "Name"
+  },
+  {
+    "page": "forms",
+    "label": "Reviews go to"
+  },
+  {
+    "page": "forms",
+    "label": "Cooldown"
+  },
+  {
+    "page": "forms",
+    "label": "Approvals needed"
+  },
+  {
+    "page": "forms",
+    "label": "Declines needed"
+  },
+  {
+    "page": "forms",
+    "label": "Intro"
+  },
+  {
+    "page": "forms",
+    "label": "Taking answers"
+  },
+  {
+    "page": "forms",
+    "label": "One approval per member"
+  },
+  {
+    "page": "forms",
+    "label": "All forms"
+  },
+  {
+    "page": "forms",
+    "label": "Time to answer"
+  },
+  {
+    "page": "forms",
+    "label": "Category when DMs are closed"
+  },
+  {
+    "page": "forms",
+    "label": "Responses"
+  },
+  {
+    "page": "forms",
+    "label": "Waiting"
+  },
+  {
+    "page": "forms",
+    "label": "Approved"
+  },
+  {
+    "page": "forms",
+    "label": "Declined"
+  },
+  {
+    "page": "games",
+    "label": "Time per question"
+  },
+  {
+    "page": "games",
+    "label": "Channel"
+  },
+  {
+    "page": "games",
+    "label": "Wrong number"
+  },
+  {
+    "page": "games",
+    "label": "Same person twice in a row"
+  },
+  {
+    "page": "games",
+    "label": "Reward every"
+  },
+  {
+    "page": "games",
+    "label": "Minimum length"
+  },
+  {
+    "page": "games",
+    "label": "Words can repeat"
+  },
+  {
+    "page": "games",
+    "label": "Wrong word"
+  },
+  {
+    "page": "games",
+    "label": "Highest number"
+  },
+  {
+    "page": "games",
+    "label": "House edge (%)"
+  },
+  {
+    "page": "games",
+    "label": "Highest multiplier"
+  },
+  {
+    "page": "games",
+    "label": "Time to answer"
+  },
+  {
+    "page": "games",
+    "label": "Challenges expire after"
+  },
+  {
+    "page": "games",
+    "label": "Top players"
+  },
+  {
+    "page": "games",
+    "label": "Games"
+  },
+  {
+    "page": "games",
+    "label": "Trivia"
+  },
+  {
+    "page": "games",
+    "label": "Counting"
+  },
+  {
+    "page": "games",
+    "label": "Word chain"
+  },
+  {
+    "page": "games",
+    "label": "Higher or lower"
+  },
+  {
+    "page": "games",
+    "label": "Coinflip"
+  },
+  {
+    "page": "general",
+    "label": "Nickname"
+  },
+  {
+    "page": "general",
+    "label": "About me"
+  },
+  {
+    "page": "general",
+    "label": "Basics"
+  },
+  {
+    "page": "general",
+    "label": "Bot language"
+  },
+  {
+    "page": "general",
+    "label": "Timezone"
+  },
+  {
+    "page": "general",
+    "label": "Privacy"
+  },
+  {
+    "page": "general",
+    "label": "Keep cases"
+  },
+  {
+    "page": "general",
+    "label": "Commands"
+  },
+  {
+    "page": "general",
+    "label": "Reset"
+  },
+  {
+    "page": "giveaways",
+    "label": "Running and planned"
+  },
+  {
+    "page": "giveaways",
+    "label": "New giveaway"
+  },
+  {
+    "page": "giveaways",
+    "label": "Prize"
+  },
+  {
+    "page": "giveaways",
+    "label": "Channel"
+  },
+  {
+    "page": "giveaways",
+    "label": "Winners"
+  },
+  {
+    "page": "giveaways",
+    "label": "Description"
+  },
+  {
+    "page": "giveaways",
+    "label": "Needs role"
+  },
+  {
+    "page": "giveaways",
+    "label": "Not for role"
+  },
+  {
+    "page": "giveaways",
+    "label": "Minimum level"
+  },
+  {
+    "page": "giveaways",
+    "label": "Member for at least"
+  },
+  {
+    "page": "giveaways",
+    "label": "Ping when it starts"
+  },
+  {
+    "page": "giveaways",
+    "label": "Message the winners"
+  },
+  {
+    "page": "giveaways",
+    "label": "Preview"
+  },
+  {
+    "page": "giveaways",
+    "label": "Ended"
+  },
+  {
+    "page": "giveaways",
+    "label": "Defaults"
+  },
+  {
+    "page": "giveaways",
+    "label": "Entry emoji"
+  },
+  {
+    "page": "inbox",
+    "label": "Settings"
+  },
+  {
+    "page": "inbox",
+    "label": "Post new items in"
+  },
+  {
+    "page": "inbox",
+    "label": "Report with a reaction"
+  },
+  {
+    "page": "inbox",
+    "label": "Warn"
+  },
+  {
+    "page": "inbox",
+    "label": "Time out"
+  },
+  {
+    "page": "inbox",
+    "label": "Kick"
+  },
+  {
+    "page": "inbox",
+    "label": "Ban"
+  },
+  {
+    "page": "inbox",
+    "label": "Warned"
+  },
+  {
+    "page": "inbox",
+    "label": "Timed out"
+  },
+  {
+    "page": "inbox",
+    "label": "Kicked"
+  },
+  {
+    "page": "inbox",
+    "label": "Banned"
+  },
+  {
+    "page": "inbox",
+    "label": "Unbanned"
+  },
+  {
+    "page": "inbox",
+    "label": "Approved"
+  },
+  {
+    "page": "inbox",
+    "label": "Declined"
+  },
+  {
+    "page": "inbox",
+    "label": "Message deleted"
+  },
+  {
+    "page": "inbox",
+    "label": "Let in"
+  },
+  {
+    "page": "inbox",
+    "label": "Left the server"
+  },
+  {
+    "page": "inbox",
+    "label": "Passed the captcha"
+  },
+  {
+    "page": "inbox",
+    "label": "No action"
+  },
+  {
+    "page": "inbox",
+    "label": "The captcha could not be sent."
+  },
+  {
+    "page": "inbox",
+    "label": "Failed the captcha."
+  },
+  {
+    "page": "inbox",
+    "label": "Did not solve the captcha in time."
+  },
+  {
+    "page": "insights",
+    "label": "Messages per day"
+  },
+  {
+    "page": "insights",
+    "label": "Busiest channels"
+  },
+  {
+    "page": "insights",
+    "label": "When people talk"
+  },
+  {
+    "page": "insights",
+    "label": "Moderation load"
+  },
+  {
+    "page": "insights",
+    "label": "Retention by invite"
+  },
+  {
+    "page": "insights",
+    "label": "Settings"
+  },
+  {
+    "page": "insights",
+    "label": "Keep data for"
+  },
+  {
+    "page": "insights",
+    "label": "Weekly digest"
+  },
+  {
+    "page": "insights",
+    "label": "Channel"
+  },
+  {
+    "page": "insights",
+    "label": "Day"
+  },
+  {
+    "page": "insights",
+    "label": "Time"
+  },
+  {
+    "page": "invites",
+    "label": "Campaign"
+  },
+  {
+    "page": "invites",
+    "label": "Invites"
+  },
+  {
+    "page": "invites",
+    "label": "Top inviters"
+  },
+  {
+    "page": "invites",
+    "label": "Settings"
+  },
+  {
+    "page": "invites",
+    "label": "Join log"
+  },
+  {
+    "page": "levels",
+    "label": "XP per message, lowest"
+  },
+  {
+    "page": "levels",
+    "label": "XP per message, highest"
+  },
+  {
+    "page": "levels",
+    "label": "Cooldown"
+  },
+  {
+    "page": "levels",
+    "label": "Multipliers"
+  },
+  {
+    "page": "levels",
+    "label": "Rewards"
+  },
+  {
+    "page": "levels",
+    "label": "Level-up message"
+  },
+  {
+    "page": "levels",
+    "label": "Where"
+  },
+  {
+    "page": "levels",
+    "label": "Channel"
+  },
+  {
+    "page": "levels",
+    "label": "Level-up card"
+  },
+  {
+    "page": "levels",
+    "label": "Message"
+  },
+  {
+    "page": "levels",
+    "label": "Message with a reward"
+  },
+  {
+    "page": "levels",
+    "label": "Preview"
+  },
+  {
+    "page": "levels",
+    "label": "Leaderboard"
+  },
+  {
+    "page": "levels",
+    "label": "Import levels"
+  },
+  {
+    "page": "logs",
+    "label": "Events"
+  },
+  {
+    "page": "logs",
+    "label": "Ignore"
+  },
+  {
+    "page": "logs",
+    "label": "Ignore bots"
+  },
+  {
+    "page": "logs",
+    "label": "Messages deleted"
+  },
+  {
+    "page": "logs",
+    "label": "Messages edited"
+  },
+  {
+    "page": "logs",
+    "label": "Bulk deletes"
+  },
+  {
+    "page": "logs",
+    "label": "Member joins"
+  },
+  {
+    "page": "logs",
+    "label": "Member leaves"
+  },
+  {
+    "page": "logs",
+    "label": "Member roles"
+  },
+  {
+    "page": "logs",
+    "label": "Nicknames"
+  },
+  {
+    "page": "logs",
+    "label": "Timeouts"
+  },
+  {
+    "page": "logs",
+    "label": "Roles"
+  },
+  {
+    "page": "logs",
+    "label": "Channels"
+  },
+  {
+    "page": "logs",
+    "label": "Voice"
+  },
+  {
+    "page": "logs",
+    "label": "Invites"
+  },
+  {
+    "page": "logs",
+    "label": "Bans"
+  },
+  {
+    "page": "logs",
+    "label": "Kicks"
+  },
+  {
+    "page": "members",
+    "label": "Warn"
+  },
+  {
+    "page": "members",
+    "label": "Time out"
+  },
+  {
+    "page": "members",
+    "label": "Kick"
+  },
+  {
+    "page": "members",
+    "label": "Ban"
+  },
+  {
+    "page": "members",
+    "label": "Unban"
+  },
+  {
+    "page": "members",
+    "label": "Lift timeout"
+  },
+  {
+    "page": "moderation",
+    "label": "Unban"
+  },
+  {
+    "page": "moderation",
+    "label": "Lift timeout"
+  },
+  {
+    "page": "moderation",
+    "label": "Remove warn"
+  },
+  {
+    "page": "moderation",
+    "label": "Dismiss"
+  },
+  {
+    "page": "moderation",
+    "label": "Ban again"
+  },
+  {
+    "page": "moderation",
+    "label": "Time out again"
+  },
+  {
+    "page": "moderation",
+    "label": "Commands"
+  },
+  {
+    "page": "moderation",
+    "label": "Escalation"
+  },
+  {
+    "page": "moderation",
+    "label": "Count warns from the last"
+  },
+  {
+    "page": "moderation",
+    "label": "Warns expire after"
+  },
+  {
+    "page": "moderation",
+    "label": "Reason templates"
+  },
+  {
+    "page": "moderation",
+    "label": "General"
+  },
+  {
+    "page": "moderation",
+    "label": "Mod log"
+  },
+  {
+    "page": "moderation",
+    "label": "Default timeout"
+  },
+  {
+    "page": "moderation",
+    "label": "On ban, delete their messages from"
+  },
+  {
+    "page": "moderation",
+    "label": "Reason required"
+  },
+  {
+    "page": "moderation",
+    "label": "DM the member"
+  },
+  {
+    "page": "moderation",
+    "label": "Message to the member"
+  },
+  {
+    "page": "moderation",
+    "label": "Warn"
+  },
+  {
+    "page": "moderation",
+    "label": "Timeout"
+  },
+  {
+    "page": "moderation",
+    "label": "Kick"
+  },
+  {
+    "page": "moderation",
+    "label": "Ban"
+  },
+  {
+    "page": "public",
+    "label": "Invite link"
+  },
+  {
+    "page": "public",
+    "label": "Or pick a recent invite"
+  },
+  {
+    "page": "public",
+    "label": "Public page"
+  },
+  {
+    "page": "public",
+    "label": "Show the public page"
+  },
+  {
+    "page": "public",
+    "label": "Description"
+  },
+  {
+    "page": "public",
+    "label": "On the page"
+  },
+  {
+    "page": "roles",
+    "label": "Menus"
+  },
+  {
+    "page": "roles",
+    "label": "Title"
+  },
+  {
+    "page": "roles",
+    "label": "Description"
+  },
+  {
+    "page": "roles",
+    "label": "Post"
+  },
+  {
+    "page": "roles",
+    "label": "Channel"
+  },
+  {
+    "page": "roles",
+    "label": "Give roles"
+  },
+  {
+    "page": "roles",
+    "label": "Steps"
+  },
+  {
+    "page": "roles",
+    "label": "Rules"
+  },
+  {
+    "page": "roles",
+    "label": "Give back on rejoin"
+  },
+  {
+    "page": "roles",
+    "label": "Remember for"
+  },
+  {
+    "page": "roles",
+    "label": "Waiting for a rejoin"
+  },
+  {
+    "page": "roles",
+    "label": "Normal"
+  },
+  {
+    "page": "roles",
+    "label": "One of many"
+  },
+  {
+    "page": "roles",
+    "label": "Add only"
+  },
+  {
+    "page": "roles",
+    "label": "Temporary"
+  },
+  {
+    "page": "roles",
+    "label": "Verify"
+  },
+  {
+    "page": "roles",
+    "label": "Remove only"
+  },
+  {
+    "page": "roles",
+    "label": "Pick once"
+  },
+  {
+    "page": "roles",
+    "label": "Limited"
+  },
+  {
+    "page": "scheduler",
+    "label": "Date and time"
+  },
+  {
+    "page": "scheduler",
+    "label": "Time"
+  },
+  {
+    "page": "scheduler",
+    "label": "Every"
+  },
+  {
+    "page": "scheduler",
+    "label": "Starting"
+  },
+  {
+    "page": "scheduler",
+    "label": "Scheduled messages"
+  },
+  {
+    "page": "scheduler",
+    "label": "Name"
+  },
+  {
+    "page": "scheduler",
+    "label": "Channel"
+  },
+  {
+    "page": "scheduler",
+    "label": "Ping"
+  },
+  {
+    "page": "scheduler",
+    "label": "Message"
+  },
+  {
+    "page": "scheduler",
+    "label": "Send as embed"
+  },
+  {
+    "page": "scheduler",
+    "label": "Member reminders"
+  },
+  {
+    "page": "scheduler",
+    "label": "Settings"
+  },
+  {
+    "page": "scheduler",
+    "label": "Per member"
+  },
+  {
+    "page": "scheduler",
+    "label": "Longest reminder"
+  },
+  {
+    "page": "security",
+    "label": "Incidents"
+  },
+  {
+    "page": "security",
+    "label": "Timeline"
+  },
+  {
+    "page": "security",
+    "label": "Undo"
+  },
+  {
+    "page": "security",
+    "label": "Security check"
+  },
+  {
+    "page": "security",
+    "label": "Captcha"
+  },
+  {
+    "page": "security",
+    "label": "Check new members"
+  },
+  {
+    "page": "security",
+    "label": "Captcha from risk score"
+  },
+  {
+    "page": "security",
+    "label": "Tries"
+  },
+  {
+    "page": "security",
+    "label": "Time to answer"
+  },
+  {
+    "page": "security",
+    "label": "When it fails or runs out"
+  },
+  {
+    "page": "security",
+    "label": "Very high score"
+  },
+  {
+    "page": "security",
+    "label": "Very high from score"
+  },
+  {
+    "page": "security",
+    "label": "Channel when DMs are closed"
+  },
+  {
+    "page": "security",
+    "label": "Raids"
+  },
+  {
+    "page": "security",
+    "label": "Watch for raids"
+  },
+  {
+    "page": "security",
+    "label": "Joins"
+  },
+  {
+    "page": "security",
+    "label": "Within"
+  },
+  {
+    "page": "security",
+    "label": "Similar accounts"
+  },
+  {
+    "page": "security",
+    "label": "Same message from new members"
+  },
+  {
+    "page": "security",
+    "label": "Raid mode lasts"
+  },
+  {
+    "page": "security",
+    "label": "Slowmode during a raid"
+  },
+  {
+    "page": "security",
+    "label": "Pause invites during a raid"
+  },
+  {
+    "page": "security",
+    "label": "Honeypot"
+  },
+  {
+    "page": "security",
+    "label": "Trap spam bots"
+  },
+  {
+    "page": "security",
+    "label": "Trap role"
+  },
+  {
+    "page": "security",
+    "label": "What happens"
+  },
+  {
+    "page": "security",
+    "label": "Moderators can post there"
+  },
+  {
+    "page": "security",
+    "label": "Maxwell Shield"
+  },
+  {
+    "page": "security",
+    "label": "Take part in Maxwell Shield"
+  },
+  {
+    "page": "security",
+    "label": "Alerts"
+  },
+  {
+    "page": "security",
+    "label": "Log channel"
+  },
+  {
+    "page": "security",
+    "label": "Ping on raids and nukes"
+  },
+  {
+    "page": "security",
+    "label": "Risk score"
+  },
+  {
+    "page": "security",
+    "label": "Nukes"
+  },
+  {
+    "page": "security",
+    "label": "Stop mass changes"
+  },
+  {
+    "page": "security",
+    "label": "Time window"
+  },
+  {
+    "page": "security",
+    "label": "People"
+  },
+  {
+    "page": "security",
+    "label": "Bots"
+  },
+  {
+    "page": "security",
+    "label": "Restore from the last backup"
+  },
+  {
+    "page": "security",
+    "label": "Recent joins"
+  },
+  {
+    "page": "security",
+    "label": "Security log"
+  },
+  {
+    "page": "starboard",
+    "label": "Reaction"
+  },
+  {
+    "page": "starboard",
+    "label": "Custom emoji"
+  },
+  {
+    "page": "starboard",
+    "label": "Settings"
+  },
+  {
+    "page": "starboard",
+    "label": "Channel"
+  },
+  {
+    "page": "starboard",
+    "label": "Stars needed"
+  },
+  {
+    "page": "starboard",
+    "label": "Preview"
+  },
+  {
+    "page": "starboard",
+    "label": "Top posts"
+  },
+  {
+    "page": "suggestions",
+    "label": "Board"
+  },
+  {
+    "page": "suggestions",
+    "label": "Settings"
+  },
+  {
+    "page": "suggestions",
+    "label": "Channel"
+  },
+  {
+    "page": "suggestions",
+    "label": "Vote up with"
+  },
+  {
+    "page": "suggestions",
+    "label": "Vote down with"
+  },
+  {
+    "page": "tickets",
+    "label": "Details"
+  },
+  {
+    "page": "tickets",
+    "label": "Panel"
+  },
+  {
+    "page": "tickets",
+    "label": "Modmail"
+  },
+  {
+    "page": "tickets",
+    "label": "Command"
+  },
+  {
+    "page": "tickets",
+    "label": "Form"
+  },
+  {
+    "page": "tickets",
+    "label": "Web form"
+  },
+  {
+    "page": "tickets",
+    "label": "Panels"
+  },
+  {
+    "page": "tickets",
+    "label": "Channel"
+  },
+  {
+    "page": "tickets",
+    "label": "Ticket category"
+  },
+  {
+    "page": "tickets",
+    "label": "Limit per member"
+  },
+  {
+    "page": "tickets",
+    "label": "Emoji"
+  },
+  {
+    "page": "tickets",
+    "label": "Ping the team"
+  },
+  {
+    "page": "tickets",
+    "label": "Text"
+  },
+  {
+    "page": "tickets",
+    "label": "Name"
+  },
+  {
+    "page": "tickets",
+    "label": "Title"
+  },
+  {
+    "page": "tickets",
+    "label": "Panel text"
+  },
+  {
+    "page": "tickets",
+    "label": "First message in the ticket"
+  },
+  {
+    "page": "tickets",
+    "label": "Channel name"
+  },
+  {
+    "page": "tickets",
+    "label": "New ticket"
+  },
+  {
+    "page": "tickets",
+    "label": "Tell us what you need. The team will be with you shortly."
+  },
+  {
+    "page": "tickets",
+    "label": "Tell us what happened and who was involved. Message links help."
+  },
+  {
+    "page": "tickets",
+    "label": "Tell us which decision you want reviewed and why."
+  },
+  {
+    "page": "tickets",
+    "label": "The team will be with you shortly."
+  },
+  {
+    "page": "tickets",
+    "label": "Behavior"
+  },
+  {
+    "page": "tickets",
+    "label": "Close after inactivity"
+  },
+  {
+    "page": "tickets",
+    "label": "Ticket log"
+  },
+  {
+    "page": "tickets",
+    "label": "Saved reply prefix"
+  },
+  {
+    "page": "tickets",
+    "label": "Internal note marker"
+  },
+  {
+    "page": "tickets",
+    "label": "Hide staff names"
+  },
+  {
+    "page": "tickets",
+    "label": "Saved replies"
+  },
+  {
+    "page": "tickets",
+    "label": "Open tickets"
+  },
+  {
+    "page": "tickets",
+    "label": "Ticket"
+  },
+  {
+    "page": "tickets",
+    "label": "Recently closed"
+  },
+  {
+    "page": "tickets",
+    "label": "Ratings, 30 days"
+  },
+  {
+    "page": "voice",
+    "label": "Owners"
+  },
+  {
+    "page": "voice",
+    "label": "Create channels"
+  },
+  {
+    "page": "voice",
+    "label": "Join channel"
+  },
+  {
+    "page": "voice",
+    "label": "Create rooms in"
+  },
+  {
+    "page": "voice",
+    "label": "Name"
+  },
+  {
+    "page": "voice",
+    "label": "Member limit"
+  },
+  {
+    "page": "voice",
+    "label": "Open rooms"
+  },
+  {
+    "page": "welcome",
+    "label": "Welcome message"
+  },
+  {
+    "page": "welcome",
+    "label": "Send as"
+  },
+  {
+    "page": "welcome",
+    "label": "Channel"
+  },
+  {
+    "page": "welcome",
+    "label": "Card title"
+  },
+  {
+    "page": "welcome",
+    "label": "Card subtitle"
+  },
+  {
+    "page": "welcome",
+    "label": "Rules channel"
+  },
+  {
+    "page": "welcome",
+    "label": "Role for accepting"
+  },
+  {
+    "page": "welcome",
+    "label": "Reaction"
+  },
+  {
+    "page": "welcome",
+    "label": "Existing message ID"
+  },
+  {
+    "page": "welcome",
+    "label": "Title"
+  },
+  {
+    "page": "welcome",
+    "label": "Rules"
+  },
+  {
+    "page": "welcome",
+    "label": "Take the role back when the reaction goes"
+  },
+  {
+    "page": "welcome",
+    "label": "On join"
+  },
+  {
+    "page": "welcome",
+    "label": "Give roles"
+  },
+  {
+    "page": "welcome",
+    "label": "Goodbye"
+  },
+  {
+    "page": "welcome",
+    "label": "Message"
+  },
+  {
+    "page": "welcome",
+    "label": "Goodbye card"
+  },
+  {
+    "page": "welcome",
+    "label": "Preview"
+  },
+  {
+    "page": "welcome",
+    "label": "Last 7 days"
+  }
+]

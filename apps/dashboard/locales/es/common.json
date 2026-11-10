@@ -59,5 +59,7 @@
   "Categories": "Categorías",
   "Loading": "Cargando",
   "Default": "Predeterminado",
-  "{n, plural, one {# member} other {# members}}": "{n, plural, one {# miembro} other {# miembros}}"
+  "{n, plural, one {# member} other {# members}}": "{n, plural, one {# miembro} other {# miembros}}",
+  "Search settings": "Buscar ajustes",
+  "No settings found.": "No se encontraron ajustes."
 }
