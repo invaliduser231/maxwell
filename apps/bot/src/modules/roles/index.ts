@@ -2,7 +2,9 @@ import definition from '@maxwell/core/modules/roles';
 import { RolesStore } from '@maxwell/core/stores/roles';
 import { defineBotModule } from '../../runtime/module.js';
 import { nextSlot } from '../insights/recurring.js';
+import { Confirmations } from '../moderation/confirm.js';
 import { ActivityRoles } from './activity.js';
+import { BulkRoles, roleCommand } from './bulk.js';
 import { AutomodHolds } from './held.js';
 import { Members } from './members.js';
 import { Menus } from './menus.js';
@@ -23,8 +25,13 @@ export default defineBotModule({
     const menus = new Menus(ctx, store);
     const activity = new ActivityRoles(ctx, store, holds);
     const members = new Members(ctx, store, holds, activity);
+    const confirmations = new Confirmations();
+    const bulk = new BulkRoles(ctx, confirmations);
 
-    ctx.on('reaction', (reaction) => menus.onReaction(reaction, true));
+    ctx.on('reaction', (reaction) => {
+      if (confirmations.handle(reaction)) return;
+      return menus.onReaction(reaction, true);
+    });
     ctx.on('reactionRemove', (reaction) => menus.onReaction(reaction, false));
     ctx.on('ownReactionRemove', (reaction) => menus.onOwnReactionRemove(reaction));
     ctx.on('messageRemove', (removal) => menus.onMessageRemove(removal.id));
@@ -48,6 +55,7 @@ export default defineBotModule({
     });
 
     ctx.job('temp.expire', (job) => menus.expire(job));
+    ctx.job('bulk.run', (job) => bulk.run(job));
     ctx.job('auto.grant', (job) => members.grantDelayed(job));
     ctx.job('sticky.restore', (job) => members.restoreDelayed(job));
 
@@ -84,5 +92,7 @@ export default defineBotModule({
     });
 
     ctx.privacy(rolesPrivacy(store, members));
+    ctx.onShutdown(() => confirmations.stop());
+    return [roleCommand(bulk)];
   },
 });

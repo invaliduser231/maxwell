@@ -1,3 +1,28 @@
 {
-  "menuHint": "{type, select, unique {One role at a time.} add {Roles stay when you remove the reaction.} temporary {Roles last {duration}.} verify {React to get the role.} remove {React to drop the role.} binding {Pick once. The choice is final.} limit {{limit, plural, one {Up to # role.} other {Up to # roles.}}} other {}}"
+  "menuHint": "{type, select, unique {One role at a time.} add {Roles stay when you remove the reaction.} temporary {Roles last {duration}.} verify {React to get the role.} remove {React to drop the role.} binding {Pick once. The choice is final.} limit {{limit, plural, one {Up to # role.} other {Up to # roles.}}} other {}}",
+  "bulk": {
+    "commands": {
+      "role": "Gives or takes a role from everyone at once.",
+      "all": "Gives a role to every member.",
+      "clear": "Takes a role away from every member.",
+      "stop": "Stops a running role change."
+    },
+    "confirm": "{mode, select, add {Give {role} to everyone in this community?} other {Take {role} away from everyone in this community?}} That is {members, plural, one {# member} other {# members}} and takes about {minutes, plural, one {# minute} other {# minutes}}.",
+    "confirmHint": "React with {icon} within 30 seconds to start.",
+    "expired": "Nothing changed.",
+    "progress": "{mode, select, add {Giving {role} to everyone.} other {Taking {role} away from everyone.}} {done, plural, one {# member} other {# members}} checked, {changed} changed.",
+    "done": "{mode, select, add {Done. {changed, plural, one {# member} other {# members}} got {role}.} other {Done. {changed, plural, one {# member} other {# members}} lost {role}.}}",
+    "failed": "{failed, plural, one {# member} other {# members}} could not be changed.",
+    "stopped": "Stopped after {changed, plural, one {# change} other {# changes}}.",
+    "stopHint": "Stop it with {command}.",
+    "running": "Already changing {role}. Wait for it or stop it with {command}.",
+    "nothingRunning": "No role change is running.",
+    "unknownRole": "I can't find that role. Mention it or use its ID.",
+    "everyone": "Everyone already has @everyone.",
+    "managed": "{role} belongs to an integration and can't be given by hand.",
+    "dangerous": "{role} has {permissions}. I won't hand that to everyone.",
+    "tooHighBot": "{role} sits above my highest role. Move my role above it first.",
+    "tooHighYou": "{role} sits above your highest role.",
+    "noMembers": "I can't read the member list here."
+  }
 }

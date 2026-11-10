@@ -1,3 +1,28 @@
 {
-  "menuHint": "{type, select, unique {Immer nur eine Rolle.} add {Rollen bleiben, auch wenn du die Reaktion entfernst.} temporary {Rollen gelten {duration}.} verify {Reagier, um die Rolle zu bekommen.} remove {Reagier, um die Rolle abzugeben.} binding {Einmal wählen. Die Wahl gilt.} limit {{limit, plural, one {Höchstens # Rolle.} other {Höchstens # Rollen.}}} other {}}"
+  "menuHint": "{type, select, unique {Immer nur eine Rolle.} add {Rollen bleiben, auch wenn du die Reaktion entfernst.} temporary {Rollen gelten {duration}.} verify {Reagier, um die Rolle zu bekommen.} remove {Reagier, um die Rolle abzugeben.} binding {Einmal wählen. Die Wahl gilt.} limit {{limit, plural, one {Höchstens # Rolle.} other {Höchstens # Rollen.}}} other {}}",
+  "bulk": {
+    "commands": {
+      "role": "Gibt allen auf einmal eine Rolle oder nimmt sie weg.",
+      "all": "Gibt jedem Mitglied eine Rolle.",
+      "clear": "Nimmt jedem Mitglied eine Rolle weg.",
+      "stop": "Stoppt eine laufende Rollenänderung."
+    },
+    "confirm": "{mode, select, add {Allen in dieser Community {role} geben?} other {Allen in dieser Community {role} wegnehmen?}} Das sind {members, plural, one {# Mitglied} other {# Mitglieder}} und dauert etwa {minutes, plural, one {# Minute} other {# Minuten}}.",
+    "confirmHint": "Reagier innerhalb von 30 Sekunden mit {icon}, um zu starten.",
+    "expired": "Nichts geändert.",
+    "progress": "{mode, select, add {Gebe allen {role}.} other {Nehme allen {role} weg.}} {done, plural, one {# Mitglied} other {# Mitglieder}} geprüft, {changed} geändert.",
+    "done": "{mode, select, add {Fertig. {changed, plural, one {# Mitglied hat} other {# Mitglieder haben}} {role} bekommen.} other {Fertig. {changed, plural, one {# Mitglied hat} other {# Mitglieder haben}} {role} verloren.}}",
+    "failed": "{failed, plural, one {# Mitglied konnte} other {# Mitglieder konnten}} nicht geändert werden.",
+    "stopped": "Gestoppt nach {changed, plural, one {# Änderung} other {# Änderungen}}.",
+    "stopHint": "Stoppen mit {command}.",
+    "running": "Ich ändere schon {role}. Warte oder stopp es mit {command}.",
+    "nothingRunning": "Gerade läuft keine Rollenänderung.",
+    "unknownRole": "Die Rolle finde ich nicht. Erwähne sie oder nimm ihre ID.",
+    "everyone": "@everyone hat sowieso jeder.",
+    "managed": "{role} gehört zu einer Integration und lässt sich nicht von Hand vergeben.",
+    "dangerous": "{role} hat {permissions}. Das gebe ich nicht allen.",
+    "tooHighBot": "{role} steht über meiner höchsten Rolle. Schieb meine Rolle erst darüber.",
+    "tooHighYou": "{role} steht über deiner höchsten Rolle.",
+    "noMembers": "Die Mitgliederliste kann ich hier nicht lesen."
+  }
 }

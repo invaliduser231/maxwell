@@ -1,3 +1,28 @@
 {
-  "menuHint": "{type, select, unique {Un rol a la vez.} add {Los roles se quedan aunque quites la reacción.} temporary {Los roles duran {duration}.} verify {Reacciona para obtener el rol.} remove {Reacciona para quitarte el rol.} binding {Elige una vez. La elección es definitiva.} limit {{limit, plural, one {Hasta # rol.} other {Hasta # roles.}}} other {}}"
+  "menuHint": "{type, select, unique {Un rol a la vez.} add {Los roles se quedan aunque quites la reacción.} temporary {Los roles duran {duration}.} verify {Reacciona para obtener el rol.} remove {Reacciona para quitarte el rol.} binding {Elige una vez. La elección es definitiva.} limit {{limit, plural, one {Hasta # rol.} other {Hasta # roles.}}} other {}}",
+  "bulk": {
+    "commands": {
+      "role": "Da o quita un rol a todos a la vez.",
+      "all": "Da un rol a todos los miembros.",
+      "clear": "Quita un rol a todos los miembros.",
+      "stop": "Detiene un cambio de rol en curso."
+    },
+    "confirm": "{mode, select, add {¿Dar {role} a todos en esta comunidad?} other {¿Quitar {role} a todos en esta comunidad?}} Son {members, plural, one {# miembro} other {# miembros}} y tarda unos {minutes, plural, one {# minuto} other {# minutos}}.",
+    "confirmHint": "Reacciona con {icon} en menos de 30 segundos para empezar.",
+    "expired": "No se cambió nada.",
+    "progress": "{mode, select, add {Dando {role} a todos.} other {Quitando {role} a todos.}} {done, plural, one {# miembro revisado} other {# miembros revisados}}, {changed} cambiados.",
+    "done": "{mode, select, add {Listo. {changed, plural, one {# miembro recibió} other {# miembros recibieron}} {role}.} other {Listo. {changed, plural, one {# miembro perdió} other {# miembros perdieron}} {role}.}}",
+    "failed": "{failed, plural, one {No se pudo cambiar # miembro} other {No se pudieron cambiar # miembros}}.",
+    "stopped": "Detenido tras {changed, plural, one {# cambio} other {# cambios}}.",
+    "stopHint": "Detenlo con {command}.",
+    "running": "Ya estoy cambiando {role}. Espera o detenlo con {command}.",
+    "nothingRunning": "No hay ningún cambio de rol en curso.",
+    "unknownRole": "No encuentro ese rol. Menciónalo o usa su ID.",
+    "everyone": "Todos ya tienen @everyone.",
+    "managed": "{role} pertenece a una integración y no se puede dar a mano.",
+    "dangerous": "{role} tiene {permissions}. No se lo voy a dar a todos.",
+    "tooHighBot": "{role} está por encima de mi rol más alto. Sube mi rol primero.",
+    "tooHighYou": "{role} está por encima de tu rol más alto.",
+    "noMembers": "Aquí no puedo leer la lista de miembros."
+  }
 }
