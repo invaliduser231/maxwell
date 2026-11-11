@@ -356,13 +356,14 @@ export class Blackjack {
     const hands = session.hands.map((hand, i) => {
       const label = many ? copy.blackjack.hand(i + 1) : copy.blackjack.you;
       const current = playing && many && i === session.active;
-      const tags = [
-        hand.doubled && copy.blackjack.doubled,
+      const stake = [
         hand.stake > 0 && currency && money(hand.stake, currency),
-        settled && copy.blackjack.outcome[settled.results[i] as Outcome],
+        hand.doubled && copy.blackjack.doubled,
       ].filter(Boolean);
       const name = current ? `**${label}** ${copy.blackjack.turn}` : `**${label}**`;
-      return `${name}  ${cards(hand.cards)}  **${total(hand.cards).value}**${tags.length ? `  ${tags.join(', ')}` : ''}`;
+      const result = settled ? `, ${copy.blackjack.outcome[settled.results[i] as Outcome]}` : '';
+      const extra = stake.length ? ` (${stake.join(', ')})` : '';
+      return `${name}  ${cards(hand.cards)}  **${total(hand.cards).value}**${extra}${result}`;
     });
 
     let summary: string | null = null;
