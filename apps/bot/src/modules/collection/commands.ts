@@ -105,6 +105,7 @@ export function collectionCommands(deps: CollectionDeps): Command[] {
 
   const view: Command = {
     name: 'view',
+    aliases: ['show'],
     description: copy.commands.view,
     guildOnly: true,
     cooldown: 3_000,
@@ -122,6 +123,7 @@ export function collectionCommands(deps: CollectionDeps): Command[] {
 
   const pack: Command = {
     name: 'pack',
+    aliases: ['open'],
     description: copy.commands.pack,
     guildOnly: true,
     cooldown: 3_000,
@@ -162,7 +164,7 @@ export function collectionCommands(deps: CollectionDeps): Command[] {
 
   const wishlist: Command = {
     name: 'wishlist',
-    aliases: ['wish'],
+    aliases: ['wish', 'wl'],
     description: copy.commands.wishlist,
     guildOnly: true,
     cooldown: 2_000,
@@ -233,6 +235,7 @@ export function collectionCommands(deps: CollectionDeps): Command[] {
 
   const sets: Command = {
     name: 'sets',
+    aliases: ['set'],
     description: copy.commands.sets,
     guildOnly: true,
     cooldown: 3_000,
@@ -328,6 +331,7 @@ export function collectionCommands(deps: CollectionDeps): Command[] {
 
   const cards: Command = {
     name: 'cards',
+    aliases: ['card', 'collection', 'col'],
     description: copy.commands.cards,
     guildOnly: true,
     args: [{ name: 'member', type: 'user', optional: true }],
@@ -359,6 +363,7 @@ export function collectionCommands(deps: CollectionDeps): Command[] {
 
   const claim: Command = {
     name: 'claim',
+    aliases: ['grab'],
     description: copy.commands.claim,
     guildOnly: true,
     cooldown: 2_000,

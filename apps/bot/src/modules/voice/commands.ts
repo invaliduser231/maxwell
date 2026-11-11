@@ -117,6 +117,7 @@ export function roomCommand(rooms: Rooms): Command {
 
   return {
     name: 'room',
+    aliases: ['vc'],
     description: copy.commands.room,
     guildOnly: true,
     subcommands: [name, limit, lockCommand(true), lockCommand(false), transfer],

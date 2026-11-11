@@ -304,6 +304,7 @@ export function roleCommand(bulk: BulkRoles): Command {
   };
   return {
     name: 'role',
+    aliases: ['roles'],
     description: copy.bulk.commands.role,
     guildOnly: true,
     subcommands: [all, clear, stop],

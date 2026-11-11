@@ -215,6 +215,7 @@ export function securityCommands(
     verify,
     {
       name: 'security',
+      aliases: ['sec'],
       description: copy.commands.security,
       guildOnly: true,
       permissions: status.permissions,

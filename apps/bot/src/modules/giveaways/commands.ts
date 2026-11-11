@@ -229,7 +229,7 @@ export function giveawayCommands(
   return [
     {
       name: 'giveaway',
-      aliases: ['giveaways'],
+      aliases: ['giveaways', 'gw'],
       description: copy.giveawayDescription,
       guildOnly: true,
       subcommands: [start, end, reroll, list],

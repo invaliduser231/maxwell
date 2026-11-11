@@ -94,6 +94,7 @@ export class AfkTracker {
 export function afkCommand(tracker: AfkTracker): Command {
   return {
     name: 'afk',
+    aliases: ['away', 'brb'],
     description: copy.commands.afk,
     guildOnly: true,
     cooldown: 10_000,

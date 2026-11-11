@@ -101,6 +101,7 @@ export function formCommands(ctx: FormsContext, runner: FormRunner): Command {
 
   return {
     name: 'form',
+    aliases: ['forms', 'apply'],
     description: copy.commands.form,
     guildOnly: true,
     subcommands: [start, list],

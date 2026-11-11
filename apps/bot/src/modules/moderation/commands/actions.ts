@@ -18,6 +18,7 @@ import { noise, usage, who } from './shared.js';
 
 interface Spec {
   name: Exclude<ExecutableAction, 'flag'>;
+  aliases?: string[];
   description: string;
   args: ArgSpec[];
   examples: string[];
@@ -72,6 +73,7 @@ const specs: Spec[] = [
   },
   {
     name: 'timeout',
+    aliases: ['mute'],
     description: copy.commands.timeout,
     args: [member, duration, reason],
     examples: ['timeout @Lena 10m spam', 'timeout @Lena 2h'],
@@ -84,6 +86,7 @@ const specs: Spec[] = [
   },
   {
     name: 'untimeout',
+    aliases: ['unmute'],
     description: copy.commands.untimeout,
     args: [member, reason],
     examples: ['untimeout @Lena'],
@@ -193,6 +196,7 @@ export async function replyExcerpt(
 function build(spec: Spec, moderation: ModerationService): GuildCommand {
   const command: GuildCommand = {
     name: spec.name,
+    aliases: spec.aliases,
     description: spec.description,
     guildOnly: true,
     args: spec.args,

@@ -207,6 +207,7 @@ export function ticketCommands(service: TicketService, mail: Modmail): Command {
 
   return {
     name: 'ticket',
+    aliases: ['tickets'],
     description: copy.commands.ticket,
     guildOnly: true,
     subcommands: [open, close, claim, add, remove, rename, modmail],

@@ -18,7 +18,7 @@ export function economyCommands(wallets: Wallets, shop: Shop): Command[] {
 
   const balance: Command = {
     name: 'balance',
-    aliases: ['bal'],
+    aliases: ['bal', 'money', 'wallet'],
     description: copy.commands.balance,
     guildOnly: true,
     args: [{ name: 'member', type: 'user', optional: true }],
@@ -84,6 +84,7 @@ export function economyCommands(wallets: Wallets, shop: Shop): Command[] {
 
   const pay: Command = {
     name: 'pay',
+    aliases: ['give'],
     description: copy.commands.pay,
     guildOnly: true,
     cooldown: 3_000,
@@ -131,6 +132,7 @@ export function economyCommands(wallets: Wallets, shop: Shop): Command[] {
 
   const shopCommand: Command = {
     name: 'shop',
+    aliases: ['store'],
     description: copy.commands.shop,
     guildOnly: true,
     cooldown: 3_000,
@@ -173,6 +175,7 @@ export function economyCommands(wallets: Wallets, shop: Shop): Command[] {
 
   const buy: Command = {
     name: 'buy',
+    aliases: ['purchase'],
     description: copy.commands.buy,
     guildOnly: true,
     cooldown: 3_000,
@@ -193,7 +196,7 @@ export function economyCommands(wallets: Wallets, shop: Shop): Command[] {
 
   const rich: Command = {
     name: 'rich',
-    aliases: ['richest'],
+    aliases: ['richest', 'baltop'],
     description: copy.commands.rich,
     guildOnly: true,
     cooldown: 5_000,

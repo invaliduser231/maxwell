@@ -87,6 +87,7 @@ export function caseCommands(moderation: ModerationService): Command[] {
 
   const cases: GuildCommand = {
     name: 'cases',
+    aliases: ['history'],
     description: copy.commands.cases,
     guildOnly: true,
     permissions: VIEW,
@@ -246,6 +247,7 @@ export function caseCommands(moderation: ModerationService): Command[] {
 
   const warnings: GuildCommand = {
     name: 'warnings',
+    aliases: ['warns'],
     description: copy.commands.warnings,
     guildOnly: true,
     args: [{ name: 'member', type: 'user', optional: true }],

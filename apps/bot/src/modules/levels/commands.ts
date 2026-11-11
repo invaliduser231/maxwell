@@ -58,6 +58,7 @@ export function levelCommands(
 
   const rank: Command = {
     name: 'rank',
+    aliases: ['level', 'lvl'],
     description: copy.rankDescription,
     guildOnly: true,
     cooldown: 5_000,
@@ -118,6 +119,7 @@ export function levelCommands(
 
   const levels: Command = {
     name: 'levels',
+    aliases: ['lb', 'leaderboard', 'top'],
     description: copy.levelsDescription,
     guildOnly: true,
     cooldown: 5_000,

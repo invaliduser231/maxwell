@@ -12,6 +12,7 @@ const NOISE = 15_000;
 export function suggestionCommands(module: Context, board: SuggestionBoard): Command[] {
   const suggest: Command = {
     name: 'suggest',
+    aliases: ['suggestion', 'idea'],
     description: copy.suggestDescription,
     guildOnly: true,
     cooldown: 60_000,

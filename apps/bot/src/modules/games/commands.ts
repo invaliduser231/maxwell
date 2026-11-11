@@ -62,6 +62,7 @@ export function gamesCommands(
 ): Command[] {
   const triviaCommand: Command = {
     name: 'trivia',
+    aliases: ['quiz'],
     description: copy.commands.trivia,
     guildOnly: true,
     cooldown: 10_000,
@@ -73,6 +74,7 @@ export function gamesCommands(
 
   const coinflipCommand: Command = {
     name: 'coinflip',
+    aliases: ['cf', 'flip'],
     description: copy.commands.coinflip,
     guildOnly: true,
     cooldown: 3_000,
@@ -87,6 +89,7 @@ export function gamesCommands(
 
   const higherlower: Command = {
     name: 'higherlower',
+    aliases: ['hl', 'hilo'],
     description: copy.commands.higherlower,
     guildOnly: true,
     cooldown: 3_000,

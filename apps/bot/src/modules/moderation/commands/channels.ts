@@ -118,6 +118,7 @@ export function channelCommands(tools: ChannelTools, confirmations: Confirmation
 
   const slowmode: GuildCommand = {
     name: 'slowmode',
+    aliases: ['slow'],
     description: copy.commands.slowmode,
     guildOnly: true,
     args: [
@@ -163,6 +164,7 @@ export function channelCommands(tools: ChannelTools, confirmations: Confirmation
 
   const purge: GuildCommand = {
     name: 'purge',
+    aliases: ['clear', 'clean', 'prune'],
     description: copy.commands.purge,
     guildOnly: true,
     args: [

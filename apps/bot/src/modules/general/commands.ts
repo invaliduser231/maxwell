@@ -10,6 +10,7 @@ import { copy } from './copy.js';
 
 const ping: Command = {
   name: 'ping',
+  aliases: ['latency'],
   description: copy.commands.ping,
   cooldown: 3_000,
   async run(ctx) {
@@ -127,7 +128,7 @@ async function helpFor(ctx: CommandContext, query: string): Promise<void> {
 
 const help: Command = {
   name: 'help',
-  aliases: ['commands'],
+  aliases: ['commands', 'h'],
   description: copy.commands.help,
   args: [{ name: 'topic', type: 'text', optional: true }],
   examples: ['help', 'help invites', 'help invites top'],
@@ -219,7 +220,7 @@ const prefix: Command = {
 
 const about: Command = {
   name: 'about',
-  aliases: ['info'],
+  aliases: ['info', 'bot'],
   description: copy.commands.about,
   async run(ctx) {
     const { startedAt } = ctx.services;

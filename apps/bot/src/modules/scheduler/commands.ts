@@ -11,6 +11,7 @@ const PAGE_SIZE = 10;
 export function schedulerCommands(reminders: Reminders): Command[] {
   const remind: Command = {
     name: 'remind',
+    aliases: ['reminder', 'remindme'],
     description: copy.commands.remind,
     guildOnly: true,
     cooldown: 3_000,
