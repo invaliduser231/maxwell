@@ -314,6 +314,14 @@ export class InboxStore {
     return row ? openItem(row) : null;
   }
 
+  async byNotice(guildId: string, messageId: string): Promise<InboxItem | null> {
+    const [row] = await this.sql<InboxItem[]>`
+      select ${columns(this.sql)} from moderation_inbox
+      where guild_id = ${guildId} and notice_message_id = ${messageId}
+    `;
+    return row ? openItem(row) : null;
+  }
+
   async reviewFor(guildId: string, caseNumber: number): Promise<InboxItem | null> {
     const [row] = await this.sql<InboxItem[]>`
       select ${columns(this.sql)} from moderation_inbox

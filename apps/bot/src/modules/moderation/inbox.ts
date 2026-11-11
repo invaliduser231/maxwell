@@ -25,6 +25,19 @@ import { ActionError, type ModerationService } from './service.js';
 import { clip } from './text.js';
 
 const MAX_TEXT = 1_500;
+const VARIATION = String.fromCodePoint(0xfe0f);
+const bare = (emoji: string) => emoji.replaceAll(VARIATION, '');
+const triage = {
+  claim: String.fromCodePoint(0x1f64b),
+  resolve: String.fromCodePoint(0x2705),
+  dismiss: String.fromCodePoint(0x1f5d1, 0xfe0f),
+} as const;
+type Triage = keyof typeof triage;
+
+function triageKeys(item: InboxItem): string[] {
+  if (item.status !== 'open' && item.status !== 'claimed') return [];
+  return item.kind === 'report' ? Object.values(triage) : [triage.claim];
+}
 const MAX_REPORTERS = 10;
 
 const snowflake = z.string().regex(/^\d{1,21}$/);
@@ -95,6 +108,7 @@ export class ModInbox {
 
   async onReaction(reaction: ReactionEvent): Promise<void> {
     if (!reaction.guildId || reaction.bot) return;
+    if (await this.#triage(reaction, reaction.guildId)) return;
     const { platform, log } = this.services;
     const config = await this.moderation.config(reaction.guildId);
     if (!config.reports || !config.reportEmoji) return;
@@ -118,6 +132,37 @@ export class ModInbox {
     await platform
       .sendDirect(reaction.userId, inboxCopy.reactionSent(guild?.name ?? reaction.guildId))
       .catch(() => false);
+  }
+
+  async #triage(reaction: ReactionEvent, guildId: string): Promise<boolean> {
+    const pressed = (Object.keys(triage) as Triage[]).find(
+      (key) => bare(triage[key]) === bare(reaction.emoji),
+    );
+    if (!pressed) return false;
+    const item = await this.store.byNotice(guildId, reaction.messageId);
+    if (!item) return false;
+    const { platform } = this.services;
+    await platform
+      .unreact(reaction.channelId, reaction.messageId, reaction.emoji, reaction.userId)
+      .catch(() => {});
+    const staff = await platform
+      .hasPermissions(guildId, reaction.userId, null, ['ModerateMembers'])
+      .catch(() => false);
+    if (!staff || !triageKeys(item).includes(triage[pressed])) return true;
+    if (pressed === 'claim') {
+      const next = item.assigneeId === reaction.userId ? null : reaction.userId;
+      await this.assign(guildId, item.number, next, reaction.userId);
+      return true;
+    }
+    await this.resolve(
+      guildId,
+      resolvePayload.parse({
+        number: item.number,
+        status: pressed === 'resolve' ? 'resolved' : 'dismissed',
+        by: reaction.userId,
+      }),
+    );
+    return true;
   }
 
   async openReview(row: CaseRow): Promise<void> {
@@ -151,6 +196,13 @@ export class ModInbox {
     try {
       if (item.noticeChannelId && item.noticeMessageId) {
         await platform.edit(item.noticeChannelId, item.noticeMessageId, { embeds: [embed] });
+        if (triageKeys(item).length === 0) {
+          for (const emoji of Object.values(triage)) {
+            await platform
+              .unreact(item.noticeChannelId, item.noticeMessageId, emoji)
+              .catch(() => {});
+          }
+        }
         return;
       }
       const config = await this.moderation.config(item.guildId);
@@ -161,6 +213,9 @@ export class ModInbox {
       }
       const messageId = await platform.send(config.inboxChannelId, { embeds: [embed] });
       await this.store.setNotice(item.guildId, item.number, config.inboxChannelId, messageId);
+      for (const emoji of triageKeys(item)) {
+        await platform.react(config.inboxChannelId, messageId, emoji).catch(() => {});
+      }
     } catch (error) {
       log.warn({ err: error, guild: item.guildId, module: 'moderation' }, 'inbox channel unusable');
     }

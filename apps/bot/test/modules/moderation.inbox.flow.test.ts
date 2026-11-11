@@ -92,6 +92,7 @@ describe.skipIf(!url)('moderation inbox flows', () => {
       },
       unreact: async (_c: string, _m: string, _e: string, userId: string) =>
         void unreacted.push(userId),
+      react: async (_c: string, _m: string, emoji: string) => void reacted.push(emoji),
       delete: async (_channel: string, id: string) => void deleted.push(id),
       timeout: async (_g: string, userId: string) => void timeouts.push(userId),
       ban: async (_g: string, userId: string) => void bans.push(userId),
@@ -146,6 +147,7 @@ describe.skipIf(!url)('moderation inbox flows', () => {
     await sql.end();
   });
 
+  const reacted: string[] = [];
   const react = (userId: string, emoji = '🚩') =>
     inbox.onReaction({
       guildId: guild,
@@ -177,6 +179,26 @@ describe.skipIf(!url)('moderation inbox flows', () => {
     expect(item?.reporters).toEqual([lena, tom]);
     expect(sent).toHaveLength(1);
     expect(edited).toContain(item?.noticeMessageId);
+  });
+
+  it('lets staff claim a report by reacting on the inbox notice', async () => {
+    expect(reacted).toEqual(['\u{1F64B}', '\u2705', '\u{1F5D1}\uFE0F']);
+    const notice = (await inbox.store.get(guild, 1))?.noticeMessageId ?? '';
+    const press = (userId: string, emoji: string) =>
+      inbox.onReaction({
+        guildId: guild,
+        channelId: '900',
+        messageId: notice,
+        userId,
+        emoji,
+        bot: false,
+      });
+    await press(lena, '\u{1F64B}');
+    expect((await inbox.store.get(guild, 1))?.assigneeId).toBeNull();
+    await press(admin, '\u{1F64B}');
+    expect((await inbox.store.get(guild, 1))?.assigneeId).toBe(admin);
+    await press(admin, '\u{1F64B}');
+    expect((await inbox.store.get(guild, 1))?.assigneeId).toBeNull();
   });
 
   it('resolves a report with a timeout and can be restored', async () => {
