@@ -3,7 +3,7 @@
 import type { CardsConfig } from '@maxwell/core/modules/cards';
 import { useEffect, useId, useState, useTransition } from 'react';
 import { type CardLook, DEFAULT_ACCENT, RankCard, WelcomeCard } from '@/components/card-preview';
-import { Seg } from '@/components/controls';
+import { rangeFill, Seg } from '@/components/controls';
 import { useGuild } from '@/components/guild';
 import { useT } from '@/components/i18n';
 import { useDraft } from '@/components/module-shell';
@@ -285,7 +285,7 @@ export function CardsForm({
                   value={dimPercent}
                   disabled={readOnly}
                   onChange={(event) => set({ dim: Number(event.target.value) / 100 })}
-                  style={{ width: '100%' }}
+                  style={{ width: '100%', ...rangeFill(dimPercent, 0, 90) }}
                 />
               </Field>
             </>

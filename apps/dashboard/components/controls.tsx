@@ -7,6 +7,14 @@ import { Listbox, type ListOption } from './listbox';
 import { useReadOnly } from './module-shell';
 import { CloseIcon, roleColor } from './ui';
 
+export function rangeFill(value: number, min: number, max: number, color?: string): CSSProperties {
+  const share = max > min ? ((value - min) / (max - min)) * 100 : 0;
+  return {
+    '--value': `${Math.min(100, Math.max(0, share))}%`,
+    ...(color ? { '--fill': color } : {}),
+  } as CSSProperties;
+}
+
 export function Switch({
   checked,
   onChange,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Checkbox } from '@/components/controls';
+import { Checkbox, rangeFill } from '@/components/controls';
 import { useGuild } from '@/components/guild';
 import { useT } from '@/components/i18n';
 import { type Status, StatusText } from '@/components/status-text';
@@ -217,7 +217,7 @@ export function IncidentReplay({ detail, canEdit }: { detail: IncidentDetail; ca
                 value={step}
                 aria-label={t.raw('Position in the timeline')}
                 onChange={(event) => go(Number(event.target.value))}
-                style={{ width: '100%', marginTop: 12 }}
+                style={{ width: '100%', marginTop: 12, ...rangeFill(step, 0, total) }}
               />
             </PanelBody>
             {shown.length === 0 ? (

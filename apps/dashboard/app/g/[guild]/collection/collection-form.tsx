@@ -14,6 +14,7 @@ import {
   ChannelMulti,
   OptionalNumber,
   RoleSelect,
+  rangeFill,
   Select,
   Switch,
   Tabs,
@@ -1130,9 +1131,12 @@ function RarityPanel() {
                 ),
               })
             }
-            style={{
-              background: `linear-gradient(to right, ${tier.color} ${Math.min(100, Math.max(1, Math.round(tier.weight)))}%, var(--mx-field) 0)`,
-            }}
+            style={rangeFill(
+              Math.min(100, Math.max(1, Math.round(tier.weight))),
+              1,
+              100,
+              tier.color,
+            )}
           />
           <span className="mx-mono" style={{ width: 44, textAlign: 'right' }}>
             {`${(shares[i]?.share ?? 0) < 1 ? (shares[i]?.share ?? 0).toLocaleString(t.locale, { maximumFractionDigits: 1, minimumFractionDigits: 1 }) : Math.round(shares[i]?.share ?? 0)}%`}
