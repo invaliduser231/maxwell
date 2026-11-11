@@ -1,5 +1,6 @@
 import type { Command } from '../../commands/types.js';
 import { lines, subtext } from '../../ui/format.js';
+import { chunk } from '../../ui/paginator.js';
 import { palette } from '../../ui/palette.js';
 import { formsCopy as copy } from './copy.js';
 import type { FormsContext } from './review.js';
@@ -79,23 +80,20 @@ export function formCommands(ctx: FormsContext, runner: FormRunner): Command {
         await command.reply(copy.listEmpty);
         return;
       }
-      await command.reply({
-        embeds: [
-          {
-            color: palette.north,
-            title: copy.listTitle,
-            description: lines(
-              ...available.flatMap((form, i) => [
-                i > 0 ? '' : null,
-                copy.listLine(form.name, form.id, form.questions.length),
-                form.description ? form.description.slice(0, 200) : null,
-              ]),
-              '',
-              subtext(copy.listHint(command.prefix)),
-            ),
-          },
-        ],
-      });
+      const pages = chunk(available, 5).map((group) => ({
+        color: palette.north,
+        title: copy.listTitle,
+        description: lines(
+          ...group.flatMap((form, i) => [
+            i > 0 ? '' : null,
+            copy.listLine(form.name, form.id, form.questions.length),
+            form.description ? form.description.slice(0, 200) : null,
+          ]),
+          '',
+          subtext(copy.listHint(command.prefix)),
+        ),
+      }));
+      await command.services.pages.send(command, pages);
     },
   };
 

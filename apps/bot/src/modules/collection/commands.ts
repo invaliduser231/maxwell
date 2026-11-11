@@ -188,20 +188,17 @@ export function collectionCommands(deps: CollectionDeps): Command[] {
           await ctx.reply(voice.empty('collection.wishlist', copy.wishlist.empty, ctx.seed));
           return;
         }
-        await ctx.reply({
-          embeds: [
-            {
-              color: palette.north,
-              title: copy.wishlist.title,
-              description: lines(
-                ...cards.map(
-                  (card) =>
-                    `${code(`#${card.number}`)}  **${card.name}**  ${tierOf(config.tiers, card.rarity).name}`,
-                ),
-              ),
-            },
-          ],
-        });
+        const pages = chunk(cards, 15).map((group) => ({
+          color: palette.north,
+          title: copy.wishlist.title,
+          description: lines(
+            ...group.map(
+              (card) =>
+                `${code(`#${card.number}`)}  **${card.name}**  ${tierOf(config.tiers, card.rarity).name}`,
+            ),
+          ),
+        }));
+        await ctx.services.pages.send(ctx, pages);
         return;
       }
 

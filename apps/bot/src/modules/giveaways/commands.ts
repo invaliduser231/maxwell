@@ -3,6 +3,7 @@ import type { Giveaway, GiveawayStore } from '@maxwell/core/stores/giveaways';
 import type { Command, GuildContext } from '../../commands/types.js';
 import type { ModuleContext } from '../../runtime/module.js';
 import { lines } from '../../ui/format.js';
+import { chunk } from '../../ui/paginator.js';
 import { palette } from '../../ui/palette.js';
 import { audit, copy } from './copy.js';
 import { parseStartOptions } from './options.js';
@@ -206,23 +207,18 @@ export function giveawayCommands(
         await ctx.reply(ctx.services.voice.empty('giveaways.list', copy.emptyList, ctx.seed));
         return;
       }
-      await ctx.reply({
-        embeds: [
-          {
-            color: palette.north,
-            title: copy.listTitle,
-            description: lines(
-              ...active
-                .slice(0, 25)
-                .map((g) =>
-                  g.status === 'running'
-                    ? copy.listRunning(g.number, g.prize, g.channelId, g.endsAt, g.winners)
-                    : copy.listScheduled(g.number, g.prize, g.channelId, g.startsAt),
-                ),
-            ),
-          },
-        ],
-      });
+      const pages = chunk(active, 10).map((group) => ({
+        color: palette.north,
+        title: copy.listTitle,
+        description: lines(
+          ...group.map((g) =>
+            g.status === 'running'
+              ? copy.listRunning(g.number, g.prize, g.channelId, g.endsAt, g.winners)
+              : copy.listScheduled(g.number, g.prize, g.channelId, g.startsAt),
+          ),
+        ),
+      }));
+      await ctx.services.pages.send(ctx, pages);
     },
   };
 

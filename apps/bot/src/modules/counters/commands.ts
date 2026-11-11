@@ -9,6 +9,7 @@ import type { Command } from '../../commands/types.js';
 import { ChannelKind } from '../../platform/types.js';
 import type { ModuleContext } from '../../runtime/module.js';
 import { code, lines } from '../../ui/format.js';
+import { chunk } from '../../ui/paginator.js';
 import { palette } from '../../ui/palette.js';
 import type { CounterBoard } from './board.js';
 import { copy, reasons } from './copy.js';
@@ -111,17 +112,14 @@ export function counterCommand(
         );
         return;
       }
-      await command.reply({
-        embeds: [
-          {
-            color: palette.north,
-            title: copy.listTitle,
-            description: lines(
-              ...counters.map((item) => copy.listLine(item.channelId, copy.types[item.type])),
-            ),
-          },
-        ],
-      });
+      const pages = chunk(counters, 15).map((group) => ({
+        color: palette.north,
+        title: copy.listTitle,
+        description: lines(
+          ...group.map((item) => copy.listLine(item.channelId, copy.types[item.type])),
+        ),
+      }));
+      await command.services.pages.send(command, pages);
     },
   };
 
