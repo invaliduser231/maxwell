@@ -18,7 +18,14 @@ const bare = (emoji: string) => emoji.replaceAll(VARIATION, '');
 
 type Button =
   | { kind: 'set'; guildId: string; userId: string; id: string; number: number }
-  | { kind: 'due'; guildId: string; channelId: string; userId: string; content: string };
+  | {
+      kind: 'due';
+      guildId: string;
+      channelId: string;
+      userId: string;
+      content: string;
+      createdAt: Date;
+    };
 
 type Ctx = ModuleContext<typeof schedulerConfig>;
 
@@ -126,7 +133,7 @@ export class Reminders {
     await platform
       .edit(reaction.channelId, reaction.messageId, {
         content: lines(
-          copy.deliver(button.userId, button.content, new Date()),
+          copy.deliver(button.userId, button.content, button.createdAt),
           subtext(copy.snoozed(row.dueAt)),
         ),
         mentionUsers: [],
@@ -204,6 +211,7 @@ export class Reminders {
       channelId: row.channelId,
       userId: row.userId,
       content: row.content,
+      createdAt: row.createdAt,
     });
     for (const emoji of Object.values(snooze)) {
       await platform.react(row.channelId, messageId, emoji).catch(() => {});
