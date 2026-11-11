@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import { GlobalFonts, type Image } from '@napi-rs/canvas';
+import { learnGlyphs } from './glyphs.js';
 
 export const assetsDir = join(import.meta.dirname, '..', '..', '..', '..', 'assets');
 
@@ -70,13 +71,13 @@ let registered = false;
 export function registerFonts(dir = join(assetsDir, 'fonts')): void {
   if (registered) return;
   registered = true;
-  for (const file of [
-    'SpaceGrotesk-Medium.ttf',
-    'SpaceGrotesk-Bold.ttf',
-    'Inter-Regular.ttf',
-    'Inter-Medium.ttf',
-    'Inter-SemiBold.ttf',
-  ]) {
-    GlobalFonts.registerFromPath(join(dir, file));
+  const files = {
+    [fonts.display]: ['SpaceGrotesk-Medium.ttf', 'SpaceGrotesk-Bold.ttf'],
+    [fonts.body]: ['Inter-Regular.ttf', 'Inter-Medium.ttf', 'Inter-SemiBold.ttf'],
+  };
+  for (const [family, names] of Object.entries(files)) {
+    const paths = names.map((name) => join(dir, name));
+    for (const path of paths) GlobalFonts.registerFromPath(path);
+    learnGlyphs(family, paths);
   }
 }

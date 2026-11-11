@@ -1,4 +1,5 @@
 import type { Image, SKRSContext2D } from '@napi-rs/canvas';
+import { printable } from './glyphs.js';
 import type { CardStyle, Theme } from './theme.js';
 
 export interface Field {
@@ -151,16 +152,18 @@ export function avatar(
 
 export function fitText(
   ctx: Ctx,
-  text: string,
+  value: string,
   maxWidth: number,
   font: (size: number) => string,
   sizes: number[],
 ): { text: string; font: string } {
+  const text = printable(value, font(sizes[0] ?? 24)).text;
+  const sized = (size: number) => printable(text, font(size)).font;
   for (const size of sizes) {
-    ctx.font = font(size);
+    ctx.font = sized(size);
     if (ctx.measureText(text).width <= maxWidth) return { text, font: ctx.font };
   }
-  const smallest = font(sizes.at(-1) ?? 24);
+  const smallest = sized(sizes.at(-1) ?? 24);
   ctx.font = smallest;
   let cut = text;
   while (cut.length > 1 && ctx.measureText(`${cut}…`).width > maxWidth) cut = cut.slice(0, -1);
@@ -176,12 +179,13 @@ export function text(
   color: string,
   align: 'left' | 'right' | 'center' = 'left',
 ): number {
-  ctx.font = font;
+  const { text: shown, font: chosen } = printable(value, font);
+  ctx.font = chosen;
   ctx.fillStyle = color;
   ctx.textAlign = align;
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText(value, x, y);
-  return ctx.measureText(value).width;
+  ctx.fillText(shown, x, y);
+  return ctx.measureText(shown).width;
 }
 
 export function progress(
