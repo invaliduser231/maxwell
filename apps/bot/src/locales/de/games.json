@@ -48,7 +48,7 @@
   "hilo": {
     "running": "Du hast schon ein Spiel in {channel} laufen.",
     "start": "{staked, select, yes {Die Zahl ist **{n}** (1 bis {max}). {stake} stehen auf dem Spiel.} other {Die Zahl ist **{n}** (1 bis {max}).}}",
-    "how": "Antworte mit `höher` oder `tiefer`, mit `stopp` nimmst du den Gewinn mit. Endet {until}.",
+    "how": "{up} höher, {down} tiefer, {stop} Gewinn mitnehmen. Tippen geht auch: `höher`, `tiefer` oder `stopp`. Endet {until}.",
     "right": "{valued, select, yes {**{n}**. Richtig, {streak} in Folge. Jetzt {worth} wert.} other {**{n}**. Richtig, {streak} in Folge.}}",
     "wrong": "{staked, select, yes {**{n}**. Falsch. {lost} sind nach {streak, plural, one {# richtigen Tipp} other {# richtigen Tipps}} weg.} other {**{n}**. Falsch. Die Serie endet bei {streak, number}.}}",
     "cashed": "{amount} mitgenommen nach {streak, plural, one {# richtigen Tipp} other {# richtigen Tipps}}.",

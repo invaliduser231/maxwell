@@ -1,15 +1,16 @@
 import { connect, migrate, type Sql } from '@maxwell/core';
 import definition, { gamesConfig } from '@maxwell/core/modules/games';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { z } from 'zod';
 import type { GuildContext } from '../../src/commands/types.js';
 import { createLogger } from '../../src/log.js';
 import { Wallets } from '../../src/modules/economy/wallets.js';
 import { Coinflip } from '../../src/modules/games/coinflip.js';
+import { HigherLower } from '../../src/modules/games/hilo.js';
 import games from '../../src/modules/games/index.js';
 import { Games } from '../../src/modules/games/service.js';
 import { Trivia } from '../../src/modules/games/trivia.js';
-import type { IncomingMessage, Outgoing } from '../../src/platform/types.js';
+import type { IncomingMessage, Outgoing, ReactionEvent } from '../../src/platform/types.js';
 import { createContext } from '../../src/runtime/module.js';
 import { PrivacyRegistry } from '../../src/runtime/privacy.js';
 import type { JobHandler } from '../../src/runtime/scheduler.js';
@@ -30,11 +31,14 @@ describe.skipIf(!url)('games module', () => {
   const replies: string[] = [];
   const sent: string[] = [];
   const edits: string[] = [];
+  const reactions: string[] = [];
+  const removed: string[] = [];
   const scheduled: { kind: string; key?: string }[] = [];
   const question = { question: 'Who thought up the demon?', answers: ['Maxwell'], choices: [] };
   const config = gamesConfig.parse({ trivia: { questions: [question] } });
 
-  const text = (message: Outgoing) => (typeof message === 'string' ? message : message.content);
+  const text = (message: Outgoing) =>
+    typeof message === 'string' ? message : (message.content ?? message.embeds?.[0]?.description);
   const schedule = async (kind: string, input: { dedupeKey?: string }) => {
     scheduled.push({ kind, key: input.dedupeKey });
     return null;
@@ -80,7 +84,13 @@ describe.skipIf(!url)('games module', () => {
         edit: async (_c: string, _m: string, message: Outgoing) => {
           edits.push(text(message) ?? '');
         },
-        unreact: async () => {},
+        react: async (_c: string, _m: string, emoji: string) => {
+          reactions.push(emoji);
+        },
+        unreact: async (_c: string, _m: string, emoji: string, userId?: string) => {
+          if (userId) removed.push(emoji);
+        },
+        missingBotPermissions: async () => [],
       },
       voice: { icon: () => '', icons: { inline: () => '', reaction: () => null } },
       jobs: {
@@ -98,7 +108,7 @@ describe.skipIf(!url)('games module', () => {
   });
 
   afterAll(async () => {
-    for (const table of ['games_scores', 'games_duels', 'games_trivia']) {
+    for (const table of ['games_scores', 'games_duels', 'games_trivia', 'games_hilo']) {
       await sql`delete from ${sql(table)} where guild_id = ${guild}`;
     }
     await sql.end();
@@ -136,6 +146,43 @@ describe.skipIf(!url)('games module', () => {
     await new Trivia(service, schedule).end(room, open.id);
     expect(sent.at(-1)).toBe("Time's up. It was **Maxwell**.");
     expect(await service.store.trivia(room)).toBeNull();
+  });
+
+  it('plays higher or lower with reactions on one message', async () => {
+    const hilo = new HigherLower(service, schedule);
+    const cmd = {
+      guildId: guild,
+      message: said('m!hl'),
+      reply: async (message: Outgoing) => {
+        replies.push(text(message) ?? '');
+        return '880000000000000001';
+      },
+    } as unknown as GuildContext;
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0.4);
+    await hilo.start(cmd, undefined);
+    expect(reactions.slice(-3)).toEqual(['⬆️', '⬇️', '⏹️']);
+    const press = (emoji: string, userId = player): ReactionEvent => ({
+      guildId: guild,
+      channelId: room,
+      messageId: '880000000000000001',
+      userId,
+      emoji,
+      bot: false,
+    });
+
+    random.mockReturnValue(0.9);
+    await hilo.onReaction(press('⬆️', rival), true);
+    expect((await service.store.hilo(guild, player))?.streak).toBe(0);
+    await hilo.onReaction(press('⬆'), true);
+    expect(removed.at(-1)).toBe('⬆');
+    expect(edits.at(-1)).toContain('Right, 1 in a row.');
+    await hilo.onReaction(press('⬆'), false);
+    expect((await service.store.hilo(guild, player))?.streak).toBe(1);
+
+    await hilo.onReaction(press('⏹️'), true);
+    expect(edits.at(-1)).toBe('Stopped at a streak of 1.');
+    expect(await service.store.hilo(guild, player)).toBeNull();
+    random.mockRestore();
   });
 
   it('ignores reactions from bots on a duel', async () => {

@@ -48,7 +48,7 @@
   "hilo": {
     "running": "You already have a game running in {channel}.",
     "start": "{staked, select, yes {The number is **{n}** (1 to {max}). {stake} on the line.} other {The number is **{n}** (1 to {max}).}}",
-    "how": "Reply `higher` or `lower`, `stop` to cash out. Ends {until}.",
+    "how": "{up} higher, {down} lower, {stop} cash out. Typing `higher`, `lower` or `stop` works too. Ends {until}.",
     "right": "{valued, select, yes {**{n}**. Right, {streak} in a row. Worth {worth} now.} other {**{n}**. Right, {streak} in a row.}}",
     "wrong": "{staked, select, yes {**{n}**. Wrong. {lost} gone after {streak, plural, one {# right guess} other {# right guesses}}.} other {**{n}**. Wrong. Streak ends at {streak, number}.}}",
     "cashed": "Cashed out {amount} after {streak, plural, one {# right guess} other {# right guesses}}.",

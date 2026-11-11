@@ -23,6 +23,8 @@ export default defineBotModule({
     ctx.on('message', (message) => channels.onMessage(message));
     ctx.on('message', (message) => hilo.onMessage(message));
     ctx.on('reaction', (reaction) => coinflip.onReaction(reaction));
+    ctx.on('reaction', (reaction) => hilo.onReaction(reaction, true));
+    ctx.on('reactionRemove', (reaction) => hilo.onReaction(reaction, false));
     ctx.on(
       'ready',
       async () => {

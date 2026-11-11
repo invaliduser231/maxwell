@@ -150,5 +150,12 @@ export default defineModule({
         );
       `,
     },
+    {
+      id: '3-message-ids',
+      up: `
+        alter table games_hilo add column message_id bigint;
+        alter table games_trivia add column message_id bigint;
+      `,
+    },
   ],
 });

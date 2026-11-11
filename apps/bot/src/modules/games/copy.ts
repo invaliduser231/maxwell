@@ -31,7 +31,8 @@ export const copy = catalog('games', en, (m) => ({
     running: (channelId: string) => m.hilo.running({ channel: mention.channel(channelId) }),
     start: (n: number, max: number, stake: string | null) =>
       m.hilo.start({ staked: stake ? 'yes' : 'no', n, max, stake: stake ?? '' }),
-    how: (until: Date) => m.hilo.how({ until: timestamp(until, 'R') }),
+    how: (until: Date, keys: { up: string; down: string; stop: string }) =>
+      m.hilo.how({ ...keys, until: timestamp(until, 'R') }),
     right: (n: number, streak: number, worth: string | null) =>
       m.hilo.right({ valued: worth ? 'yes' : 'no', n, streak, worth: worth ?? '' }),
     wrong: (n: number, streak: number, lost: string | null) =>

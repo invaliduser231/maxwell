@@ -1,18 +1,44 @@
 import type { HiloSession } from '@maxwell/core/stores/games';
 import type { GuildContext } from '../../commands/types.js';
-import type { IncomingMessage } from '../../platform/types.js';
+import type { IncomingMessage, ReactionEvent } from '../../platform/types.js';
 import { lines, subtext } from '../../ui/format.js';
 import type { Schedule } from '../economy/shop.js';
 import { type Currency, money } from '../economy/wallets.js';
 import { copy } from './copy.js';
-import { nextMultiplier, nextNumber, parseGuess, payout } from './logic.js';
+import { type Guess, nextMultiplier, nextNumber, parseGuess, payout } from './logic.js';
 import type { Games } from './service.js';
 
 const ACTIVE_LIMIT = 10_000;
 const REWARD_STREAK = 3;
 
+const key = (code: number) => String.fromCodePoint(code, 0xfe0f);
+const keys = { up: key(0x2b06), down: key(0x2b07), stop: key(0x23f9) };
+
+const bare = (emoji: string) => emoji.replaceAll(String.fromCodePoint(0xfe0f), '');
+
+function keyGuess(emoji: string): Guess | null {
+  const pressed = bare(emoji);
+  if (pressed === bare(keys.up)) return 'higher';
+  if (pressed === bare(keys.down)) return 'lower';
+  if (pressed === bare(keys.stop)) return 'stop';
+  return null;
+}
+
+interface Board {
+  guildId: string;
+  userId: string;
+  tidy: boolean;
+}
+
+interface Turn {
+  text: string;
+  done: boolean;
+  session: HiloSession;
+}
+
 export class HigherLower {
   readonly #active = new Map<string, string>();
+  readonly #boards = new Map<string, Board>();
 
   constructor(
     private readonly games: Games,
@@ -22,6 +48,7 @@ export class HigherLower {
   async load(): Promise<void> {
     for (const session of await this.games.store.activeHilo()) {
       this.#track(session.guildId, session.userId, session.channelId);
+      if (session.messageId) this.#board(session.messageId, session.guildId, session.userId, false);
     }
   }
 
@@ -33,6 +60,19 @@ export class HigherLower {
     this.#active.set(`${guildId}:${userId}`, channelId);
   }
 
+  #board(messageId: string, guildId: string, userId: string, tidy: boolean): void {
+    if (this.#boards.size >= ACTIVE_LIMIT) {
+      const oldest = this.#boards.keys().next().value;
+      if (oldest !== undefined) this.#boards.delete(oldest);
+    }
+    this.#boards.set(messageId, { guildId, userId, tidy });
+  }
+
+  #forget(guildId: string, userId: string, messageId: string | null | undefined): void {
+    this.#active.delete(`${guildId}:${userId}`);
+    if (messageId) this.#boards.delete(messageId);
+  }
+
   async #expireAt(session: Pick<HiloSession, 'guildId' | 'userId'>, at: Date): Promise<void> {
     await this.schedule('hiloExpire', {
       guildId: session.guildId,
@@ -40,6 +80,10 @@ export class HigherLower {
       payload: { userId: session.userId },
       dedupeKey: `games.hilo:${session.guildId}:${session.userId}:${at.getTime()}`,
     });
+  }
+
+  #how(until: Date): string {
+    return subtext(copy.hilo.how(until, keys));
   }
 
   async start(ctx: GuildContext, stake: number | undefined): Promise<void> {
@@ -96,12 +140,23 @@ export class HigherLower {
     }
     this.#track(ctx.guildId, userId, ctx.message.channelId);
     await this.#expireAt(session, until);
-    await ctx.reply(
+    const { platform } = this.games.services;
+    const channelId = ctx.message.channelId;
+    const messageId = await ctx.reply(
       lines(
         copy.hilo.start(current, rules.max, stake && currency ? money(stake, currency) : null),
-        subtext(copy.hilo.how(until)),
+        this.#how(until),
       ),
     );
+    await store.setHiloMessage(ctx.guildId, userId, messageId);
+    const missing = await platform
+      .missingBotPermissions(ctx.guildId, channelId, ['AddReactions', 'ManageMessages'])
+      .catch(() => ['AddReactions']);
+    if (missing.includes('AddReactions')) return;
+    this.#board(messageId, ctx.guildId, userId, !missing.includes('ManageMessages'));
+    for (const emoji of [keys.up, keys.down, keys.stop]) {
+      await platform.react(channelId, messageId, emoji).catch(() => {});
+    }
   }
 
   async onMessage(message: IncomingMessage): Promise<void> {
@@ -111,17 +166,49 @@ export class HigherLower {
     if (this.#active.get(`${guildId}:${userId}`) !== message.channelId) return;
     const guess = parseGuess(message.content);
     if (!guess) return;
+    const turn = await this.#play(guildId, userId, guess);
+    if (!turn) return;
+    await this.games.services.platform.reply(message, turn.text);
+    await this.#show(turn);
+  }
+
+  async onReaction(reaction: ReactionEvent, added: boolean): Promise<void> {
+    if (reaction.bot) return;
+    const board = this.#boards.get(reaction.messageId);
+    if (!board || reaction.userId !== board.userId) return;
+    if (!added && board.tidy) return;
+    const guess = keyGuess(reaction.emoji);
+    if (!guess) return;
+    if (added && board.tidy) {
+      await this.games.services.platform
+        .unreact(reaction.channelId, reaction.messageId, reaction.emoji, reaction.userId)
+        .catch(() => {});
+    }
+    const turn = await this.#play(board.guildId, board.userId, guess);
+    if (turn) await this.#show(turn);
+  }
+
+  async #show(turn: Turn): Promise<void> {
+    const { channelId, messageId } = turn.session;
+    if (!messageId) return;
     const { platform } = this.games.services;
+    await platform.edit(channelId, messageId, turn.text).catch(() => {});
+    if (!turn.done) return;
+    for (const emoji of [keys.up, keys.down, keys.stop]) {
+      await platform.unreact(channelId, messageId, emoji).catch(() => {});
+    }
+  }
+
+  async #play(guildId: string, userId: string, guess: Guess): Promise<Turn | null> {
     const store = this.games.store;
     const session = await store.hilo(guildId, userId);
     if (!session) {
       this.#active.delete(`${guildId}:${userId}`);
-      return;
+      return null;
     }
     if (guess === 'stop') {
       const settled = await this.#settle(guildId, userId, false);
-      if (settled) await platform.reply(message, settled.text);
-      return;
+      return settled ? { text: settled.text, done: true, session: settled.session } : null;
     }
 
     const config = await this.games.config(guildId);
@@ -132,12 +219,11 @@ export class HigherLower {
 
     if (!right) {
       const ended = await store.endHilo(guildId, userId);
-      if (!ended) return;
-      this.#active.delete(`${guildId}:${userId}`);
+      if (!ended) return null;
+      this.#forget(guildId, userId, ended.messageId);
       await store.score(guildId, 'higherlower', userId, { best: ended.streak, net: -ended.stake });
       const lost = ended.stake > 0 && currency ? money(ended.stake, currency) : null;
-      await platform.reply(message, copy.hilo.wrong(next, ended.streak, lost));
-      return;
+      return { text: copy.hilo.wrong(next, ended.streak, lost), done: true, session: ended };
     }
 
     const multiplier = nextMultiplier(
@@ -156,22 +242,28 @@ export class HigherLower {
       multiplier,
       expiresAt: until,
     });
-    if (!moved) return;
+    if (!moved) return null;
     await this.#expireAt(session, until);
     const worth =
       session.stake > 0 && currency ? money(payout(session.stake, multiplier), currency) : null;
-    await platform.reply(
-      message,
-      lines(copy.hilo.right(next, streak, worth), subtext(copy.hilo.how(until))),
-    );
+    return {
+      text: lines(copy.hilo.right(next, streak, worth), this.#how(until)),
+      done: false,
+      session,
+    };
   }
 
   async expire(guildId: string, userId: string): Promise<void> {
     const settled = await this.#settle(guildId, userId, true);
     if (!settled) return;
+    const text = copy.hilo.timeout(userId, settled.text);
+    if (settled.session.messageId) {
+      await this.#show({ text, done: true, session: settled.session });
+      return;
+    }
     const { platform, log } = this.games.services;
     await platform
-      .send(settled.channelId, copy.hilo.timeout(userId, settled.text))
+      .send(settled.session.channelId, text)
       .catch((error) => log.info({ err: error, guild: guildId }, 'hilo channel gone'));
   }
 
@@ -179,11 +271,11 @@ export class HigherLower {
     guildId: string,
     userId: string,
     timedOut: boolean,
-  ): Promise<{ text: string; channelId: string } | null> {
+  ): Promise<{ text: string; session: HiloSession } | null> {
     const ended = await this.games.store.endHilo(guildId, userId, timedOut);
     if (!ended) return null;
-    this.#active.delete(`${guildId}:${userId}`);
-    return { text: await this.#payout(guildId, userId, ended), channelId: ended.channelId };
+    this.#forget(guildId, userId, ended.messageId);
+    return { text: await this.#payout(guildId, userId, ended), session: ended };
   }
 
   async #payout(guildId: string, userId: string, ended: HiloSession): Promise<string> {

@@ -62,6 +62,7 @@ export interface HiloSession {
   stake: number;
   multiplier: number;
   expiresAt: Date;
+  messageId?: string | null;
 }
 
 export type DuelStatus = 'open' | 'done' | 'declined' | 'cancelled' | 'expired' | 'failed';
@@ -86,6 +87,7 @@ export interface TriviaSession {
   channelId: string;
   question: TriviaQuestion;
   expiresAt: Date;
+  messageId?: string | null;
 }
 
 export type MemberData = {
@@ -134,12 +136,13 @@ const duelColumns = (sql: Sql) => sql`
 
 const triviaColumns = (sql: Sql) => sql`
   session_id as id, guild_id::text as "guildId", channel_id::text as "channelId", question,
-  expires_at as "expiresAt"
+  expires_at as "expiresAt", message_id::text as "messageId"
 `;
 
 const hiloColumns = (sql: Sql) => sql`
   guild_id::text as "guildId", user_id::text as "userId", channel_id::text as "channelId",
-  current, streak, stake::float8 as stake, multiplier, expires_at as "expiresAt"
+  current, streak, stake::float8 as stake, multiplier, expires_at as "expiresAt",
+  message_id::text as "messageId"
 `;
 
 export class GamesStore {
@@ -389,6 +392,13 @@ export class GamesStore {
     return rows.length > 0;
   }
 
+  async setHiloMessage(guildId: string, userId: string, messageId: string): Promise<void> {
+    await this.sql`
+      update games_hilo set message_id = ${messageId}
+      where guild_id = ${guildId} and user_id = ${userId}
+    `;
+  }
+
   async hilo(guildId: string, userId: string): Promise<HiloSession | null> {
     const [row] = await this.sql<HiloSession[]>`
       select ${hiloColumns(this.sql)} from games_hilo where guild_id = ${guildId} and user_id = ${userId}
@@ -507,6 +517,13 @@ export class GamesStore {
       returning 1
     `;
     return rows.length > 0;
+  }
+
+  async setTriviaMessage(channelId: string, sessionId: string, messageId: string): Promise<void> {
+    await this.sql`
+      update games_trivia set message_id = ${messageId}
+      where channel_id = ${channelId} and session_id = ${sessionId}
+    `;
   }
 
   async trivia(channelId: string): Promise<TriviaSession | null> {

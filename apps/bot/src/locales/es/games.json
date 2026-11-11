@@ -48,7 +48,7 @@
   "hilo": {
     "running": "Ya tienes una partida en curso en {channel}.",
     "start": "{staked, select, yes {El número es **{n}** (de 1 a {max}). Hay {stake} en juego.} other {El número es **{n}** (de 1 a {max}).}}",
-    "how": "Responde `higher` o `lower`, o `stop` para cobrar. Termina {until}.",
+    "how": "{up} más alto, {down} más bajo, {stop} cobrar. También puedes escribir `higher`, `lower` o `stop`. Termina {until}.",
     "right": "{valued, select, yes {**{n}**. Correcto, {streak} seguidos. Ahora vale {worth}.} other {**{n}**. Correcto, {streak} seguidos.}}",
     "wrong": "{staked, select, yes {**{n}**. Incorrecto. Pierdes {lost} después de {streak, plural, one {# acierto} other {# aciertos}}.} other {**{n}**. Incorrecto. La racha termina en {streak, number}.}}",
     "cashed": "Cobraste {amount} después de {streak, plural, one {# acierto} other {# aciertos}}.",
