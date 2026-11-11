@@ -8,8 +8,10 @@
       "counting": "La clasificación de conteo.",
       "wordchain": "La clasificación de cadena de palabras.",
       "higherlower": "La clasificación de mayor o menor.",
-      "coinflip": "La clasificación de cara o cruz."
-    }
+      "coinflip": "La clasificación de cara o cruz.",
+      "blackjack": "La clasificación de blackjack."
+    },
+    "blackjack": "Juega al blackjack contra el crupier. Apuesta algo si quieres."
   },
   "off": "{game} está desactivado aquí.",
   "wrongChannel": "Aquí los juegos van en otros canales.",
@@ -22,7 +24,8 @@
     "counting": "Conteo",
     "wordchain": "Cadena de palabras",
     "higherlower": "Mayor o menor",
-    "coinflip": "Cara o cruz"
+    "coinflip": "Cara o cruz",
+    "blackjack": "Blackjack"
   },
   "reward": "+{amount}",
   "trivia": {
@@ -69,6 +72,36 @@
     "cancelled": "Cancelado.",
     "expired": "Sin respuesta, así que no pasó nada.",
     "failed": "Alguien ya no puede cubrir la apuesta, así que no pasó nada."
+  },
+  "blackjack": {
+    "running": "Ya tienes una mano en juego en {channel}.",
+    "dealer": "Crupier",
+    "you": "Tú",
+    "hand": "Mano {n}",
+    "turn": "(tu turno)",
+    "doubled": "doblada",
+    "keys": {
+      "hit": "{key} pedir",
+      "stand": "{key} plantarse",
+      "double": "{key} doblar",
+      "split": "{key} dividir"
+    },
+    "how": "{keys}. También puedes escribirlo. Termina {until}.",
+    "outcome": {
+      "blackjack": "Blackjack",
+      "win": "ganas",
+      "push": "empate",
+      "lose": "pierdes",
+      "bust": "te pasas"
+    },
+    "won": "Ganas {amount}.",
+    "lost": "Pierdes {amount}.",
+    "even": "Recuperas tu apuesta.",
+    "freeWon": "Ganas.",
+    "freeLost": "Gana el crupier.",
+    "freePush": "Nadie gana.",
+    "noFunds": "No te alcanza para eso.",
+    "timeout": "Se acabó el tiempo, así que te plantas con el resto."
   },
   "board": {
     "title": "Clasificación de {game}",

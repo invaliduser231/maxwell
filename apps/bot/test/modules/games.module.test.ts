@@ -5,6 +5,7 @@ import type { z } from 'zod';
 import type { GuildContext } from '../../src/commands/types.js';
 import { createLogger } from '../../src/log.js';
 import { Wallets } from '../../src/modules/economy/wallets.js';
+import { Blackjack } from '../../src/modules/games/blackjack.js';
 import { Coinflip } from '../../src/modules/games/coinflip.js';
 import { HigherLower } from '../../src/modules/games/hilo.js';
 import games from '../../src/modules/games/index.js';
@@ -108,7 +109,13 @@ describe.skipIf(!url)('games module', () => {
   });
 
   afterAll(async () => {
-    for (const table of ['games_scores', 'games_duels', 'games_trivia', 'games_hilo']) {
+    for (const table of [
+      'games_scores',
+      'games_duels',
+      'games_trivia',
+      'games_hilo',
+      'games_blackjack',
+    ]) {
       await sql`delete from ${sql(table)} where guild_id = ${guild}`;
     }
     await sql.end();
@@ -187,6 +194,73 @@ describe.skipIf(!url)('games module', () => {
     expect(edits.at(-1)).toBe('Stopped at a streak of 1.');
     expect(await service.store.hilo(guild, player)).toBeNull();
     random.mockRestore();
+  });
+
+  it('plays a hand of blackjack with reactions and reveals the dealer', async () => {
+    const order = ['TH', '9S', '6C', '7D', '5S', 'KC'];
+    const table = new Blackjack(service, schedule, {
+      deck: () => [...order].reverse(),
+      delay: async () => {},
+    });
+    const cmd = {
+      guildId: guild,
+      message: said('m!bj'),
+      reply: async (message: Outgoing) => {
+        replies.push(text(message) ?? '');
+        return '880000000000000002';
+      },
+    } as unknown as GuildContext;
+    await table.start(cmd, undefined);
+    expect(replies.at(-1)).toContain('**16**');
+    expect(replies.at(-1)).toContain('`?`');
+    const press = (emoji: string, userId = player): ReactionEvent => ({
+      guildId: guild,
+      channelId: room,
+      messageId: '880000000000000002',
+      userId,
+      emoji,
+      bot: false,
+    });
+    await table.onReaction(press('➕', rival), true);
+    expect((await service.store.blackjack(guild, player))?.hands[0]?.cards).toHaveLength(2);
+    const before = edits.length;
+    await table.onReaction(press('➕'), true);
+    expect(await service.store.blackjack(guild, player)).toBeNull();
+    expect(edits.length - before).toBeGreaterThanOrEqual(3);
+    expect(edits.at(-1)).toContain('**26**');
+    expect(edits.at(-1)).toContain('You win.');
+    expect((await service.store.rank(guild, 'blackjack', player, 'wins'))?.row.wins).toBe(1);
+  });
+
+  it('splits a pair and plays both hands in turn', async () => {
+    const order = ['8H', 'TS', '8C', '7D', '3S', '2C', 'KS'];
+    const table = new Blackjack(service, schedule, {
+      deck: () => [...order].reverse(),
+      delay: async () => {},
+    });
+    const cmd = {
+      guildId: guild,
+      message: said('m!bj'),
+      reply: async (message: Outgoing) => {
+        replies.push(text(message) ?? '');
+        return '880000000000000003';
+      },
+    } as unknown as GuildContext;
+    await table.start(cmd, undefined);
+    expect(reactions.at(-1)).toBe('✂️');
+    await table.onMessage(said('split'));
+    const split = await service.store.blackjack(guild, player);
+    expect(split?.hands.map((hand) => hand.cards)).toEqual([
+      ['8H', '3S'],
+      ['8C', '2C'],
+    ]);
+    await table.onMessage(said('hit'));
+    expect((await service.store.blackjack(guild, player))?.active).toBe(1);
+    await table.onMessage(said('stand'));
+    expect(await service.store.blackjack(guild, player)).toBeNull();
+    expect(edits.at(-1)).toContain('Hand 1');
+    expect(edits.at(-1)).toContain('**21**');
+    expect(edits.at(-1)).toContain('You win.');
   });
 
   it('ignores reactions from bots on a duel', async () => {

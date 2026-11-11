@@ -27,6 +27,20 @@ export const copy = catalog('games', en, (m) => ({
     repeat: (word: string) => m.wordchain.repeat({ word }),
     reset: (reached: number) => m.wordchain.reset({ ended: reached > 0 ? 'yes' : 'no', reached }),
   },
+  blackjack: {
+    running: (channelId: string) => m.blackjack.running({ channel: mention.channel(channelId) }),
+    hand: (n: number) => m.blackjack.hand({ n }),
+    keys: {
+      hit: (key: string) => m.blackjack.keys.hit({ key }),
+      stand: (key: string) => m.blackjack.keys.stand({ key }),
+      double: (key: string) => m.blackjack.keys.double({ key }),
+      split: (key: string) => m.blackjack.keys.split({ key }),
+    },
+    how: (keys: string[], until: Date) =>
+      m.blackjack.how({ keys: keys.join(', '), until: timestamp(until, 'R') }),
+    won: (amount: string) => m.blackjack.won({ amount }),
+    lost: (amount: string) => m.blackjack.lost({ amount }),
+  },
   hilo: {
     running: (channelId: string) => m.hilo.running({ channel: mention.channel(channelId) }),
     start: (n: number, max: number, stake: string | null) =>

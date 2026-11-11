@@ -961,6 +961,14 @@
   },
   {
     "page": "games",
+    "label": "Time per move"
+  },
+  {
+    "page": "games",
+    "label": "Decks in the shoe"
+  },
+  {
+    "page": "games",
     "label": "Top players"
   },
   {
@@ -986,6 +994,10 @@
   {
     "page": "games",
     "label": "Coinflip"
+  },
+  {
+    "page": "games",
+    "label": "Blackjack"
   },
   {
     "page": "general",

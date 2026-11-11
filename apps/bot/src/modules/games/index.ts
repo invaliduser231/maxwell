@@ -1,6 +1,7 @@
 import definition from '@maxwell/core/modules/games';
 import { defineBotModule } from '../../runtime/module.js';
 import { Wallets } from '../economy/wallets.js';
+import { Blackjack } from './blackjack.js';
 import { ChannelGames } from './channels.js';
 import { Coinflip } from './coinflip.js';
 import { gamesCommands } from './commands.js';
@@ -18,29 +19,34 @@ export default defineBotModule({
     const channels = new ChannelGames(games);
     const hilo = new HigherLower(games, schedule);
     const coinflip = new Coinflip(games, schedule);
+    const blackjack = new Blackjack(games, schedule);
 
     ctx.on('message', (message) => trivia.onMessage(message));
     ctx.on('message', (message) => channels.onMessage(message));
     ctx.on('message', (message) => hilo.onMessage(message));
+    ctx.on('message', (message) => blackjack.onMessage(message));
     ctx.on('reaction', (reaction) => coinflip.onReaction(reaction));
     ctx.on('reaction', (reaction) => hilo.onReaction(reaction, true));
     ctx.on('reactionRemove', (reaction) => hilo.onReaction(reaction, false));
+    ctx.on('reaction', (reaction) => blackjack.onReaction(reaction, true));
+    ctx.on('reactionRemove', (reaction) => blackjack.onReaction(reaction, false));
     ctx.on(
       'ready',
       async () => {
         await hilo.load();
         await coinflip.load();
         await trivia.load();
+        await blackjack.load();
       },
       { always: true },
     );
 
-    registerGamesJobs(ctx, games, trivia, hilo, coinflip);
+    registerGamesJobs(ctx, games, trivia, hilo, coinflip, blackjack);
     ctx.privacy({
       export: (guildId, userId) => games.store.memberData(guildId, userId),
       forget: (guildId, userId) => games.store.forget(guildId, userId),
     });
 
-    return gamesCommands(games, trivia, hilo, coinflip);
+    return gamesCommands(games, trivia, hilo, coinflip, blackjack);
   },
 });

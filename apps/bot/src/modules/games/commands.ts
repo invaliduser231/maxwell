@@ -6,6 +6,7 @@ import type { Embed } from '../../platform/types.js';
 import { code, lines, subtext } from '../../ui/format.js';
 import { chunk } from '../../ui/paginator.js';
 import { palette } from '../../ui/palette.js';
+import type { Blackjack } from './blackjack.js';
 import type { Coinflip } from './coinflip.js';
 import { copy } from './copy.js';
 import type { HigherLower } from './hilo.js';
@@ -59,6 +60,7 @@ export function gamesCommands(
   trivia: Trivia,
   hilo: HigherLower,
   coinflip: Coinflip,
+  blackjack: Blackjack,
 ): Command[] {
   const triviaCommand: Command = {
     name: 'trivia',
@@ -99,5 +101,18 @@ export function gamesCommands(
     run: (ctx) => hilo.start(ctx, ctx.args.number('stake')),
   };
 
-  return [triviaCommand, coinflipCommand, higherlower];
+  const blackjackCommand: Command = {
+    name: 'blackjack',
+    aliases: ['bj', '21'],
+    description: copy.commands.blackjack,
+    guildOnly: true,
+    cooldown: 3_000,
+    botPermissions: ['EmbedLinks'],
+    args: [{ name: 'stake', type: 'integer', min: 1, max: 1_000_000_000, optional: true }],
+    subcommands: [boardCommand(games, 'blackjack', 'wins')],
+    examples: ['blackjack', 'blackjack 100', 'blackjack top'],
+    run: (ctx) => blackjack.start(ctx, ctx.args.number('stake')),
+  };
+
+  return [triviaCommand, coinflipCommand, higherlower, blackjackCommand];
 }

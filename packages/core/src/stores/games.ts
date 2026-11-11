@@ -65,6 +65,27 @@ export interface HiloSession {
   messageId?: string | null;
 }
 
+export interface BlackjackHand {
+  cards: string[];
+  stake: number;
+  doubled: boolean;
+  done: boolean;
+  split: boolean;
+}
+
+export interface BlackjackSession {
+  guildId: string;
+  userId: string;
+  channelId: string;
+  messageId: string | null;
+  shoe: string[];
+  dealer: string[];
+  hands: BlackjackHand[];
+  active: number;
+  version: number;
+  expiresAt: Date;
+}
+
 export type DuelStatus = 'open' | 'done' | 'declined' | 'cancelled' | 'expired' | 'failed';
 
 export interface Duel {
@@ -143,6 +164,11 @@ const hiloColumns = (sql: Sql) => sql`
   guild_id::text as "guildId", user_id::text as "userId", channel_id::text as "channelId",
   current, streak, stake::float8 as stake, multiplier, expires_at as "expiresAt",
   message_id::text as "messageId"
+`;
+
+const blackjackColumns = (sql: Sql) => sql`
+  guild_id::text as "guildId", user_id::text as "userId", channel_id::text as "channelId",
+  message_id::text as "messageId", shoe, dealer, hands, active, version, expires_at as "expiresAt"
 `;
 
 export class GamesStore {
@@ -381,6 +407,66 @@ export class GamesStore {
     });
   }
 
+  async startBlackjack(session: Omit<BlackjackSession, 'version'>): Promise<boolean> {
+    const rows = await this.sql`
+      insert into games_blackjack
+        (guild_id, user_id, channel_id, message_id, shoe, dealer, hands, active, expires_at)
+      values (${session.guildId}, ${session.userId}, ${session.channelId}, ${session.messageId},
+        ${session.shoe}::text[], ${session.dealer}::text[], ${this.sql.json(session.hands as never)},
+        ${session.active}, ${session.expiresAt})
+      on conflict (guild_id, user_id) do nothing
+      returning 1
+    `;
+    return rows.length > 0;
+  }
+
+  async blackjack(guildId: string, userId: string): Promise<BlackjackSession | null> {
+    const [row] = await this.sql<BlackjackSession[]>`
+      select ${blackjackColumns(this.sql)} from games_blackjack
+      where guild_id = ${guildId} and user_id = ${userId}
+    `;
+    return row ?? null;
+  }
+
+  async activeBlackjack(): Promise<BlackjackSession[]> {
+    return this.sql<BlackjackSession[]>`select ${blackjackColumns(this.sql)} from games_blackjack`;
+  }
+
+  async setBlackjackMessage(guildId: string, userId: string, messageId: string): Promise<void> {
+    await this.sql`
+      update games_blackjack set message_id = ${messageId}
+      where guild_id = ${guildId} and user_id = ${userId}
+    `;
+  }
+
+  async saveBlackjack(session: BlackjackSession): Promise<boolean> {
+    const rows = await this.sql`
+      update games_blackjack set shoe = ${session.shoe}::text[], dealer = ${session.dealer}::text[],
+        hands = ${this.sql.json(session.hands as never)}, active = ${session.active},
+        expires_at = ${session.expiresAt}, version = version + 1
+      where guild_id = ${session.guildId} and user_id = ${session.userId}
+        and version = ${session.version}
+      returning 1
+    `;
+    return rows.length > 0;
+  }
+
+  async endBlackjack(
+    guildId: string,
+    userId: string,
+    version: number | null,
+    onlyExpired = false,
+  ): Promise<BlackjackSession | null> {
+    const [row] = await this.sql<BlackjackSession[]>`
+      delete from games_blackjack
+      where guild_id = ${guildId} and user_id = ${userId}
+        ${version === null ? this.sql`` : this.sql`and version = ${version}`}
+        ${onlyExpired ? this.sql`and expires_at <= now()` : this.sql``}
+      returning ${blackjackColumns(this.sql)}
+    `;
+    return row ?? null;
+  }
+
   async startHilo(session: HiloSession): Promise<boolean> {
     const rows = await this.sql`
       insert into games_hilo (guild_id, user_id, channel_id, current, streak, stake, multiplier, expires_at)
@@ -579,6 +665,7 @@ export class GamesStore {
     await this.sql.begin(async (tx) => {
       await tx`delete from games_scores where guild_id = ${guildId} and user_id = ${userId}`;
       await tx`delete from games_hilo where guild_id = ${guildId} and user_id = ${userId}`;
+      await tx`delete from games_blackjack where guild_id = ${guildId} and user_id = ${userId}`;
       await tx`
         delete from games_duels
         where guild_id = ${guildId} and (challenger = ${userId} or opponent = ${userId})

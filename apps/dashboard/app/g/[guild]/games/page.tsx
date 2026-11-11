@@ -17,6 +17,7 @@ const boards: Record<GameKey, 'wins' | 'best'> = {
   wordchain: 'wins',
   higherlower: 'best',
   coinflip: 'wins',
+  blackjack: 'wins',
 };
 
 function total(rows: KindTotal[], kind: string, side: 'credited' | 'debited'): number {

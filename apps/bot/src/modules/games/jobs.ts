@@ -1,6 +1,7 @@
 import type { Job } from '@maxwell/core';
 import { z } from 'zod';
 import type { ModuleContext } from '../../runtime/module.js';
+import type { Blackjack } from './blackjack.js';
 import type { Coinflip } from './coinflip.js';
 import { auditText, gameNames } from './copy.js';
 import type { HigherLower } from './hilo.js';
@@ -44,6 +45,7 @@ export function registerGamesJobs(
   trivia: Trivia,
   hilo: HigherLower,
   coinflip: Coinflip,
+  blackjack: Blackjack,
 ): void {
   ctx.job('triviaEnd', async (job) => {
     const data = parse(ctx, triviaEndPayload, job);
@@ -53,6 +55,11 @@ export function registerGamesJobs(
   ctx.job('hiloExpire', async (job) => {
     const data = parse(ctx, hiloExpirePayload, job);
     if (data && job.guildId) await hilo.expire(job.guildId, data.userId);
+  });
+
+  ctx.job('blackjackExpire', async (job) => {
+    const data = parse(ctx, hiloExpirePayload, job);
+    if (data && job.guildId) await blackjack.expire(job.guildId, data.userId);
   });
 
   ctx.job('duelExpire', async (job) => {

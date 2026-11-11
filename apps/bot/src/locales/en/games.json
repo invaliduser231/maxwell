@@ -8,8 +8,10 @@
       "counting": "The counting leaderboard.",
       "wordchain": "The word chain leaderboard.",
       "higherlower": "The higher or lower leaderboard.",
-      "coinflip": "The coinflip leaderboard."
-    }
+      "coinflip": "The coinflip leaderboard.",
+      "blackjack": "The blackjack leaderboard."
+    },
+    "blackjack": "Play blackjack against the dealer. Stake something if you like."
   },
   "off": "{game} is off here.",
   "wrongChannel": "Games run in other channels here.",
@@ -22,7 +24,8 @@
     "counting": "Counting",
     "wordchain": "Word chain",
     "higherlower": "Higher or lower",
-    "coinflip": "Coinflip"
+    "coinflip": "Coinflip",
+    "blackjack": "Blackjack"
   },
   "reward": "+{amount}",
   "trivia": {
@@ -69,6 +72,36 @@
     "cancelled": "Called off.",
     "expired": "No answer, so nothing happened.",
     "failed": "Someone can't cover the stake anymore, so nothing happened."
+  },
+  "blackjack": {
+    "running": "You already have a hand going in {channel}.",
+    "dealer": "Dealer",
+    "you": "You",
+    "hand": "Hand {n}",
+    "turn": "(your turn)",
+    "doubled": "doubled",
+    "keys": {
+      "hit": "{key} hit",
+      "stand": "{key} stand",
+      "double": "{key} double",
+      "split": "{key} split"
+    },
+    "how": "{keys}. Typing works too. Ends {until}.",
+    "outcome": {
+      "blackjack": "Blackjack",
+      "win": "win",
+      "push": "push",
+      "lose": "lose",
+      "bust": "bust"
+    },
+    "won": "You win {amount}.",
+    "lost": "You lose {amount}.",
+    "even": "You get your stake back.",
+    "freeWon": "You win.",
+    "freeLost": "The dealer wins.",
+    "freePush": "Nobody wins.",
+    "noFunds": "Not enough money for that.",
+    "timeout": "Time ran out, so the rest of your hand stands."
   },
   "board": {
     "title": "{game} leaderboard",

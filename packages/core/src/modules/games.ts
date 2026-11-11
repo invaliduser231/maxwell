@@ -3,7 +3,14 @@ import { defineModule } from './types.js';
 
 const snowflake = z.string().regex(/^\d{1,21}$/);
 
-export const games = ['trivia', 'counting', 'wordchain', 'higherlower', 'coinflip'] as const;
+export const games = [
+  'trivia',
+  'counting',
+  'wordchain',
+  'higherlower',
+  'coinflip',
+  'blackjack',
+] as const;
 export type GameKey = (typeof games)[number];
 
 export const triviaQuestion = z.object({
@@ -55,6 +62,13 @@ export const gamesConfig = z.object({
     .object({
       enabled: z.boolean().default(true),
       expirySeconds: z.number().int().min(15).max(600).default(60),
+    })
+    .prefault({}),
+  blackjack: z
+    .object({
+      enabled: z.boolean().default(true),
+      timeoutSeconds: z.number().int().min(15).max(600).default(60),
+      decks: z.number().int().min(1).max(8).default(4),
     })
     .prefault({}),
   stakes: z
@@ -155,6 +169,24 @@ export default defineModule({
       up: `
         alter table games_hilo add column message_id bigint;
         alter table games_trivia add column message_id bigint;
+      `,
+    },
+    {
+      id: '4-blackjack',
+      up: `
+        create table games_blackjack (
+          guild_id bigint not null,
+          user_id bigint not null,
+          channel_id bigint not null,
+          message_id bigint,
+          shoe text[] not null,
+          dealer text[] not null,
+          hands jsonb not null,
+          active integer not null default 0,
+          version integer not null default 0,
+          expires_at timestamptz not null,
+          primary key (guild_id, user_id)
+        );
       `,
     },
   ],

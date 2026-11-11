@@ -8,8 +8,10 @@
       "counting": "Die Rangliste beim Zählen.",
       "wordchain": "Die Wortketten-Rangliste.",
       "higherlower": "Die Rangliste bei Höher oder tiefer.",
-      "coinflip": "Die Münzwurf-Rangliste."
-    }
+      "coinflip": "Die Münzwurf-Rangliste.",
+      "blackjack": "Die Blackjack-Rangliste."
+    },
+    "blackjack": "Spiel Blackjack gegen den Dealer. Setz etwas, wenn du willst."
   },
   "off": "{game} ist hier aus.",
   "wrongChannel": "Spiele laufen hier in anderen Kanälen.",
@@ -22,7 +24,8 @@
     "counting": "Zählen",
     "wordchain": "Wortkette",
     "higherlower": "Höher oder tiefer",
-    "coinflip": "Münzwurf"
+    "coinflip": "Münzwurf",
+    "blackjack": "Blackjack"
   },
   "reward": "+{amount}",
   "trivia": {
@@ -69,6 +72,36 @@
     "cancelled": "Abgeblasen.",
     "expired": "Keine Antwort, also ist nichts passiert.",
     "failed": "Jemand kann den Einsatz nicht mehr zahlen, also ist nichts passiert."
+  },
+  "blackjack": {
+    "running": "Du spielst schon eine Hand in {channel}.",
+    "dealer": "Dealer",
+    "you": "Du",
+    "hand": "Hand {n}",
+    "turn": "(du bist dran)",
+    "doubled": "verdoppelt",
+    "keys": {
+      "hit": "{key} Karte",
+      "stand": "{key} halten",
+      "double": "{key} verdoppeln",
+      "split": "{key} teilen"
+    },
+    "how": "{keys}. Tippen geht auch. Endet {until}.",
+    "outcome": {
+      "blackjack": "Blackjack",
+      "win": "gewonnen",
+      "push": "unentschieden",
+      "lose": "verloren",
+      "bust": "überkauft"
+    },
+    "won": "Du gewinnst {amount}.",
+    "lost": "Du verlierst {amount}.",
+    "even": "Du bekommst deinen Einsatz zurück.",
+    "freeWon": "Du gewinnst.",
+    "freeLost": "Der Dealer gewinnt.",
+    "freePush": "Niemand gewinnt.",
+    "noFunds": "Dafür reicht dein Geld nicht.",
+    "timeout": "Die Zeit ist um, der Rest deiner Hand bleibt stehen."
   },
   "board": {
     "title": "Rangliste {game}",

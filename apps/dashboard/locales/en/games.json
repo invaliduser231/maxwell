@@ -80,5 +80,8 @@
   "{n, plural, one {# win} other {# wins}}": "{n, plural, one {# win} other {# wins}}",
   "{n, plural, one {# number} other {# numbers}}": "{n, plural, one {# number} other {# numbers}}",
   "{n, plural, one {# word} other {# words}}": "{n, plural, one {# word} other {# words}}",
+  "Blackjack": "Blackjack",
+  "Time per move": "Time per move",
+  "Decks in the shoe": "Decks in the shoe",
   "Math counts too, like sqrt(16) or 2*3.": "Math counts too, like sqrt(16) or 2*3."
 }

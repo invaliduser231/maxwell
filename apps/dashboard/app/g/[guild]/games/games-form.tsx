@@ -47,7 +47,7 @@ interface EconomyView {
   perWin: number;
 }
 
-type ConfigKey = 'trivia' | 'counting' | 'wordchain' | 'higherLower' | 'coinflip';
+type ConfigKey = 'trivia' | 'counting' | 'wordchain' | 'higherLower' | 'coinflip' | 'blackjack';
 
 const list: { key: GameKey; config: ConfigKey; name: Key }[] = [
   { key: 'trivia', config: 'trivia', name: 'Trivia' },
@@ -55,6 +55,7 @@ const list: { key: GameKey; config: ConfigKey; name: Key }[] = [
   { key: 'wordchain', config: 'wordchain', name: 'Word chain' },
   { key: 'higherlower', config: 'higherLower', name: 'Higher or lower' },
   { key: 'coinflip', config: 'coinflip', name: 'Coinflip duels' },
+  { key: 'blackjack', config: 'blackjack', name: 'Blackjack' },
 ];
 
 const gameNames: Record<GameKey, Key> = {
@@ -63,6 +64,7 @@ const gameNames: Record<GameKey, Key> = {
   wordchain: 'Word chain',
   higherlower: 'Higher or lower',
   coinflip: 'Coinflip',
+  blackjack: 'Blackjack',
 };
 
 const SLOTS = ['a', 'b', 'c', 'd'] as const;
@@ -744,6 +746,37 @@ function CoinflipEditor({ prefix }: { prefix: string }) {
   );
 }
 
+function BlackjackEditor({ prefix }: { prefix: string }) {
+  const t = useT();
+  const { value, set } = useDraft<GamesConfig>();
+  const blackjack = value.blackjack;
+  return (
+    <PanelBody>
+      <Fields>
+        <Field label={t('Time per move')}>
+          <SecondsSelect
+            label={t('Time per move')}
+            value={blackjack.timeoutSeconds}
+            min={15}
+            max={600}
+            onChange={(timeoutSeconds) => set({ blackjack: { ...blackjack, timeoutSeconds } })}
+          />
+        </Field>
+        <Field label={t('Decks in the shoe')}>
+          <Select
+            value={String(blackjack.decks)}
+            options={[1, 2, 4, 6, 8].map((n) => ({ value: String(n), label: t.count(n) }))}
+            onChange={(next) => set({ blackjack: { ...blackjack, decks: Number(next) } })}
+          />
+        </Field>
+      </Fields>
+      <p className="mx-sub" style={{ margin: 0 }}>
+        {t('Command:')} <span className="mx-kbd">{`${prefix}blackjack 100`}</span>
+      </p>
+    </PanelBody>
+  );
+}
+
 function BoardSelect({
   value,
   onChange,
@@ -932,6 +965,8 @@ export function GamesForm({
         return `${prefix}higherlower <stake>`;
       case 'coinflip':
         return `${prefix}coinflip @member <stake>`;
+      case 'blackjack':
+        return `${prefix}blackjack <stake>`;
     }
   };
   const stateFor = (game: 'counting' | 'wordchain') => {
@@ -1018,6 +1053,7 @@ export function GamesForm({
         {selected === 'wordchain' ? <WordchainEditor state={stateFor('wordchain')} /> : null}
         {selected === 'higherlower' ? <HiloEditor prefix={prefix} /> : null}
         {selected === 'coinflip' ? <CoinflipEditor prefix={prefix} /> : null}
+        {selected === 'blackjack' ? <BlackjackEditor prefix={prefix} /> : null}
       </Panel>
     </Grid>
   );

@@ -80,5 +80,8 @@
   "{n, plural, one {# win} other {# wins}}": "{n, plural, one {# victoria} other {# victorias}}",
   "{n, plural, one {# number} other {# numbers}}": "{n, plural, one {# número} other {# números}}",
   "{n, plural, one {# word} other {# words}}": "{n, plural, one {# palabra} other {# palabras}}",
+  "Blackjack": "Blackjack",
+  "Time per move": "Tiempo por jugada",
+  "Decks in the shoe": "Barajas en el mazo",
   "Math counts too, like sqrt(16) or 2*3.": "También valen cuentas, como sqrt(16) o 2*3."
 }
