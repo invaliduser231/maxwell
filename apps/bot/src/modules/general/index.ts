@@ -2,6 +2,7 @@ import { RetentionStore } from '@maxwell/core';
 import general from '@maxwell/core/modules/general';
 import { AfkStore } from '@maxwell/core/stores/afk';
 import { defineBotModule } from '../../runtime/module.js';
+import { Confirmations } from '../moderation/confirm.js';
 import { AfkTracker, afkCommand } from './afk.js';
 import { generalCommands } from './commands.js';
 import { greet } from './onboarding.js';
@@ -16,12 +17,15 @@ function retentionAt(at: number): { runAt: Date; dedupeKey: string } {
 
 export default defineBotModule({
   definition: general,
-  commands: [...generalCommands, ...privacyCommands],
+  commands: generalCommands,
   setup(ctx) {
     const { services } = ctx;
     const { platform, guilds, log, votes } = services;
 
     const afk = new AfkTracker(services, new AfkStore(services.sql));
+    const confirmations = new Confirmations();
+    ctx.on('reaction', (reaction) => void confirmations.handle(reaction), { always: true });
+    ctx.onShutdown(() => confirmations.stop());
     ctx.on('message', (message) => afk.onMessage(message), { always: true });
     ctx.privacy({
       export: async (guildId, userId) => {
@@ -81,6 +85,6 @@ export default defineBotModule({
       { always: true },
     );
 
-    return [afkCommand(afk)];
+    return [afkCommand(afk), ...privacyCommands(confirmations)];
   },
 });

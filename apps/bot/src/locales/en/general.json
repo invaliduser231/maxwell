@@ -65,7 +65,7 @@
     "noDm": "I can't DM you. Open your DMs and try again.",
     "sent": "Sent to your DMs.",
     "warning": "This deletes your levels, currency, cards, notes and everything else I keep about you here. Moderation cases stay.",
-    "confirm": "Run `{prefix}forgetme confirm` to go ahead.",
+    "confirm": "React with {emoji} or run `{prefix}forgetme confirm` to go ahead.",
     "partial": "Most of it is gone. {modules} failed, try again later.",
     "forgotten": "Forgotten."
   }

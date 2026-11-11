@@ -65,7 +65,7 @@
     "noDm": "Ich kann dir keine DM schicken. Öffne deine DMs und versuch es noch mal.",
     "sent": "Ist in deinen DMs.",
     "warning": "Das löscht deine Levels, Währung, Karten, Notizen und alles andere, was ich hier über dich speichere. Moderationsfälle bleiben.",
-    "confirm": "Mit `{prefix}forgetme confirm` geht es los.",
+    "confirm": "Reagiere mit {emoji} oder schreib `{prefix}forgetme confirm`, dann geht es los.",
     "partial": "Das meiste ist weg. Bei {modules} hat es nicht geklappt, versuch es später noch mal.",
     "forgotten": "Vergessen."
   }

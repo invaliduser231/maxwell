@@ -32,7 +32,7 @@ export const copy = catalog('general', en, (m) => ({
       m.afk.away({ hasReason: reason ? 'yes' : 'no', who, reason, since: timestamp(since, 'R') }),
   },
   privacy: {
-    confirm: (prefix: string) => m.privacy.confirm({ prefix }),
+    confirm: (emoji: string, prefix: string) => m.privacy.confirm({ emoji, prefix }),
     partial: (modules: string) => m.privacy.partial({ modules }),
   },
 }));

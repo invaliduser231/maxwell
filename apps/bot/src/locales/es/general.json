@@ -65,7 +65,7 @@
     "noDm": "No puedo enviarte DMs. Abre tus DMs y vuelve a intentarlo.",
     "sent": "Enviado a tus DMs.",
     "warning": "Esto borra tus niveles, moneda, cartas, notas y todo lo demás que guardo sobre ti aquí. Los casos de moderación se quedan.",
-    "confirm": "Usa `{prefix}forgetme confirm` para continuar.",
+    "confirm": "Reacciona con {emoji} o usa `{prefix}forgetme confirm` para continuar.",
     "partial": "Casi todo está borrado. Falló {modules}, vuelve a intentarlo más tarde.",
     "forgotten": "Olvidado."
   }
