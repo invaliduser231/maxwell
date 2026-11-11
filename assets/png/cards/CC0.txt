@@ -1,0 +1,6 @@
+Court card figures (jacks, queens, kings) come from the SVG playing cards by
+Adrian Kennard (RevK), https://www.me.uk/cards/, traced from a Goodall & Son
+deck of about 1870 and released under CC0 1.0 Universal.
+
+The images here are assembled from the colour layers of those files, with the
+lower half rotated from the upper half as on the printed cards.
