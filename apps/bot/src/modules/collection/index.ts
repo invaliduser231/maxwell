@@ -22,6 +22,7 @@ export default defineBotModule({
     ctx.on('message', (message) => activity.onMessage(message));
     ctx.on('message', (message) => drops.onMessage(message));
     ctx.on('reaction', (reaction) => trades.onReaction(reaction));
+    ctx.on('reaction', (reaction) => drops.onReaction(reaction));
     ctx.on(
       'ready',
       async () => {
@@ -47,6 +48,7 @@ export default defineBotModule({
       collection,
       trades,
       activity,
+      drops,
       refreshRarity: async (guildId) => {
         await ctx.schedule('rarity', {
           guildId,

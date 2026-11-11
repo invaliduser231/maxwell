@@ -1,6 +1,6 @@
 import type { CollectionConfig } from '@maxwell/core/modules/collection';
 import type { Card } from '@maxwell/core/stores/collection';
-import type { Embed, IncomingMessage } from '../../platform/types.js';
+import type { Embed, IncomingMessage, ReactionEvent } from '../../platform/types.js';
 import { lines } from '../../ui/format.js';
 import type { Schedule } from '../economy/shop.js';
 import { copy } from './copy.js';
@@ -10,6 +10,13 @@ import { renderCard } from './render.js';
 import type { Collection } from './service.js';
 
 const COUNTER_LIMIT = 5_000;
+const GRAB = String.fromCodePoint(0x1f590, 0xfe0f);
+const bare = (emoji: string) => emoji.replaceAll(String.fromCodePoint(0xfe0f), '');
+
+export interface Claimed {
+  card: Card;
+  sets: { name: string; rewards: string[] }[];
+}
 
 export type DropResult = 'sent' | 'no_pool' | 'no_permission' | 'failed';
 
@@ -32,7 +39,7 @@ export function dropEmbed(
   const tier = tierOf(config.tiers, card.rarity);
   const status =
     state.kind === 'open'
-      ? copy.drop.hint(state.command, state.until)
+      ? copy.drop.hint(GRAB, state.command, state.until)
       : state.kind === 'claimed'
         ? copy.drop.claimed(state.userId)
         : copy.drop.expired;
@@ -125,6 +132,7 @@ export class Drops {
         files: [{ name: cardFile(card), data: image }],
       });
       await store.setDropMessage(drop.id, messageId);
+      await platform.react(channelId, messageId, GRAB).catch(() => {});
       await this.schedule('dropExpire', {
         guildId,
         runAt: until,
@@ -136,6 +144,48 @@ export class Drops {
       log.warn({ err: error, guild: guildId, channel: channelId }, 'card drop failed');
       return 'failed';
     }
+  }
+
+  async claim(
+    guildId: string,
+    channelId: string,
+    userId: string,
+    messageId: string | null = null,
+  ): Promise<Claimed | null> {
+    const { platform, log } = this.collection.services;
+    const store = this.collection.store;
+    const drop = await store.claimDrop(guildId, channelId, userId, messageId);
+    if (!drop) return null;
+    const card = await store.card(guildId, drop.cardId);
+    if (!card) return null;
+    const config = await this.collection.config(guildId);
+    if (drop.messageId) {
+      await platform
+        .edit(drop.channelId, drop.messageId, {
+          embeds: [dropEmbed(card, config, { kind: 'claimed', userId })],
+        })
+        .catch((error) => log.info({ err: error, guild: guildId }, 'drop message gone'));
+      await platform.unreact(drop.channelId, drop.messageId, GRAB).catch(() => {});
+    }
+    const sets = await this.collection.checkSets(guildId, userId, [card], config);
+    return { card, sets };
+  }
+
+  async onReaction(reaction: ReactionEvent): Promise<void> {
+    if (reaction.bot || !reaction.guildId || bare(reaction.emoji) !== bare(GRAB)) return;
+    const claimed = await this.claim(
+      reaction.guildId,
+      reaction.channelId,
+      reaction.userId,
+      reaction.messageId,
+    );
+    if (!claimed || claimed.sets.length === 0) return;
+    await this.collection.services.platform
+      .send(
+        reaction.channelId,
+        lines(...claimed.sets.map((set) => copy.sets.completed(set.name, set.rewards))),
+      )
+      .catch(() => {});
   }
 
   async expire(dropId: string): Promise<void> {
@@ -151,5 +201,6 @@ export class Drops {
         embeds: [dropEmbed(card, config, { kind: 'expired' })],
       })
       .catch((error) => log.info({ err: error, guild: drop.guildId }, 'drop message gone'));
+    await platform.unreact(drop.channelId, drop.messageId, GRAB).catch(() => {});
   }
 }

@@ -8,7 +8,8 @@ import { money } from '../economy/wallets.js';
 import type { Activity } from './activity.js';
 import { copy } from './copy.js';
 import { setCards, setProgress, tierOf } from './draw.js';
-import { cardFile, dropEmbed, hexColor } from './drops.js';
+import type { Drops } from './drops.js';
+import { cardFile, hexColor } from './drops.js';
 import { listPacks, openPack } from './packs.js';
 import { renderCard } from './render.js';
 import type { Collection } from './service.js';
@@ -23,6 +24,7 @@ export interface CollectionDeps {
   collection: Collection;
   trades: Trades;
   activity: Activity;
+  drops: Drops;
   refreshRarity(guildId: string): Promise<void>;
 }
 
@@ -368,29 +370,22 @@ export function collectionCommands(deps: CollectionDeps): Command[] {
     guildOnly: true,
     cooldown: 2_000,
     async run(ctx) {
-      const { voice, platform, log } = ctx.services;
-      const userId = ctx.message.author.id;
-      const drop = await store.claimDrop(ctx.guildId, ctx.message.channelId, userId);
-      if (!drop) {
+      const { voice } = ctx.services;
+      const claimed = await deps.drops.claim(
+        ctx.guildId,
+        ctx.message.channelId,
+        ctx.message.author.id,
+      );
+      if (!claimed) {
         await ctx.reply({ content: copy.claim.nothing, deleteAfter: 8_000 });
         return;
       }
-      const card = await store.card(ctx.guildId, drop.cardId);
-      if (!card) return;
       const config = await collection.config(ctx.guildId);
-      if (drop.messageId) {
-        await platform
-          .edit(drop.channelId, drop.messageId, {
-            embeds: [dropEmbed(card, config, { kind: 'claimed', userId })],
-          })
-          .catch((error) => log.info({ err: error, guild: ctx.guildId }, 'drop message gone'));
-      }
-      const finished = await collection.checkSets(ctx.guildId, userId, [card], config);
-      const tier = tierOf(config.tiers, card.rarity);
+      const tier = tierOf(config.tiers, claimed.card.rarity);
       await ctx.reply(
         lines(
-          voice.done(copy.claim.got(card.name, tier.name), ctx.seed),
-          ...finished.map((set) => copy.sets.completed(set.name, set.rewards)),
+          voice.done(copy.claim.got(claimed.card.name, tier.name), ctx.seed),
+          ...claimed.sets.map((set) => copy.sets.completed(set.name, set.rewards)),
         ),
       );
     },

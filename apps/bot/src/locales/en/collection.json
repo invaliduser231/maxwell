@@ -62,7 +62,7 @@
   },
   "drop": {
     "title": "A card dropped",
-    "hint": "First to type {command} gets it. Gone {until}.",
+    "hint": "First to react with {emoji} or type {command} gets it. Gone {until}.",
     "wished": "Wished by {users}",
     "claimed": "Claimed by {user}.",
     "expired": "Nobody claimed it.",

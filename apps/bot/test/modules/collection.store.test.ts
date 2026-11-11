@@ -111,6 +111,19 @@ describe.skipIf(!url)('CollectionStore', () => {
     expect(results.filter(Boolean)).toHaveLength(1);
   });
 
+  it('claims a drop by its message when someone reacts', async () => {
+    const [dragon] = await store.findCards(guild, 'Dragon');
+    if (!dragon) throw new Error('missing card');
+    const old = await store.createDrop(guild, channel, dragon.id, later());
+    await store.setDropMessage(old.id, '990000000000000001');
+    const fresh = await store.createDrop(guild, channel, dragon.id, later());
+    await store.setDropMessage(fresh.id, '990000000000000002');
+    expect(await store.claimDrop(guild, channel, a, '990000000000000009')).toBeNull();
+    expect((await store.claimDrop(guild, channel, a, '990000000000000001'))?.id).toBe(old.id);
+    expect(await store.claimDrop(guild, channel, b, '990000000000000001')).toBeNull();
+    expect((await store.claimDrop(guild, channel, b))?.id).toBe(fresh.id);
+  });
+
   it('trades only after both confirm and both still own the cards', async () => {
     const lena = await store.memberCard(guild, a);
     const [dragon] = await store.findCards(guild, 'Dragon');

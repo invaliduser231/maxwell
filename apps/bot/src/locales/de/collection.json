@@ -62,7 +62,7 @@
   },
   "drop": {
     "title": "Eine Karte ist gedroppt",
-    "hint": "Wer zuerst {command} schreibt, bekommt sie. Weg {until}.",
+    "hint": "Wer zuerst mit {emoji} reagiert oder {command} schreibt, bekommt sie. Weg {until}.",
     "wished": "Gewünscht von {users}",
     "claimed": "Geschnappt von {user}.",
     "expired": "Niemand hat sie geholt.",

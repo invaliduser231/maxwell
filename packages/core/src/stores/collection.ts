@@ -539,7 +539,12 @@ export class CollectionStore {
     return row ?? null;
   }
 
-  async claimDrop(guildId: string, channelId: string, userId: string): Promise<Drop | null> {
+  async claimDrop(
+    guildId: string,
+    channelId: string,
+    userId: string,
+    messageId: string | null = null,
+  ): Promise<Drop | null> {
     return this.sql.begin(async (tx) => {
       const [row] = await tx<Drop[]>`
         update collection_drops set claimed_by = ${userId}, claimed_at = now()
@@ -547,6 +552,7 @@ export class CollectionStore {
           select id from collection_drops
           where guild_id = ${guildId} and channel_id = ${channelId} and claimed_by is null
             and expires_at > now()
+            ${messageId === null ? tx`` : tx`and message_id = ${messageId}`}
           order by id desc
           limit 1
           for update skip locked
