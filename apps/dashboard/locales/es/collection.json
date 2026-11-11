@@ -105,5 +105,19 @@
   "That card is gone.": "Esa carta ya no existe.",
   "{n, plural, one {# card} other {# cards}}": "{n, plural, one {# carta} other {# cartas}}",
   "{n, plural, one {# owner} other {# owners}}": "{n, plural, one {# dueño} other {# dueños}}",
-  "{n, plural, one {# member card} other {# member cards}}": "{n, plural, one {# carta de miembro} other {# cartas de miembros}}"
+  "{n, plural, one {# member card} other {# member cards}}": "{n, plural, one {# carta de miembro} other {# cartas de miembros}}",
+  "{n, plural, one {# image ready} other {# images ready}}": "{n, plural, one {# imagen lista} other {# imágenes listas}}",
+  "Rarity for new cards": "Rareza de las cartas nuevas",
+  "Cards are named after their files. A file named like a card in this deck replaces its image.": "Las cartas toman el nombre del archivo. Un archivo que se llame como una carta de este mazo reemplaza su imagen.",
+  "Replaces the image of this card": "Reemplaza la imagen de esta carta",
+  "Save all": "Guardar todo",
+  "Saving {done} of {total}": "Guardando {done} de {total}",
+  "{n, plural, one {# card could not be saved} other {# cards could not be saved}}": "{n, plural, one {No se pudo guardar # carta} other {No se pudieron guardar # cartas}}",
+  "Upload several images": "Subir varias imágenes",
+  "Search cards": "Buscar cartas",
+  "All cards": "Todas las cartas",
+  "Without image": "Sin imagen",
+  "No cards match.": "Ninguna carta coincide.",
+  "Change image of {name}": "Cambiar la imagen de {name}",
+  "Rarity of {name}": "Rareza de {name}"
 }

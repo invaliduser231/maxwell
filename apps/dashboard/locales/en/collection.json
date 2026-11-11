@@ -105,5 +105,19 @@
   "That card is gone.": "That card is gone.",
   "{n, plural, one {# card} other {# cards}}": "{n, plural, one {# card} other {# cards}}",
   "{n, plural, one {# owner} other {# owners}}": "{n, plural, one {# owner} other {# owners}}",
-  "{n, plural, one {# member card} other {# member cards}}": "{n, plural, one {# member card} other {# member cards}}"
+  "{n, plural, one {# member card} other {# member cards}}": "{n, plural, one {# member card} other {# member cards}}",
+  "{n, plural, one {# image ready} other {# images ready}}": "{n, plural, one {# image ready} other {# images ready}}",
+  "Rarity for new cards": "Rarity for new cards",
+  "Cards are named after their files. A file named like a card in this deck replaces its image.": "Cards are named after their files. A file named like a card in this deck replaces its image.",
+  "Replaces the image of this card": "Replaces the image of this card",
+  "Save all": "Save all",
+  "Saving {done} of {total}": "Saving {done} of {total}",
+  "{n, plural, one {# card could not be saved} other {# cards could not be saved}}": "{n, plural, one {# card could not be saved} other {# cards could not be saved}}",
+  "Upload several images": "Upload several images",
+  "Search cards": "Search cards",
+  "All cards": "All cards",
+  "Without image": "Without image",
+  "No cards match.": "No cards match.",
+  "Change image of {name}": "Change image of {name}",
+  "Rarity of {name}": "Rarity of {name}"
 }

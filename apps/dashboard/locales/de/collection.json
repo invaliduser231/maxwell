@@ -105,5 +105,19 @@
   "That card is gone.": "Diese Karte gibt es nicht mehr.",
   "{n, plural, one {# card} other {# cards}}": "{n, plural, one {# Karte} other {# Karten}}",
   "{n, plural, one {# owner} other {# owners}}": "{n, plural, one {# Besitzer} other {# Besitzer}}",
-  "{n, plural, one {# member card} other {# member cards}}": "{n, plural, one {# Mitgliederkarte} other {# Mitgliederkarten}}"
+  "{n, plural, one {# member card} other {# member cards}}": "{n, plural, one {# Mitgliederkarte} other {# Mitgliederkarten}}",
+  "{n, plural, one {# image ready} other {# images ready}}": "{n, plural, one {# Bild bereit} other {# Bilder bereit}}",
+  "Rarity for new cards": "Seltenheit für neue Karten",
+  "Cards are named after their files. A file named like a card in this deck replaces its image.": "Karten heißen wie ihre Dateien. Eine Datei, die wie eine Karte in diesem Deck heißt, ersetzt deren Bild.",
+  "Replaces the image of this card": "Ersetzt das Bild dieser Karte",
+  "Save all": "Alle speichern",
+  "Saving {done} of {total}": "Speichere {done} von {total}",
+  "{n, plural, one {# card could not be saved} other {# cards could not be saved}}": "{n, plural, one {# Karte konnte nicht gespeichert werden} other {# Karten konnten nicht gespeichert werden}}",
+  "Upload several images": "Mehrere Bilder hochladen",
+  "Search cards": "Karten suchen",
+  "All cards": "Alle Karten",
+  "Without image": "Ohne Bild",
+  "No cards match.": "Keine Karte passt.",
+  "Change image of {name}": "Bild von {name} ändern",
+  "Rarity of {name}": "Seltenheit von {name}"
 }

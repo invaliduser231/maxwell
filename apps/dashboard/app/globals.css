@@ -465,6 +465,61 @@
   display: inline-block;
   flex-shrink: 0;
 }
+.mx-card-row {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+.mx-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.mx-card-thumb {
+  cursor: pointer;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.mx-card-thumb:focus-within {
+  outline: 2px solid var(--mx-north);
+  outline-offset: 2px;
+}
+.mx-chip-select {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.mx-chip-select option {
+  background: var(--mx-panel);
+  color: var(--mx-text);
+}
+.mx-card-rarity {
+  width: auto;
+}
+.mx-card-filter {
+  display: grid;
+  grid-template-columns: 1fr minmax(150px, 220px);
+  gap: 10px;
+}
+.mx-card-edit {
+  background: var(--mx-sunk);
+  border-top: 1px solid var(--mx-line);
+}
+@media (max-width: 560px) {
+  .mx-card-row .mx-row-main {
+    flex-basis: calc(100% - 50px);
+  }
+  .mx-card-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .mx-card-filter {
+    grid-template-columns: 1fr;
+  }
+}
 .mx-tabs {
   display: flex;
   flex-wrap: wrap;

@@ -8,7 +8,7 @@ import {
   type RarityTier,
 } from '@maxwell/core/modules/collection';
 import type { CollectionOverview } from '@maxwell/core/stores/collection';
-import { useState, useTransition } from 'react';
+import { Fragment, useState, useTransition } from 'react';
 import {
   AddPicker,
   ChannelMulti,
@@ -27,6 +27,7 @@ import { type Status, StatusText } from '@/components/status-text';
 import { TwoStep } from '@/components/two-step';
 import { CloseIcon, Empty, Field, Fields, Grid, Panel, PanelBody, Row } from '@/components/ui';
 import type { Key, Translator } from '@/lib/i18n';
+import { dataUrl, shrinkImage } from '@/lib/image';
 import { Invite, Small, StatStrip } from '../economy/bits';
 import { addCard, editCard, removeCard, setCardActive } from './actions';
 import type { CardView } from './cards';
@@ -275,6 +276,301 @@ function SampleCard({ sample, tiers }: { sample: Sample; tiers: RarityTier[] }) 
   );
 }
 
+interface CardInput {
+  name: string;
+  description: string;
+  rarity: string;
+  image: string | null;
+}
+
+interface Draft {
+  key: string;
+  file: File;
+  preview: string;
+  name: string;
+  rarity: string;
+  target: CardView | null;
+  error: string | null;
+}
+
+const CARD_SIDE = 1000;
+const CARD_LIMIT = 600_000;
+const FILTER_FROM = 10;
+const IMAGE_TYPES = 'image/png,image/jpeg,image/webp';
+
+function fold(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .trim();
+}
+
+function nameFromFile(file: File): string {
+  return file.name
+    .replace(/\.[^.]+$/, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 64);
+}
+
+async function cardImage(file: File): Promise<string> {
+  return dataUrl(await shrinkImage(file, { maxSide: CARD_SIDE, limit: CARD_LIMIT }));
+}
+
+function CardEditor({
+  card,
+  imageUrl,
+  tiers,
+  pending,
+  onSubmit,
+  onCancel,
+}: {
+  card: CardView | null;
+  imageUrl: string | null;
+  tiers: RarityTier[];
+  pending: boolean;
+  onSubmit: (input: CardInput) => Promise<boolean>;
+  onCancel: () => void;
+}) {
+  const t = useT();
+  const [name, setName] = useState(card?.name ?? '');
+  const [description, setDescription] = useState(card?.description ?? '');
+  const [rarity, setRarity] = useState(card?.rarity ?? tiers[0]?.id ?? 'common');
+  const [image, setImage] = useState<string | null>(null);
+  const [problem, setProblem] = useState<Status>(null);
+  const [busy, setBusy] = useState(false);
+
+  const pick = (file: File) =>
+    cardImage(file)
+      .then((next) => {
+        setImage(next);
+        setProblem(null);
+      })
+      .catch(() => setProblem({ message: t('That image could not be read.'), error: true }));
+
+  const submit = () => {
+    setBusy(true);
+    onSubmit({ name, description, rarity, image })
+      .then((ok) => {
+        if (ok && !card) {
+          setName('');
+          setDescription('');
+          setImage(null);
+        }
+      })
+      .finally(() => setBusy(false));
+  };
+
+  const preview = image ?? imageUrl;
+  return (
+    <>
+      <Fields>
+        <Field label={t('Card name')}>
+          <TextInput value={name} maxLength={64} onChange={setName} />
+        </Field>
+        <Field label={t('Rarity')}>
+          <Select
+            value={rarity}
+            options={tiers.map((tier) => ({ value: tier.id, label: tier.name }))}
+            onChange={setRarity}
+          />
+        </Field>
+        <Field label={t('Description')}>
+          <TextInput value={description} maxLength={200} onChange={setDescription} />
+        </Field>
+      </Fields>
+      <div className="mx-inline">
+        <label className="mx-btn">
+          {preview ? t('Change image') : t('Upload image')}
+          <input
+            type="file"
+            accept={IMAGE_TYPES}
+            className="mx-sr"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) pick(file);
+              event.target.value = '';
+            }}
+          />
+        </label>
+        {preview ? (
+          <img
+            src={preview}
+            alt={card ? card.name : t('New card')}
+            width={34}
+            height={44}
+            style={{ borderRadius: 5, objectFit: 'cover' }}
+          />
+        ) : null}
+        <button
+          type="button"
+          className="mx-btn mx-btn-primary"
+          disabled={pending || busy || !name.trim()}
+          onClick={submit}
+        >
+          {card ? t('Save card') : t('Add card')}
+        </button>
+        <button type="button" className="mx-btn" disabled={pending} onClick={onCancel}>
+          {t('Cancel')}
+        </button>
+        <StatusText status={problem} />
+      </div>
+    </>
+  );
+}
+
+function BulkReview({
+  drafts,
+  setDrafts,
+  tiers,
+  progress,
+  onSave,
+}: {
+  drafts: Draft[];
+  setDrafts: (fn: (previous: Draft[]) => Draft[]) => void;
+  tiers: RarityTier[];
+  progress: { done: number; total: number } | null;
+  onSave: () => void;
+}) {
+  const t = useT();
+  const fresh = drafts.filter((draft) => !draft.target);
+  const options = tiers.map((tier) => ({ value: tier.id, label: tier.name }));
+  const drop = (keys: Set<string>) =>
+    setDrafts((previous) =>
+      previous.filter((draft) => {
+        if (!keys.has(draft.key)) return true;
+        URL.revokeObjectURL(draft.preview);
+        return false;
+      }),
+    );
+
+  return (
+    <div style={line}>
+      <div className="mx-panel-body">
+        <div className="mx-inline" style={{ justifyContent: 'space-between' }}>
+          <span className="mx-row-title">
+            {t('{n, plural, one {# image ready} other {# images ready}}', { n: drafts.length })}
+          </span>
+          {fresh.length > 1 ? (
+            <div style={{ width: 200 }}>
+              <Select
+                value=""
+                placeholder={t('Rarity for new cards')}
+                label={t('Rarity for new cards')}
+                options={options}
+                disabled={progress !== null}
+                onChange={(rarity) =>
+                  setDrafts((previous) =>
+                    previous.map((draft) => (draft.target ? draft : { ...draft, rarity })),
+                  )
+                }
+              />
+            </div>
+          ) : null}
+        </div>
+        <span className="mx-hint">
+          {t(
+            'Cards are named after their files. A file named like a card in this deck replaces its image.',
+          )}
+        </span>
+      </div>
+      {drafts.map((draft) => (
+        <div key={draft.key} className="mx-row mx-card-row">
+          <img
+            src={draft.preview}
+            alt=""
+            width={34}
+            height={44}
+            style={{ borderRadius: 5, objectFit: 'cover', flexShrink: 0 }}
+          />
+          <div className="mx-row-main">
+            {draft.target ? (
+              <>
+                <span className="mx-row-title">{draft.target.name}</span>
+                <span className="mx-sub">{t('Replaces the image of this card')}</span>
+              </>
+            ) : (
+              <TextInput
+                value={draft.name}
+                maxLength={64}
+                label={t('Card name')}
+                onChange={(name) =>
+                  setDrafts((previous) =>
+                    previous.map((entry) => (entry.key === draft.key ? { ...entry, name } : entry)),
+                  )
+                }
+              />
+            )}
+            {draft.error ? <span className="mx-status mx-status-error">{draft.error}</span> : null}
+          </div>
+          <div className="mx-card-actions">
+            {draft.target ? null : (
+              <select
+                className="mx-select mx-card-rarity"
+                aria-label={t('Rarity')}
+                value={draft.rarity}
+                disabled={progress !== null}
+                onChange={(event) => {
+                  const rarity = event.target.value;
+                  setDrafts((previous) =>
+                    previous.map((entry) =>
+                      entry.key === draft.key ? { ...entry, rarity } : entry,
+                    ),
+                  );
+                }}
+              >
+                {options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            )}
+            <button
+              type="button"
+              className="mx-btn mx-btn-ghost"
+              aria-label={t('Remove {name}', { name: draft.target?.name ?? draft.name })}
+              disabled={progress !== null}
+              onClick={() => drop(new Set([draft.key]))}
+            >
+              <CloseIcon />
+            </button>
+          </div>
+        </div>
+      ))}
+      <div className="mx-panel-body" style={line}>
+        <div className="mx-inline">
+          <button
+            type="button"
+            className="mx-btn mx-btn-primary"
+            disabled={
+              progress !== null || drafts.some((draft) => !draft.target && !draft.name.trim())
+            }
+            onClick={onSave}
+          >
+            {t('Save all')}
+          </button>
+          <button
+            type="button"
+            className="mx-btn"
+            disabled={progress !== null}
+            onClick={() => drop(new Set(drafts.map((draft) => draft.key)))}
+          >
+            {t('Discard')}
+          </button>
+          {progress ? (
+            <span className="mx-sub" role="status">
+              {t('Saving {done} of {total}', progress)}
+            </span>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CardsPanel({
   deck,
   cards,
@@ -289,73 +585,146 @@ function CardsPanel({
   const { guildId } = useGuild();
   const t = useT();
   const { value, set, readOnly } = useDraft<CollectionConfig>();
-  const [name, setName] = useState('');
-  const [rarity, setRarity] = useState(value.tiers[0]?.id ?? 'common');
-  const [description, setDescription] = useState('');
-  const [image, setImage] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>(null);
-  const [changing, setChanging] = useState<CardView | null>(null);
+  const [changing, setChanging] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [query, setQuery] = useState('');
+  const [show, setShow] = useState('all');
+  const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [pending, start] = useTransition();
   const list = cards.filter((card) => card.deck === deck.id);
   const imageUrl = (card: CardView) =>
     `/g/${guildId}/collection/image/${card.id}?v=${card.image ?? ''}`;
   const tierOf = (id: string) => value.tiers.find((tier) => tier.id === id) ?? value.tiers[0];
+  const editable = saved && !readOnly;
 
-  const pick = (file: File) => {
-    if (file.size > 1_000_000) {
-      setStatus({ message: t('Use an image under 1 MB.'), error: true });
-      return;
+  const folded = fold(query);
+  const shown = list.filter(
+    (card) =>
+      (!folded || fold(card.name).includes(folded)) &&
+      (show === 'all' || (show === 'missing' ? !card.image : card.rarity === show)),
+  );
+
+  const fail = (error: string) => setStatus({ message: error, error: true });
+  const replace = (card: CardView) =>
+    setCards((previous) =>
+      previous.map((c) => (c.id === card.id ? { ...card, owners: c.owners } : c)),
+    );
+
+  const add = async (input: CardInput) => {
+    const result = await addCard(guildId, { deck: deck.id, ...input });
+    if (result.ok && result.data) {
+      const card = result.data;
+      setCards((previous) => [...previous, card]);
+      setStatus({ message: t('Added.'), error: false });
+      return true;
     }
-    const reader = new FileReader();
-    reader.onload = () => setImage(String(reader.result));
-    reader.readAsDataURL(file);
+    if (!result.ok) fail(result.error);
+    return false;
   };
 
-  const reset = () => {
-    setChanging(null);
-    setName('');
-    setDescription('');
-    setImage(null);
+  const save = async (card: CardView, input: CardInput) => {
+    const result = await editCard(guildId, card.id, input);
+    if (result.ok && result.data) {
+      replace(result.data);
+      setChanging(null);
+      setStatus({ message: t('Saved.'), error: false });
+      return true;
+    }
+    if (!result.ok) fail(result.error);
+    return false;
   };
 
-  const change = (card: CardView) => {
-    setChanging(card);
-    setName(card.name);
-    setDescription(card.description);
-    setRarity(card.rarity);
-    setImage(null);
+  const quick = (card: CardView, patch: Partial<CardInput>) =>
+    start(async () => {
+      const result = await editCard(guildId, card.id, {
+        name: card.name,
+        description: card.description,
+        rarity: card.rarity,
+        image: null,
+        ...patch,
+      });
+      if (result.ok && result.data) replace(result.data);
+      else if (!result.ok) fail(result.error);
+    });
+
+  const quickImage = (card: CardView, file: File) =>
+    cardImage(file)
+      .then((image) => quick(card, { image }))
+      .catch(() => fail(t('That image could not be read.')));
+
+  const queue = (files: File[]) => {
+    const byName = new Map(list.map((card) => [fold(card.name), card]));
+    const rarity = value.tiers[0]?.id ?? 'common';
+    const next = files
+      .filter((file) => file.type.startsWith('image/'))
+      .map((file) => {
+        const name = nameFromFile(file);
+        return {
+          key: `${file.name}:${file.size}:${file.lastModified}:${Math.random()}`,
+          file,
+          preview: URL.createObjectURL(file),
+          name,
+          rarity,
+          target: byName.get(fold(name)) ?? null,
+          error: null,
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, t.locale, { numeric: true }));
+    setDrafts((previous) => [...previous, ...next]);
     setStatus(null);
   };
 
-  const add = () =>
+  const saveAll = () =>
     start(async () => {
-      const result = await addCard(guildId, { deck: deck.id, name, description, rarity, image });
-      if (result.ok && result.data) {
-        const card = result.data;
-        setCards((previous) => [...previous, card]);
-        reset();
-        setStatus({ message: t('Added.'), error: false });
-      } else if (!result.ok) {
-        setStatus({ message: result.error, error: true });
+      const total = drafts.length;
+      const left: Draft[] = [];
+      setProgress({ done: 0, total });
+      for (const [index, draft] of drafts.entries()) {
+        let error: string | null = null;
+        try {
+          const image = await cardImage(draft.file);
+          const result = draft.target
+            ? await editCard(guildId, draft.target.id, {
+                name: draft.target.name,
+                description: draft.target.description,
+                rarity: draft.target.rarity,
+                image,
+              })
+            : await addCard(guildId, {
+                deck: deck.id,
+                name: draft.name,
+                description: '',
+                rarity: draft.rarity,
+                image,
+              });
+          if (result.ok && result.data) {
+            const card = result.data;
+            if (draft.target) replace(card);
+            else setCards((previous) => [...previous, card]);
+          } else if (!result.ok) error = result.error;
+        } catch {
+          error = t('That image could not be read.');
+        }
+        if (error) left.push({ ...draft, error });
+        else URL.revokeObjectURL(draft.preview);
+        setProgress({ done: index + 1, total });
       }
+      setDrafts(() => left);
+      setProgress(null);
+      setStatus(
+        left.length > 0
+          ? {
+              message: t(
+                '{n, plural, one {# card could not be saved} other {# cards could not be saved}}',
+                { n: left.length },
+              ),
+              error: true,
+            }
+          : { message: t('Saved.'), error: false },
+      );
     });
-
-  const save = (card: CardView) =>
-    start(async () => {
-      const result = await editCard(guildId, card.id, { name, description, rarity, image });
-      if (result.ok && result.data) {
-        const updated = result.data;
-        setCards((previous) =>
-          previous.map((c) => (c.id === card.id ? { ...updated, owners: c.owners } : c)),
-        );
-        reset();
-        setStatus({ message: t('Saved.'), error: false });
-      } else if (!result.ok) {
-        setStatus({ message: result.error, error: true });
-      }
-    });
-
-  const fail = (error: string) => setStatus({ message: error, error: true });
 
   return (
     <Panel
@@ -391,164 +760,230 @@ function CardsPanel({
             }
           />
         </Field>
-      </PanelBody>
-      {list.length === 0 ? <Empty mood="thinking">{t('No cards in this deck yet.')}</Empty> : null}
-      {list.map((card) => {
-        const tier = tierOf(card.rarity);
-        return (
-          <div key={card.id} className="mx-row">
-            {card.image ? (
-              <img
-                src={imageUrl(card)}
-                alt=""
-                width={34}
-                height={44}
-                style={{
-                  borderRadius: 5,
-                  objectFit: 'cover',
-                  border: `2px solid ${tier?.color ?? '#8A8F98'}`,
-                  flexShrink: 0,
+        {readOnly ? null : saved ? (
+          <div className="mx-inline">
+            <button
+              type="button"
+              className="mx-btn"
+              aria-pressed={adding}
+              disabled={progress !== null}
+              onClick={() => setAdding(!adding)}
+            >
+              {t('New card')}
+            </button>
+            <label className="mx-btn">
+              {t('Upload several images')}
+              <input
+                type="file"
+                accept={IMAGE_TYPES}
+                multiple
+                className="mx-sr"
+                disabled={progress !== null}
+                onChange={(event) => {
+                  queue([...(event.target.files ?? [])]);
+                  event.target.value = '';
                 }}
               />
-            ) : (
-              <span aria-hidden="true" style={thumb(tier?.color ?? '#8A8F98')} />
-            )}
-            <div className="mx-row-main">
-              <span className="mx-row-title">{card.name}</span>
-              <span className="mx-sub">
-                {`#${card.number}, ${t('{n, plural, one {# owner} other {# owners}}', { n: card.owners })}`}
-                {card.active ? '' : `, ${t('retired')}`}
-              </span>
-            </div>
-            <span className="mx-chip">
-              <span className="mx-dot" style={{ background: tier?.color }} />
-              {tier?.name ?? card.rarity}
-            </span>
-            {readOnly ? null : (
-              <button
-                type="button"
-                className="mx-btn mx-btn-ghost"
-                aria-label={t('Edit {name}', { name: card.name })}
-                aria-pressed={changing?.id === card.id}
-                disabled={pending}
-                onClick={() => (changing?.id === card.id ? reset() : change(card))}
-              >
-                {t('Edit')}
-              </button>
-            )}
-            {readOnly ? null : (
-              <TwoStep
-                label={t('Delete')}
-                confirm={t('Click again')}
-                ghost
-                ariaLabel={t('Delete {name}', { name: card.name })}
-                run={() =>
-                  start(async () => {
-                    const result = await removeCard(guildId, card.id);
-                    if (result.ok) {
-                      setCards((previous) => previous.filter((c) => c.id !== card.id));
-                      if (changing?.id === card.id) reset();
-                    } else fail(result.error);
-                  })
-                }
-              />
-            )}
-            <Switch
-              label={
-                card.active
-                  ? t('{name} drops', { name: card.name })
-                  : t('{name} retired', { name: card.name })
-              }
-              checked={card.active}
-              disabled={pending}
-              onChange={(active) =>
-                start(async () => {
-                  const result = await setCardActive(guildId, card.id, active);
-                  if (result.ok)
-                    setCards((previous) =>
-                      previous.map((c) => (c.id === card.id ? { ...c, active } : c)),
-                    );
-                  else fail(result.error);
-                })
-              }
-            />
+            </label>
+            <StatusText status={status} />
           </div>
-        );
-      })}
-      {readOnly ? null : (
+        ) : (
+          <span className="mx-sub">{t('Save to add cards.')}</span>
+        )}
+      </PanelBody>
+      {editable && adding ? (
         <div className="mx-panel-body" style={line}>
-          {saved ? (
-            <>
-              <Fields>
-                <Field label={t('Card name')}>
-                  <TextInput value={name} maxLength={64} onChange={setName} />
-                </Field>
-                <Field label={t('Rarity')}>
-                  <Select
-                    value={rarity}
-                    options={value.tiers.map((tier) => ({ value: tier.id, label: tier.name }))}
-                    onChange={setRarity}
-                  />
-                </Field>
-                <Field label={t('Description')}>
-                  <TextInput value={description} maxLength={200} onChange={setDescription} />
-                </Field>
-              </Fields>
-              <div className="mx-inline">
-                <label className="mx-btn">
-                  {image ? t('Change image') : t('Upload image')}
+          <CardEditor
+            card={null}
+            imageUrl={null}
+            tiers={value.tiers}
+            pending={pending}
+            onSubmit={add}
+            onCancel={() => setAdding(false)}
+          />
+        </div>
+      ) : null}
+      {editable && drafts.length > 0 ? (
+        <BulkReview
+          drafts={drafts}
+          setDrafts={setDrafts}
+          tiers={value.tiers}
+          progress={progress}
+          onSave={saveAll}
+        />
+      ) : null}
+      {list.length >= FILTER_FROM ? (
+        <div className="mx-panel-body mx-card-filter" style={line}>
+          <input
+            type="search"
+            className="mx-input"
+            placeholder={t('Search cards')}
+            aria-label={t('Search cards')}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <Select
+            value={show}
+            label={t('Show')}
+            options={[
+              { value: 'all', label: t('All cards') },
+              { value: 'missing', label: t('Without image') },
+              ...value.tiers.map((tier) => ({
+                value: tier.id,
+                label: tier.name,
+                color: tier.color,
+              })),
+            ]}
+            onChange={setShow}
+          />
+        </div>
+      ) : null}
+      {list.length === 0 ? <Empty mood="thinking">{t('No cards in this deck yet.')}</Empty> : null}
+      {list.length > 0 && shown.length === 0 ? (
+        <Empty mood="thinking">{t('No cards match.')}</Empty>
+      ) : null}
+      {shown.map((card) => {
+        const tier = tierOf(card.rarity);
+        const color = tier?.color ?? '#8A8F98';
+        const art = card.image ? (
+          <img
+            src={imageUrl(card)}
+            alt=""
+            width={34}
+            height={44}
+            style={{
+              borderRadius: 5,
+              objectFit: 'cover',
+              border: `2px solid ${color}`,
+              flexShrink: 0,
+              display: 'block',
+            }}
+          />
+        ) : (
+          <span aria-hidden="true" style={{ ...thumb(color), display: 'block' }} />
+        );
+        return (
+          <Fragment key={card.id}>
+            <div className="mx-row mx-card-row">
+              {editable ? (
+                <label
+                  className="mx-card-thumb"
+                  title={t('Change image of {name}', { name: card.name })}
+                >
+                  {art}
                   <input
                     type="file"
-                    accept="image/png,image/jpeg,image/webp"
+                    accept={IMAGE_TYPES}
                     className="mx-sr"
+                    aria-label={t('Change image of {name}', { name: card.name })}
+                    disabled={pending}
                     onChange={(event) => {
                       const file = event.target.files?.[0];
-                      if (file) pick(file);
+                      if (file) quickImage(card, file);
                       event.target.value = '';
                     }}
                   />
                 </label>
-                {image || changing?.image ? (
-                  <img
-                    src={image ?? (changing ? imageUrl(changing) : '')}
-                    alt={changing ? changing.name : t('New card')}
-                    width={34}
-                    height={44}
-                    style={{ borderRadius: 5, objectFit: 'cover' }}
-                  />
-                ) : null}
-                {changing ? (
-                  <>
-                    <button
-                      type="button"
-                      className="mx-btn mx-btn-primary"
-                      disabled={pending || !name.trim()}
-                      onClick={() => save(changing)}
-                    >
-                      {t('Save card')}
-                    </button>
-                    <button type="button" className="mx-btn" disabled={pending} onClick={reset}>
-                      {t('Cancel')}
-                    </button>
-                  </>
+              ) : (
+                art
+              )}
+              <div className="mx-row-main">
+                <span className="mx-row-title">{card.name}</span>
+                <span className="mx-sub">
+                  {`#${card.number}, ${t('{n, plural, one {# owner} other {# owners}}', { n: card.owners })}`}
+                  {card.active ? '' : `, ${t('retired')}`}
+                </span>
+              </div>
+              <div className="mx-card-actions">
+                {readOnly ? (
+                  <span className="mx-chip">
+                    <span className="mx-dot" style={{ background: tier?.color }} />
+                    {tier?.name ?? card.rarity}
+                  </span>
                 ) : (
+                  <span className="mx-chip">
+                    <span className="mx-dot" style={{ background: tier?.color }} />
+                    <select
+                      className="mx-chip-select"
+                      aria-label={t('Rarity of {name}', { name: card.name })}
+                      value={card.rarity}
+                      disabled={pending}
+                      onChange={(event) => quick(card, { rarity: event.target.value })}
+                    >
+                      {value.tiers.map((entry) => (
+                        <option key={entry.id} value={entry.id}>
+                          {entry.name}
+                        </option>
+                      ))}
+                    </select>
+                  </span>
+                )}
+                {readOnly ? null : (
                   <button
                     type="button"
-                    className="mx-btn mx-btn-primary"
-                    disabled={pending || !name.trim()}
-                    onClick={add}
+                    className="mx-btn mx-btn-ghost"
+                    aria-label={t('Edit {name}', { name: card.name })}
+                    aria-pressed={changing === card.id}
+                    disabled={pending}
+                    onClick={() => setChanging(changing === card.id ? null : card.id)}
                   >
-                    {t('Add card')}
+                    {t('Edit')}
                   </button>
                 )}
-                <StatusText status={status} />
+                {readOnly ? null : (
+                  <TwoStep
+                    label={t('Delete')}
+                    confirm={t('Click again')}
+                    ghost
+                    ariaLabel={t('Delete {name}', { name: card.name })}
+                    run={() =>
+                      start(async () => {
+                        const result = await removeCard(guildId, card.id);
+                        if (result.ok) {
+                          setCards((previous) => previous.filter((c) => c.id !== card.id));
+                          if (changing === card.id) setChanging(null);
+                        } else fail(result.error);
+                      })
+                    }
+                  />
+                )}
+                <Switch
+                  label={
+                    card.active
+                      ? t('{name} drops', { name: card.name })
+                      : t('{name} retired', { name: card.name })
+                  }
+                  checked={card.active}
+                  disabled={pending}
+                  onChange={(active) =>
+                    start(async () => {
+                      const result = await setCardActive(guildId, card.id, active);
+                      if (result.ok)
+                        setCards((previous) =>
+                          previous.map((c) => (c.id === card.id ? { ...c, active } : c)),
+                        );
+                      else fail(result.error);
+                    })
+                  }
+                />
               </div>
-            </>
-          ) : (
-            <span className="mx-sub">{t('Save to add cards.')}</span>
-          )}
-        </div>
-      )}
+            </div>
+            {editable && changing === card.id ? (
+              <div className="mx-panel-body mx-card-edit">
+                <CardEditor
+                  key={card.id}
+                  card={card}
+                  imageUrl={card.image ? imageUrl(card) : null}
+                  tiers={value.tiers}
+                  pending={pending}
+                  onSubmit={(input) => save(card, input)}
+                  onCancel={() => setChanging(null)}
+                />
+              </div>
+            ) : null}
+          </Fragment>
+        );
+      })}
     </Panel>
   );
 }
