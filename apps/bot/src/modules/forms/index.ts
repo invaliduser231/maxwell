@@ -31,6 +31,7 @@ export default defineBotModule({
     );
     ctx.on('message', (message) => runner.onMessage(message), { always: true });
     ctx.on('reaction', (reaction) => reviews.onReaction(reaction, true));
+    ctx.on('reaction', (reaction) => runner.onReaction(reaction), { always: true });
     ctx.on('reactionRemove', (reaction) => reviews.onReaction(reaction, false));
     ctx.on('channelDelete', ({ channel }) => runner.onChannelGone(channel.id), { always: true });
 

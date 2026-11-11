@@ -437,7 +437,18 @@ describe.skipIf(!url)('forms flow', () => {
     dm(applicant, 'yes');
     await until(async () => lastTo(applicantDm).includes('Which team?'));
     expect(JSON.stringify(await start(applicant, 'staff'))).toContain('already filling out');
-    dm(applicant, '2');
+    const asked = platform.sent.filter((entry) => entry.channelId === applicantDm).at(-1);
+    const digits = platform.reactions.filter((entry) => entry.messageId === asked?.id);
+    expect(digits.map((entry) => entry.emoji)).toEqual(['1️⃣', '2️⃣']);
+    const press = {
+      guildId: null,
+      channelId: applicantDm,
+      messageId: asked?.id ?? '',
+      emoji: '2️⃣',
+      bot: false,
+    };
+    platform.emit('reaction', { ...press, userId: first.id });
+    platform.emit('reaction', { ...press, userId: applicant.id });
 
     const [submission] = await until(async () => {
       const rows = await store.list(guild);

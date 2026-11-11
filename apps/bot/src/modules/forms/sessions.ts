@@ -1,8 +1,13 @@
-import type { FormDefinition, FormsConfig } from '@maxwell/core/modules/forms';
+import type { FormDefinition, FormQuestion, FormsConfig } from '@maxwell/core/modules/forms';
 import type { FormSession, FormStore } from '@maxwell/core/stores/forms';
 import { mention } from '../../commands/mentions.js';
 import { inGuild } from '../../i18n/language.js';
-import { ChannelKind, type IncomingMessage, type UserRef } from '../../platform/types.js';
+import {
+  ChannelKind,
+  type IncomingMessage,
+  type ReactionEvent,
+  type UserRef,
+} from '../../platform/types.js';
 import { lines } from '../../ui/format.js';
 import { KeyedQueue } from '../tickets/cache.js';
 import { cleanChannelName } from '../tickets/naming.js';
@@ -36,8 +41,38 @@ export function openForms(config: FormsConfig): FormDefinition[] {
   return config.forms.filter((form) => form.enabled && form.questions.length > 0);
 }
 
+const BUTTON_LIMIT = 5_000;
+const VARIATION = String.fromCodePoint(0xfe0f);
+const bare = (emoji: string) => emoji.replaceAll(VARIATION, '');
+const digit = (n: number) => String.fromCodePoint(0x30 + n, 0xfe0f, 0x20e3);
+
+export function answerKeys(question: FormQuestion): { emoji: string; answer: string }[] {
+  const keys: { emoji: string; answer: string }[] = [];
+  if (question.type === 'yesno') {
+    keys.push({ emoji: String.fromCodePoint(0x2705), answer: 'yes' });
+    keys.push({ emoji: String.fromCodePoint(0x274c), answer: 'no' });
+  }
+  if (question.type === 'choice' && question.options.length <= 9) {
+    question.options.forEach((_, i) => {
+      keys.push({ emoji: digit(i + 1), answer: String(i + 1) });
+    });
+  }
+  if (!question.required && keys.length > 0) {
+    keys.push({ emoji: String.fromCodePoint(0x23ed, 0xfe0f), answer: 'skip' });
+  }
+  return keys;
+}
+
+interface Button {
+  userId: string;
+  questionId: string;
+  channelId: string;
+  keys: { emoji: string; answer: string }[];
+}
+
 export class FormRunner {
   readonly #queue = new KeyedQueue();
+  readonly #buttons = new Map<string, Button>();
 
   constructor(
     private readonly ctx: FormsContext,
@@ -96,7 +131,15 @@ export class FormRunner {
       '',
       questionText(form, {}, first),
     );
-    if (await platform.sendDirect(user.id, opening)) return { ok: true, mode: 'dm' };
+    const dm = await Promise.resolve()
+      .then(() => platform.openDirect(user.id))
+      .catch(() => null);
+    const sent = dm ? await platform.send(dm, opening).catch(() => null) : null;
+    if (dm && sent) {
+      await this.#offer(dm, sent, first, user.id);
+      return { ok: true, mode: 'dm' };
+    }
+    if (!dm && (await platform.sendDirect(user.id, opening))) return { ok: true, mode: 'dm' };
 
     const channelId = await this.#fallbackChannel(guildId, user, config).catch((error) => {
       log.warn({ err: error, guild: guildId }, 'form channel create failed');
@@ -109,11 +152,55 @@ export class FormRunner {
     }
     await this.store.moveSessionToChannel(session.id, channelId);
     this.inbox.add(user.id, channelId);
-    await platform.send(channelId, {
+    const posted = await platform.send(channelId, {
       content: lines(mention.user(user.id), opening),
       mentionUsers: [user.id],
     });
+    await this.#offer(channelId, posted, first, user.id);
     return { ok: true, mode: 'channel', channelId };
+  }
+
+  async #offer(
+    channelId: string,
+    messageId: string,
+    question: FormQuestion,
+    userId: string,
+  ): Promise<void> {
+    const keys = answerKeys(question);
+    if (keys.length === 0) return;
+    if (this.#buttons.size >= BUTTON_LIMIT) {
+      const oldest = this.#buttons.keys().next().value;
+      if (oldest !== undefined) this.#buttons.delete(oldest);
+    }
+    this.#buttons.set(messageId, { userId, questionId: question.id, channelId, keys });
+    const { platform } = this.ctx.services;
+    for (const key of keys) await platform.react(channelId, messageId, key.emoji).catch(() => {});
+  }
+
+  async onReaction(reaction: ReactionEvent): Promise<void> {
+    const button = this.#buttons.get(reaction.messageId);
+    if (!button || reaction.bot || reaction.userId !== button.userId) return;
+    const key = button.keys.find((entry) => bare(entry.emoji) === bare(reaction.emoji));
+    if (!key) return;
+    await this.#queue.run(button.userId, async () => {
+      const session = await this.store.session(button.userId);
+      if (!session || session.questionId !== button.questionId) return;
+      this.#buttons.delete(reaction.messageId);
+      const { platform } = this.ctx.services;
+      for (const entry of button.keys) {
+        await platform.unreact(button.channelId, reaction.messageId, entry.emoji).catch(() => {});
+      }
+      const answer = {
+        id: reaction.messageId,
+        channelId: button.channelId,
+        guildId: reaction.guildId,
+        content: key.answer,
+        attachments: [],
+        author: { id: button.userId, bot: false },
+        fromWebhook: false,
+      } as unknown as IncomingMessage;
+      await inGuild(session.guildId, () => this.#continue(session, answer));
+    });
   }
 
   #expiry(config: FormsConfig): Date {
@@ -279,7 +366,8 @@ export class FormRunner {
     const next = nextQuestion(form, answers, question.id);
     if (next) {
       await this.store.saveProgress(session.id, next.id, answers, this.#expiry(config));
-      await reply(questionText(form, answers, next));
+      const asked = await reply(questionText(form, answers, next));
+      await this.#offer(message.channelId, asked, next, session.userId);
       return;
     }
     await this.#submit(session, form, answers, reply);
