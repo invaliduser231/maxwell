@@ -101,7 +101,9 @@
     "freeLost": "Der Dealer gewinnt.",
     "freePush": "Niemand gewinnt.",
     "noFunds": "Dafür reicht dein Geld nicht.",
-    "timeout": "Die Zeit ist um, der Rest deiner Hand bleibt stehen."
+    "timeout": "Die Zeit ist um, der Rest deiner Hand bleibt stehen.",
+    "yourMove": "Du bist dran",
+    "dealerTurn": "Der Dealer spielt"
   },
   "board": {
     "title": "Rangliste {game}",

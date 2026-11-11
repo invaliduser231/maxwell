@@ -101,7 +101,9 @@
     "freeLost": "The dealer wins.",
     "freePush": "Nobody wins.",
     "noFunds": "Not enough money for that.",
-    "timeout": "Time ran out, so the rest of your hand stands."
+    "timeout": "Time ran out, so the rest of your hand stands.",
+    "yourMove": "Your move",
+    "dealerTurn": "Dealer plays"
   },
   "board": {
     "title": "{game} leaderboard",

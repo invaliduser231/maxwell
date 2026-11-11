@@ -101,7 +101,9 @@
     "freeLost": "Gana el crupier.",
     "freePush": "Nadie gana.",
     "noFunds": "No te alcanza para eso.",
-    "timeout": "Se acabó el tiempo, así que te plantas con el resto."
+    "timeout": "Se acabó el tiempo, así que te plantas con el resto.",
+    "yourMove": "Tu turno",
+    "dealerTurn": "Juega el crupier"
   },
   "board": {
     "title": "Clasificación de {game}",

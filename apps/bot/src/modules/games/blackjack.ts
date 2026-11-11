@@ -1,6 +1,7 @@
 import type { BlackjackHand, BlackjackSession } from '@maxwell/core/stores/games';
+import { renderTable, type TableView } from '../../cards/blackjack.js';
 import type { GuildContext } from '../../commands/types.js';
-import type { Embed, IncomingMessage, ReactionEvent } from '../../platform/types.js';
+import type { Embed, IncomingMessage, Outgoing, ReactionEvent } from '../../platform/types.js';
 import { lines, subtext } from '../../ui/format.js';
 import { palette } from '../../ui/palette.js';
 import type { Schedule } from '../economy/shop.js';
@@ -29,6 +30,8 @@ import type { Games } from './service.js';
 const ACTIVE_LIMIT = 10_000;
 const REVEAL_DELAY = 700;
 const REF = 'blackjack';
+const FILE = 'blackjack.png';
+const NAME_LIMIT = 5_000;
 
 const keys: Record<Action, string> = {
   hit: String.fromCodePoint(0x2795),
@@ -43,6 +46,20 @@ interface Options {
   deck?: (decks: number) => string[];
 }
 
+type Tone = TableView['status']['tone'];
+
+interface Frame {
+  session: Pick<
+    BlackjackSession,
+    'guildId' | 'userId' | 'dealer' | 'hands' | 'active' | 'expiresAt'
+  >;
+  currency: Currency | null;
+  settled: Settled | null;
+  playing: boolean;
+  note?: string | null;
+  timedOut?: boolean;
+}
+
 interface Settled {
   results: Outcome[];
   staked: number;
@@ -54,6 +71,7 @@ const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, 
 
 export class Blackjack {
   readonly #active = new Map<string, string>();
+  readonly #names = new Map<string, string>();
   readonly #seats: Seats;
   readonly #random: Random;
   readonly #delay: (ms: number) => Promise<void>;
@@ -162,7 +180,7 @@ export class Blackjack {
     if (natural(hand) || houseNatural) {
       hand.done = true;
       const settled = await this.#settle(session, rules.decks);
-      await ctx.reply({ embeds: [this.#render(session, currency, settled, false)] });
+      await ctx.reply(await this.#message({ session, currency, settled, playing: false }));
       return;
     }
 
@@ -176,7 +194,10 @@ export class Blackjack {
     }
     this.#track(ctx.guildId, userId, ctx.message.channelId);
     await this.#expireAt(ctx.guildId, userId, until);
-    const messageId = await ctx.reply({ embeds: [this.#render(session, currency, null, true)] });
+    this.#remember(ctx.guildId, userId, ctx.message.author.displayName);
+    const messageId = await ctx.reply(
+      await this.#message({ session, currency, settled: null, playing: true }),
+    );
     await store.setBlackjackMessage(ctx.guildId, userId, messageId);
     const offered = [keys.hit, keys.stand, keys.double];
     if (canSplit(session.hands, hand)) offered.push(keys.split);
@@ -275,7 +296,7 @@ export class Blackjack {
     const currency = session.hands.some((entry) => entry.stake > 0)
       ? await this.games.currency(guildId)
       : null;
-    await this.#show(session, this.#render(session, currency, null, true, note));
+    await this.#show(session, { session, currency, settled: null, playing: true, note });
   }
 
   async expire(guildId: string, userId: string): Promise<void> {
@@ -295,19 +316,17 @@ export class Blackjack {
     const currency = settled.staked > 0 ? await this.games.currency(guildId) : null;
 
     if (session.messageId) {
-      for (let count = 2; count <= session.dealer.length; count++) {
-        const frame = { ...session, dealer: session.dealer.slice(0, count) };
-        await this.#show(frame, this.#render(frame, currency, null, false));
-        await this.#delay(REVEAL_DELAY);
-      }
-      await this.#show(session, this.#render(session, currency, settled, false, null, timedOut));
+      await this.#show(session, { session, currency, settled: null, playing: false });
+      await this.#delay(REVEAL_DELAY);
+      await this.#show(session, { session, currency, settled, playing: false, timedOut });
       await this.#seats.close(session.channelId, session.messageId, Object.values(keys));
       return true;
     }
     await this.games.services.platform
-      .send(session.channelId, {
-        embeds: [this.#render(session, currency, settled, false, null, timedOut)],
-      })
+      .send(
+        session.channelId,
+        await this.#message({ session, currency, settled, playing: false, timedOut }),
+      )
       .catch(() => {});
     return true;
   }
@@ -333,21 +352,119 @@ export class Blackjack {
     return { results, staked, net, reward };
   }
 
-  async #show(session: Pick<BlackjackSession, 'channelId' | 'messageId'>, embed: Embed) {
+  async #show(session: Pick<BlackjackSession, 'channelId' | 'messageId'>, frame: Frame) {
     if (!session.messageId) return;
-    await this.games.services.platform
-      .edit(session.channelId, session.messageId, { embeds: [embed] })
-      .catch(() => {});
+    const { platform } = this.games.services;
+    try {
+      await platform.edit(session.channelId, session.messageId, await this.#message(frame));
+    } catch {
+      await platform
+        .edit(session.channelId, session.messageId, { embeds: [this.#render(frame, false)] })
+        .catch(() => {});
+    }
   }
 
-  #render(
-    session: Pick<BlackjackSession, 'dealer' | 'hands' | 'active' | 'expiresAt'>,
-    currency: Currency | null,
-    settled: Settled | null,
-    playing: boolean,
-    note: string | null = null,
-    timedOut = false,
-  ): Embed {
+  #remember(guildId: string, userId: string, name: string): void {
+    if (this.#names.size >= NAME_LIMIT) {
+      const oldest = this.#names.keys().next().value;
+      if (oldest !== undefined) this.#names.delete(oldest);
+    }
+    this.#names.set(`${guildId}:${userId}`, name);
+  }
+
+  async #name(guildId: string, userId: string): Promise<string> {
+    const known = this.#names.get(`${guildId}:${userId}`);
+    if (known) return known;
+    const member = await this.games.services.platform.member(guildId, userId).catch(() => null);
+    const name = member?.user.displayName ?? copy.blackjack.you;
+    this.#remember(guildId, userId, name);
+    return name;
+  }
+
+  async #message(frame: Frame): Promise<Outgoing> {
+    const text = this.#render(frame, false);
+    try {
+      const image = await renderTable(await this.#table(frame));
+      return {
+        embeds: [{ ...this.#render(frame, true), imageUrl: `attachment://${FILE}` }],
+        files: [{ name: FILE, data: image }],
+      };
+    } catch (error) {
+      this.games.services.log.warn(
+        { err: error, guild: frame.session.guildId },
+        'blackjack table render failed',
+      );
+      return { embeds: [text] };
+    }
+  }
+
+  async #table(frame: Frame): Promise<TableView> {
+    const { session, currency, settled, playing } = frame;
+    const many = session.hands.length > 1;
+    const name = many ? null : await this.#name(session.guildId, session.userId);
+    const verdict = this.#verdict(frame);
+    return {
+      dealer: {
+        label: copy.blackjack.dealer,
+        cards: session.dealer,
+        total: playing ? null : total(session.dealer).value,
+      },
+      hidden: playing,
+      hands: session.hands.map((hand, i) => ({
+        label: name ?? copy.blackjack.hand(i + 1),
+        cards: hand.cards,
+        total: total(hand.cards).value,
+        note:
+          [
+            hand.stake > 0 && currency && money(hand.stake, currency).replaceAll('**', ''),
+            hand.doubled && copy.blackjack.doubled,
+            settled && copy.blackjack.outcome[settled.results[i] as Outcome],
+          ]
+            .filter(Boolean)
+            .join(', ') || null,
+        active: i === session.active,
+      })),
+      status: playing
+        ? {
+            text: many ? copy.blackjack.hand(session.active + 1) : copy.blackjack.yourMove,
+            tone: 'play',
+          }
+        : settled
+          ? { text: (verdict.summary ?? '').replaceAll('**', ''), tone: verdict.tone }
+          : { text: copy.blackjack.dealerTurn, tone: 'play' },
+    };
+  }
+
+  #verdict(frame: Frame): { summary: string | null; tone: Tone } {
+    const { settled, currency } = frame;
+    if (!settled) return { summary: null, tone: 'play' };
+    let summary: string;
+    if (settled.staked > 0 && currency) {
+      summary =
+        settled.net > 0
+          ? copy.blackjack.won(money(settled.net, currency))
+          : settled.net < 0
+            ? copy.blackjack.lost(money(-settled.net, currency))
+            : copy.blackjack.even;
+    } else {
+      const won = settled.results.some((r) => r === 'win' || r === 'blackjack');
+      const pushed = settled.results.every((r) => r === 'push');
+      summary = won
+        ? copy.blackjack.freeWon
+        : pushed
+          ? copy.blackjack.freePush
+          : copy.blackjack.freeLost;
+    }
+    if (settled.reward) summary = `${summary} ${settled.reward}.`;
+    const won =
+      settled.net > 0 ||
+      (settled.staked === 0 && settled.results.some((r) => r === 'win' || r === 'blackjack'));
+    const lost = settled.net < 0 || settled.results.every((r) => r === 'lose' || r === 'bust');
+    return { summary, tone: won ? 'win' : lost ? 'lose' : 'push' };
+  }
+
+  #render(frame: Frame, pictured: boolean): Embed {
+    const { session, currency, settled, playing } = frame;
     const cards = (list: readonly string[]) => list.map((card) => `\`${face(card)}\``).join(' ');
     const dealer = playing
       ? `**${copy.blackjack.dealer}**  ${cards(session.dealer.slice(0, 1))} \`?\``
@@ -365,54 +482,29 @@ export class Blackjack {
       const extra = stake.length ? ` (${stake.join(', ')})` : '';
       return `${name}  ${cards(hand.cards)}  **${total(hand.cards).value}**${extra}${result}`;
     });
-
-    let summary: string | null = null;
-    if (settled) {
-      if (settled.staked > 0 && currency) {
-        summary =
-          settled.net > 0
-            ? copy.blackjack.won(money(settled.net, currency))
-            : settled.net < 0
-              ? copy.blackjack.lost(money(-settled.net, currency))
-              : copy.blackjack.even;
-      } else {
-        const won = settled.results.some((r) => r === 'win' || r === 'blackjack');
-        const pushed = settled.results.every((r) => r === 'push');
-        summary = won
-          ? copy.blackjack.freeWon
-          : pushed
-            ? copy.blackjack.freePush
-            : copy.blackjack.freeLost;
-      }
-      if (settled.reward) summary = `${summary} ${settled.reward}.`;
-    }
-
+    const { summary, tone } = this.#verdict(frame);
     const hand = session.hands[session.active];
     const options: Action[] = ['hit', 'stand'];
     if (hand && canDouble(hand)) options.push('double');
     if (hand && canSplit(session.hands, hand)) options.push('split');
-    const color = !settled
-      ? palette.north
-      : settled.net > 0 ||
-          (settled.staked === 0 && settled.results.some((r) => r === 'win' || r === 'blackjack'))
-        ? palette.success
-        : settled.net < 0 || settled.results.every((r) => r === 'lose' || r === 'bust')
-          ? palette.danger
-          : palette.muted;
-
+    const color = {
+      play: palette.north,
+      win: palette.success,
+      lose: palette.danger,
+      push: palette.muted,
+    }[tone];
+    const table = pictured ? [] : [dealer, '', ...hands];
     return {
       color,
       title: copy.names.blackjack,
       description: lines(
-        dealer,
-        '',
-        ...hands,
-        note && '',
-        note,
-        summary && '',
-        timedOut && copy.blackjack.timeout,
+        ...table,
+        frame.note && !pictured && '',
+        frame.note,
+        summary && !pictured && '',
+        frame.timedOut && copy.blackjack.timeout,
         summary && `**${summary}**`,
-        playing && '',
+        playing && !pictured && '',
         playing &&
           subtext(
             copy.blackjack.how(

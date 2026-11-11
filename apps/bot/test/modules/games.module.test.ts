@@ -33,6 +33,7 @@ describe.skipIf(!url)('games module', () => {
   const sent: string[] = [];
   const edits: string[] = [];
   const reactions: string[] = [];
+  const files: string[] = [];
   const removed: string[] = [];
   const scheduled: { kind: string; key?: string }[] = [];
   const question = { question: 'Who thought up the demon?', answers: ['Maxwell'], choices: [] };
@@ -207,12 +208,13 @@ describe.skipIf(!url)('games module', () => {
       message: said('m!bj'),
       reply: async (message: Outgoing) => {
         replies.push(text(message) ?? '');
+        if (typeof message !== 'string') files.push(message.files?.[0]?.name ?? '');
         return '880000000000000002';
       },
     } as unknown as GuildContext;
     await table.start(cmd, undefined);
-    expect(replies.at(-1)).toContain('**16**');
-    expect(replies.at(-1)).toContain('`?`');
+    expect(replies.at(-1)).toContain('hit');
+    expect(files.at(-1)).toBe('blackjack.png');
     const press = (emoji: string, userId = player): ReactionEvent => ({
       guildId: guild,
       channelId: room,
@@ -226,8 +228,7 @@ describe.skipIf(!url)('games module', () => {
     const before = edits.length;
     await table.onReaction(press('➕'), true);
     expect(await service.store.blackjack(guild, player)).toBeNull();
-    expect(edits.length - before).toBeGreaterThanOrEqual(3);
-    expect(edits.at(-1)).toContain('**26**');
+    expect(edits.length - before).toBe(2);
     expect(edits.at(-1)).toContain('You win.');
     expect((await service.store.rank(guild, 'blackjack', player, 'wins'))?.row.wins).toBe(1);
   });
@@ -258,8 +259,6 @@ describe.skipIf(!url)('games module', () => {
     expect((await service.store.blackjack(guild, player))?.active).toBe(1);
     await table.onMessage(said('stand'));
     expect(await service.store.blackjack(guild, player)).toBeNull();
-    expect(edits.at(-1)).toContain('Hand 1');
-    expect(edits.at(-1)).toContain('**21**');
     expect(edits.at(-1)).toContain('You win.');
   });
 
