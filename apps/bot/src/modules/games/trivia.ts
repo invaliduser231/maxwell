@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { triviaQuestion } from '@maxwell/core/modules/games';
+import { type TriviaQuestion, triviaQuestion } from '@maxwell/core/modules/games';
 import type { TriviaSession } from '@maxwell/core/stores/games';
 import type { GuildContext } from '../../commands/types.js';
-import type { IncomingMessage } from '../../platform/types.js';
+import type { Embed, IncomingMessage } from '../../platform/types.js';
 import { lines, subtext } from '../../ui/format.js';
 import { palette } from '../../ui/palette.js';
 import type { Schedule } from '../economy/shop.js';
@@ -12,6 +12,21 @@ import type { Games } from './service.js';
 
 const SESSION_LIMIT = 1_000;
 const LAST_LIMIT = 5_000;
+const FALLBACK_OK = '✅';
+
+function questionEmbed(question: TriviaQuestion, footer: string): Embed {
+  return {
+    color: palette.north,
+    title: copy.trivia.title,
+    description: lines(
+      question.question,
+      question.choices.length > 0 && '',
+      ...question.choices.map((choice, i) => `**${LETTERS[i]}** ${choice}`),
+      '',
+      footer,
+    ),
+  };
+}
 
 export class Trivia {
   readonly #sessions = new Map<string, TriviaSession>();
@@ -87,27 +102,26 @@ export class Trivia {
     this.#last.set(ctx.guildId, index);
 
     try {
-      await ctx.reply({
-        embeds: [
-          {
-            color: palette.north,
-            title: copy.trivia.title,
-            description: lines(
-              question.question,
-              question.choices.length > 0 && '',
-              ...question.choices.map((choice, i) => `**${LETTERS[i]}** ${choice}`),
-              '',
-              subtext(copy.trivia.prompt(session.expiresAt)),
-            ),
-          },
-        ],
+      session.messageId = await ctx.reply({
+        embeds: [questionEmbed(question, subtext(copy.trivia.prompt(session.expiresAt)))],
       });
     } catch (error) {
       this.#sessions.delete(session.channelId);
       await this.games.store.endTrivia(session.channelId, session.id);
       throw error;
     }
+    await this.games.store.setTriviaMessage(session.channelId, session.id, session.messageId);
     await this.#scheduleEnd(session);
+  }
+
+  async #close(session: TriviaSession, result: string): Promise<boolean> {
+    if (!session.messageId) return false;
+    return this.games.services.platform
+      .edit(session.channelId, session.messageId, {
+        embeds: [questionEmbed(session.question, result)],
+      })
+      .then(() => true)
+      .catch(() => false);
   }
 
   async onMessage(message: IncomingMessage): Promise<void> {
@@ -124,19 +138,25 @@ export class Trivia {
     await this.games.store.score(session.guildId, 'trivia', userId, { win: true });
     const reward = await this.games.reward(session.guildId, userId, 'trivia');
     const answer = session.question.answers[0] ?? '';
-    await platform.reply(
-      message,
-      `${voice.icon('ok')}${copy.trivia.won(userId, answer)}${reward ? ` ${reward}.` : ''}`,
-    );
+    const result = `${voice.icon('ok')}${copy.trivia.won(userId, answer)}${reward ? ` ${reward}.` : ''}`;
+    if (await this.#close(won, result)) {
+      await platform
+        .react(message.channelId, message.id, voice.icons.reaction('ok') ?? FALLBACK_OK)
+        .catch(() => {});
+      return;
+    }
+    await platform.reply(message, result);
   }
 
   async end(channelId: string, sessionId: string): Promise<void> {
     if (this.#sessions.get(channelId)?.id === sessionId) this.#sessions.delete(channelId);
     const session = await this.games.store.endTrivia(channelId, sessionId);
     if (!session) return;
+    const result = copy.trivia.timeout(session.question.answers[0] ?? '');
+    if (await this.#close(session, result)) return;
     const { platform, log } = this.games.services;
     await platform
-      .send(channelId, copy.trivia.timeout(session.question.answers[0] ?? ''))
+      .send(channelId, result)
       .catch((error) => log.info({ err: error, guild: session.guildId }, 'trivia channel gone'));
   }
 }

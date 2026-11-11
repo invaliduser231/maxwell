@@ -133,8 +133,12 @@ describe.skipIf(!url)('games module', () => {
     await restarted.onMessage(said('maxwell', true));
     await restarted.onMessage(said('newton'));
     expect(await service.store.trivia(room)).not.toBeNull();
+    const repliesBefore = replies.length;
     await restarted.onMessage(said('Maxwell!'));
-    expect(replies.at(-1)).toContain('**Maxwell**');
+    expect(edits.at(-1)).toContain('**Maxwell**');
+    expect(edits.at(-1)).toContain('Who thought up the demon?');
+    expect(replies).toHaveLength(repliesBefore);
+    expect(reactions.at(-1)).toBe('✅');
     expect(await service.store.trivia(room)).toBeNull();
     expect((await service.store.rank(guild, 'trivia', player, 'wins'))?.row.wins).toBe(1);
   });
@@ -144,7 +148,7 @@ describe.skipIf(!url)('games module', () => {
     const open = await service.store.trivia(room);
     if (!open) throw new Error('no session');
     await new Trivia(service, schedule).end(room, open.id);
-    expect(sent.at(-1)).toBe("Time's up. It was **Maxwell**.");
+    expect(edits.at(-1)).toContain("Time's up. It was **Maxwell**.");
     expect(await service.store.trivia(room)).toBeNull();
   });
 
