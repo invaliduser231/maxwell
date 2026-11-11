@@ -103,31 +103,51 @@ const smallCaps: Record<string, string> = {
 
 const edges = /^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu;
 
+function plain(char: string): string {
+  const mapped = smallCaps[char];
+  if (mapped) return mapped;
+  const normal = char.normalize('NFKC');
+  return normal !== char && /^\p{L}+$/u.test(normal) ? normal : char;
+}
+
+function readable(value: string, known: Set<number>): { text: string; changed: boolean } {
+  let out = '';
+  let changed = false;
+  for (const raw of value) {
+    const char = plain(raw);
+    if (char !== raw) changed = true;
+    if (/\s/u.test(char)) {
+      out += ' ';
+      continue;
+    }
+    if (known.has(char.codePointAt(0) ?? 0)) {
+      out += char;
+      continue;
+    }
+    changed = true;
+    for (const part of char.normalize('NFKC')) {
+      if (known.has(part.codePointAt(0) ?? 0)) out += part;
+    }
+  }
+  return { text: out.replace(/\s+/g, ' ').trim(), changed };
+}
+
 export function printable(value: string, font: string): { text: string; font: string } {
   const own = coverage(font);
   if (!own) return { text: value, font };
-  const normal = [...value]
-    .map((char) => smallCaps[char] ?? char)
-    .join('')
-    .normalize('NFKC');
   let [family, known] = own;
-  let gaps = missing(normal, known);
+  let gaps = missing(value, known);
   for (const [other, codes] of families) {
     if (gaps === 0) break;
-    const left = missing(normal, codes);
+    const left = missing(value, codes);
     if (left < gaps) {
       [family, known, gaps] = [other, codes, left];
     }
   }
-  let out = '';
-  for (const char of normal) {
-    if (/\s/u.test(char)) out += ' ';
-    else if (known.has(char.codePointAt(0) ?? 0)) out += char;
+  let { text, changed } = readable(value, known);
+  if (changed) {
+    const trimmed = text.replace(edges, '');
+    if (trimmed) text = trimmed;
   }
-  out = out.replace(/\s+/g, ' ').trim();
-  if (gaps > 0 || normal !== value) {
-    const trimmed = out.replace(edges, '');
-    if (trimmed) out = trimmed;
-  }
-  return { text: out || '?', font: font.replace(own[0], family) };
+  return { text: text || '?', font: font.replace(own[0], family) };
 }

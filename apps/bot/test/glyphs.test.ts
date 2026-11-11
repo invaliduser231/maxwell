@@ -17,6 +17,8 @@ describe('printable card text', () => {
   it('leaves names alone that the font can show', () => {
     expect(printable('~Kai~', body).text).toBe('~Kai~');
     expect(printable('Zoë & Ana', body).text).toBe('Zoë & Ana');
+    expect(printable('Lena…', body).text).toBe('Lena…');
+    expect(printable('½ Moon', body).text).toBe('½ Moon');
   });
 
   it('switches to the body font when the display font lacks letters', () => {
