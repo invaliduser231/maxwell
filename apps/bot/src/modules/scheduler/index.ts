@@ -35,6 +35,7 @@ export default defineBotModule({
     ctx.job('message', (job) => messages.fire(job));
     ctx.job('post', (job) => messages.postNow(job));
     ctx.job('reminder', (job) => reminders.deliver(job));
+    ctx.on('reaction', (reaction) => reminders.onReaction(reaction));
     ctx.job('sync', async (job) => {
       if (!job.guildId || !(await ctx.enabled(job.guildId))) return;
       await sync(job.guildId);

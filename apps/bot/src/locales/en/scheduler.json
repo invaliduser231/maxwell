@@ -9,7 +9,7 @@
   "tooMany": "You already have {max, plural, one {# reminder} other {# reminders}} here. That's the limit.",
   "tooManyHint": "{prefix}reminders lists them, {prefix}reminders cancel <number> drops one.",
   "set": "I'll remind you {when}.",
-  "setHint": "Reminder {number}. {command} drops it.",
+  "setHint": "Reminder {number}. React below or run {command} to drop it.",
   "deliver": "{user} {content}",
   "deliverNote": "You asked {when}.",
   "deliverDm": "{place, select, guild {You asked in {guild} {when}.} other {You asked {when}.}}",
@@ -23,5 +23,7 @@
   ],
   "emptyHint": "{prefix}remind 2h stretch your legs",
   "cancelled": "Reminder {number} is gone.",
-  "notFound": "You have no reminder {number} here."
+  "notFound": "You have no reminder {number} here.",
+  "snoozeHint": "{soon} again in 10 minutes, {later} in an hour",
+  "snoozed": "Snoozed, back {when}."
 }

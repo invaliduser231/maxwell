@@ -9,7 +9,7 @@
   "tooMany": "Ya tienes {max, plural, one {# recordatorio} other {# recordatorios}} aquí. Ese es el límite.",
   "tooManyHint": "{prefix}reminders los muestra, {prefix}reminders cancel <número> borra uno.",
   "set": "Te lo recuerdo {when}.",
-  "setHint": "Recordatorio {number}. {command} lo borra.",
+  "setHint": "Recordatorio {number}. Reacciona abajo o usa {command} para borrarlo.",
   "deliver": "{user} {content}",
   "deliverNote": "Lo pediste {when}.",
   "deliverDm": "{place, select, guild {Lo pediste en {guild} {when}.} other {Lo pediste {when}.}}",
@@ -23,5 +23,7 @@
   ],
   "emptyHint": "{prefix}remind 2h estirar las piernas",
   "cancelled": "El recordatorio {number} ya no está.",
-  "notFound": "No tienes ningún recordatorio {number} aquí."
+  "notFound": "No tienes ningún recordatorio {number} aquí.",
+  "snoozeHint": "{soon} otra vez en 10 minutos, {later} en una hora",
+  "snoozed": "Pospuesto, vuelve {when}."
 }

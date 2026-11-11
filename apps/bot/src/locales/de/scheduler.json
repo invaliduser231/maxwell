@@ -9,7 +9,7 @@
   "tooMany": "Du hast hier schon {max, plural, one {# Erinnerung} other {# Erinnerungen}}. Mehr geht nicht.",
   "tooManyHint": "{prefix}reminders zeigt sie, {prefix}reminders cancel <nummer> löscht eine.",
   "set": "Ich erinnere dich {when}.",
-  "setHint": "Erinnerung {number}. {command} löscht sie.",
+  "setHint": "Erinnerung {number}. Reagiere unten oder schreib {command}, um sie zu löschen.",
   "deliver": "{user} {content}",
   "deliverNote": "Darum hast du {when} gebeten.",
   "deliverDm": "{place, select, guild {Darum hast du {when} in {guild} gebeten.} other {Darum hast du {when} gebeten.}}",
@@ -23,5 +23,7 @@
   ],
   "emptyHint": "{prefix}remind 2h kurz die Beine vertreten",
   "cancelled": "Erinnerung {number} ist gelöscht.",
-  "notFound": "Du hast hier keine Erinnerung {number}."
+  "notFound": "Du hast hier keine Erinnerung {number}.",
+  "snoozeHint": "{soon} in 10 Minuten nochmal, {later} in einer Stunde",
+  "snoozed": "Verschoben, kommt {when} wieder."
 }

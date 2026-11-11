@@ -1,12 +1,24 @@
 import { cancel, type Job } from '@maxwell/core';
 import { type ReminderRow, ReminderStore } from '@maxwell/core/stores/scheduler';
+import type { ReactionEvent } from '../../platform/types.js';
 import type { ModuleContext } from '../../runtime/module.js';
-import { truncate } from '../../ui/format.js';
+import { lines, subtext, truncate } from '../../ui/format.js';
+import { confirmEmojis } from '../economy/confirm.js';
 import { keys, type schedulerConfig } from './config.js';
 import { copy } from './copy.js';
 
 export const REMINDER_TEXT_LIMIT = 1_500;
 const MEMBER_LIMIT = 10_000;
+const BUTTON_LIMIT = 5_000;
+const SOON = 10 * 60_000;
+const LATER = 60 * 60_000;
+const VARIATION = String.fromCodePoint(0xfe0f);
+const snooze = { soon: String.fromCodePoint(0x23f0), later: String.fromCodePoint(0x1f4a4) };
+const bare = (emoji: string) => emoji.replaceAll(VARIATION, '');
+
+type Button =
+  | { kind: 'set'; guildId: string; userId: string; id: string; number: number }
+  | { kind: 'due'; guildId: string; channelId: string; userId: string; content: string };
 
 type Ctx = ModuleContext<typeof schedulerConfig>;
 
@@ -31,6 +43,7 @@ export function checkReminder(
 
 export class Reminders {
   readonly store: ReminderStore;
+  readonly #buttons = new Map<string, Button>();
 
   constructor(private readonly ctx: Ctx) {
     this.store = new ReminderStore(ctx.services.sql);
@@ -55,6 +68,70 @@ export class Reminders {
     const row = await this.store.remove(guildId, id, userId);
     if (row) await cancel(this.ctx.services.sql, keys.reminder(row.id));
     return row;
+  }
+
+  #remember(messageId: string, button: Button): void {
+    if (this.#buttons.size >= BUTTON_LIMIT) {
+      const oldest = this.#buttons.keys().next().value;
+      if (oldest !== undefined) this.#buttons.delete(oldest);
+    }
+    this.#buttons.set(messageId, button);
+  }
+
+  async offerCancel(channelId: string, messageId: string, row: ReminderRow): Promise<void> {
+    const { platform, voice } = this.ctx.services;
+    this.#remember(messageId, {
+      kind: 'set',
+      guildId: row.guildId,
+      userId: row.userId,
+      id: row.id,
+      number: row.number,
+    });
+    await platform.react(channelId, messageId, confirmEmojis(voice.icons).no).catch(() => {});
+  }
+
+  async onReaction(reaction: ReactionEvent): Promise<void> {
+    const button = this.#buttons.get(reaction.messageId);
+    if (!button || reaction.bot || reaction.userId !== button.userId) return;
+    const { platform, voice } = this.ctx.services;
+    const pressed = bare(reaction.emoji);
+
+    if (button.kind === 'set') {
+      const no = confirmEmojis(voice.icons).no;
+      if (pressed !== bare(no)) return;
+      this.#buttons.delete(reaction.messageId);
+      const row = await this.cancel(button.guildId, button.id, button.userId);
+      await platform.unreact(reaction.channelId, reaction.messageId, no).catch(() => {});
+      if (row) {
+        await platform
+          .edit(reaction.channelId, reaction.messageId, copy.cancelled(row.number))
+          .catch(() => {});
+      }
+      return;
+    }
+
+    const delay = pressed === bare(snooze.soon) ? SOON : pressed === bare(snooze.later) ? LATER : 0;
+    if (!delay) return;
+    this.#buttons.delete(reaction.messageId);
+    const row = await this.create({
+      guildId: button.guildId,
+      channelId: button.channelId,
+      userId: button.userId,
+      content: button.content,
+      dueAt: new Date(Date.now() + delay),
+    });
+    for (const emoji of Object.values(snooze)) {
+      await platform.unreact(reaction.channelId, reaction.messageId, emoji).catch(() => {});
+    }
+    await platform
+      .edit(reaction.channelId, reaction.messageId, {
+        content: lines(
+          copy.deliver(button.userId, button.content, new Date()),
+          subtext(copy.snoozed(row.dueAt)),
+        ),
+        mentionUsers: [],
+      })
+      .catch(() => {});
   }
 
   async resume(guildId: string): Promise<number> {
@@ -114,10 +191,23 @@ export class Reminders {
       'SendMessages',
     ]);
     if (missing.length) return false;
-    await platform.send(row.channelId, {
-      content: copy.deliver(row.userId, row.content, row.createdAt),
+    const messageId = await platform.send(row.channelId, {
+      content: lines(
+        copy.deliver(row.userId, row.content, row.createdAt),
+        subtext(copy.snoozeHint(snooze.soon, snooze.later)),
+      ),
       mentionUsers: [row.userId],
     });
+    this.#remember(messageId, {
+      kind: 'due',
+      guildId: row.guildId,
+      channelId: row.channelId,
+      userId: row.userId,
+      content: row.content,
+    });
+    for (const emoji of Object.values(snooze)) {
+      await platform.react(row.channelId, messageId, emoji).catch(() => {});
+    }
     return true;
   }
 

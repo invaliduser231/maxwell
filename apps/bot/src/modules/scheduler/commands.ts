@@ -45,9 +45,10 @@ export function schedulerCommands(reminders: Reminders): Command[] {
         content: text,
         dueAt: new Date(Date.now() + delay),
       });
-      await ctx.reply(
+      const messageId = await ctx.reply(
         lines(voice.done(copy.set(row.dueAt), ctx.seed), copy.setHint(ctx.prefix, row.number)),
       );
+      await reminders.offerCancel(ctx.message.channelId, messageId, row);
     },
   };
 

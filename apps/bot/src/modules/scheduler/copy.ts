@@ -18,6 +18,8 @@ export const copy = catalog('scheduler', en, (m) => ({
   tooMany: (max: number, prefix: string) =>
     lines(m.tooMany({ max }), subtext(m.tooManyHint({ prefix }))),
   set: (due: Date) => m.set({ when: timestamp(due, 'R') }),
+  snoozeHint: (soon: string, later: string) => m.snoozeHint({ soon, later }),
+  snoozed: (when: Date) => m.snoozed({ when: timestamp(when, 'R') }),
   setHint: (prefix: string, number: number) =>
     subtext(
       m.setHint({ number: String(number), command: code(`${prefix}reminders cancel ${number}`) }),
