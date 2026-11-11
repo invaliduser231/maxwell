@@ -57,6 +57,9 @@ export const copy = catalog('collection', en, (m) => ({
     confirm: (yes: string, no: string, until: Date) =>
       m.trade.confirm({ yes, no, until: timestamp(until, 't') }),
     cancelled: (userId: string) => m.trade.cancelled({ user: mention.user(userId) }),
+    answer: (userId: string, command: string) =>
+      m.trade.answer({ user: mention.user(userId), command: code(command) }),
+    countered: (userId: string) => m.trade.countered({ user: mention.user(userId) }),
   },
   wishlist: {
     added: (name: string) => m.wishlist.added({ name }),

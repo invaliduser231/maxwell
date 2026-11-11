@@ -3,7 +3,7 @@
     "cards": "Sammle Karten aus deiner Community und aus eigenen Decks.",
     "view": "Deine Sammlung, die von jemand anderem oder eine Karte aus der Nähe.",
     "pack": "Öffnet ein Kartenpack. Nimmt zuerst eins aus dem Shop, sonst zahlst du den Preis.",
-    "trade": "Biete jemandem Karten gegen welche von ihm an. Beide müssen zustimmen.",
+    "trade": "Biete jemandem Karten an. Er kann annehmen oder mit eigenen Karten antworten.",
     "wishlist": "Karten, die du haben willst. Du wirst gepingt, wenn eine droppt.",
     "sets": "Die Sets hier und wie weit du bist.",
     "optin": "Bring deine eigene Karte ins Community-Deck.",
@@ -79,13 +79,15 @@
     "missing": "Du hast #{number} nicht.",
     "theyLack": "{user} hat #{number} nicht.",
     "busy": "Einer von euch hat schon einen offenen Tausch. Bringt den erst zu Ende.",
-    "offer": "{mode, select, both {{from} bietet {give} gegen {want} von {to}.} give {{from} schenkt {to} {give}.} other {{from} fragt {to} nach {want}.}}",
+    "offer": "{mode, select, both {{from} bietet {give} gegen {want} von {to}.} give {{from} bietet {to} {give} an.} other {{from} fragt {to} nach {want}.}}",
     "confirm": "Reagiert beide mit {yes} zum Tauschen oder {no} zum Abbrechen. Offen bis {until}.",
     "done": "Getauscht.",
     "cancelled": "{user} hat abgebrochen. Nichts hat den Besitzer gewechselt.",
     "expired": "Keine Antwort, also ist nichts passiert.",
     "failed": "Jemand hat die Karten nicht mehr, also hat nichts den Besitzer gewechselt.",
-    "nothing": "nichts"
+    "nothing": "nichts",
+    "answer": "{user}: Nimm es mit der Reaktion unten als Geschenk an oder antworte mit {command} und den Nummern deiner Karten, um zu tauschen.",
+    "countered": "{user} hat unten mit einem eigenen Angebot geantwortet."
   },
   "wishlist": {
     "title": "Wunschliste",

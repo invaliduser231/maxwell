@@ -100,7 +100,7 @@ describe.skipIf(!url)('collection module', () => {
       toUser: '520000000000000004',
       give: [],
       want: [],
-      expiresAt: later(),
+      expiresAt: new Date(Date.now() - 1_000),
     });
     await store.setTradeMessage(trade.id, String(BigInt(trade.id) + 981_000_000_000_000n));
     const run = (guildId: string | null) =>

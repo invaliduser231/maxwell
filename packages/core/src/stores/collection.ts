@@ -687,6 +687,22 @@ export class CollectionStore {
     return row ?? null;
   }
 
+  async counterTrade(
+    tradeId: string,
+    userId: string,
+    want: readonly string[],
+    expiresAt: Date,
+  ): Promise<Trade | null> {
+    const [row] = await this.sql<Trade[]>`
+      update collection_trades set want = ${[...want]}::bigint[], from_ok = false, to_ok = false,
+        expires_at = ${expiresAt}
+      where id = ${tradeId} and status = 'open' and expires_at > now()
+        and to_user = ${userId} and cardinality(want) = 0
+      returning ${tradeColumns(this.sql)}
+    `;
+    return row ?? null;
+  }
+
   async confirmTrade(tradeId: string, userId: string): Promise<Trade | null> {
     const [row] = await this.sql<Trade[]>`
       update collection_trades set

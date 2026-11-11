@@ -3,7 +3,7 @@
     "cards": "Colecciona cartas de tu comunidad y de mazos propios.",
     "view": "Tu colección, la de otra persona o una carta de cerca.",
     "pack": "Abre un sobre de cartas. Usa primero uno de la tienda; si no hay, pagas el precio.",
-    "trade": "Ofrece cartas a un miembro a cambio de algunas suyas. Los dos tienen que aceptar.",
+    "trade": "Ofrece cartas a un miembro. Puede aceptar o responder con cartas suyas.",
     "wishlist": "Cartas que quieres. Te aviso cuando salga una.",
     "sets": "Los sets de aquí y cuánto llevas.",
     "optin": "Pon tu propia carta en el mazo de la comunidad.",
@@ -79,13 +79,15 @@
     "missing": "No tienes la #{number}.",
     "theyLack": "{user} no tiene la #{number}.",
     "busy": "Uno de ustedes ya tiene un intercambio abierto. Termínalo primero.",
-    "offer": "{mode, select, both {{from} ofrece {give} a cambio de {want} de {to}.} give {{from} le da {give} a {to}.} other {{from} le pide {want} a {to}.}}",
+    "offer": "{mode, select, both {{from} ofrece {give} a cambio de {want} de {to}.} give {{from} le ofrece {give} a {to}.} other {{from} le pide {want} a {to}.}}",
     "confirm": "Los dos reaccionan con {yes} para intercambiar o con {no} para cancelar. Abierto hasta {until}.",
     "done": "Intercambio hecho.",
     "cancelled": "Cancelado por {user}. Nada cambió de manos.",
     "expired": "Sin respuesta, así que no pasó nada.",
     "failed": "Alguien ya no tiene esas cartas, así que nada cambió de manos.",
-    "nothing": "nada"
+    "nothing": "nada",
+    "answer": "{user}: acéptalo como regalo con la reacción de abajo, o responde con {command} y los números de tus cartas para intercambiar.",
+    "countered": "{user} respondió abajo con su propia oferta."
   },
   "wishlist": {
     "title": "Lista de deseos",

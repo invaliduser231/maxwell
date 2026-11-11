@@ -3,7 +3,7 @@
     "cards": "Collect cards of your community and custom decks.",
     "view": "Your collection, someone else's, or one card up close.",
     "pack": "Open a card pack. Uses one from the shop first, otherwise pays the price.",
-    "trade": "Offer cards to a member for some of theirs. Both have to agree.",
+    "trade": "Offer cards to a member. They can accept, or answer with cards of their own.",
     "wishlist": "Cards you want. You get pinged when one drops.",
     "sets": "The sets here and how far along you are.",
     "optin": "Put your own card into the community deck.",
@@ -79,13 +79,15 @@
     "missing": "You don't have #{number}.",
     "theyLack": "{user} doesn't have #{number}.",
     "busy": "One of you already has an open trade. Finish that first.",
-    "offer": "{mode, select, both {{from} offers {give} for {want} from {to}.} give {{from} gives {give} to {to}.} other {{from} asks {to} for {want}.}}",
+    "offer": "{mode, select, both {{from} offers {give} for {want} from {to}.} give {{from} offers {give} to {to}.} other {{from} asks {to} for {want}.}}",
     "confirm": "Both react with {yes} to trade or {no} to cancel. Open until {until}.",
     "done": "Traded.",
     "cancelled": "Cancelled by {user}. Nothing changed hands.",
     "expired": "No answer, so nothing happened.",
     "failed": "Someone no longer has those cards, so nothing changed hands.",
-    "nothing": "nothing"
+    "nothing": "nothing",
+    "answer": "{user}: take it as a gift with the reaction below, or answer with {command} and the numbers of your cards to trade.",
+    "countered": "{user} answered with an offer of their own below."
   },
   "wishlist": {
     "title": "Wishlist",

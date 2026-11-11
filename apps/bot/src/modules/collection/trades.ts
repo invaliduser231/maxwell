@@ -1,7 +1,7 @@
 import { type Card, type Trade, tally } from '@maxwell/core/stores/collection';
 import type { GuildContext } from '../../commands/types.js';
 import type { ReactionEvent } from '../../platform/types.js';
-import { lines } from '../../ui/format.js';
+import { lines, subtext } from '../../ui/format.js';
 import { confirmEmojis } from '../economy/confirm.js';
 import type { Schedule } from '../economy/shop.js';
 import { copy } from './copy.js';
@@ -95,14 +95,21 @@ export class Trades {
       const id = known.get(Number(ref))?.id ?? '';
       if ((theirs.get(id) ?? 0) < n) return void (await noise(copy.trade.theyLack(targetId, ref)));
     }
+    const until = new Date(Date.now() + config.trading.expiryMinutes * 60_000);
+    const pending = await store.openTradeBetween(ctx.guildId, fromId);
     if (
-      (await store.openTradeBetween(ctx.guildId, fromId)) ||
-      (await store.openTradeBetween(ctx.guildId, targetId))
+      pending?.toUser === fromId &&
+      pending.fromUser === targetId &&
+      pending.want.length === 0 &&
+      want.length === 0
     ) {
+      await this.#counter(ctx, pending, give, until);
+      return;
+    }
+    if (pending || (await store.openTradeBetween(ctx.guildId, targetId))) {
       return void (await noise(copy.trade.busy));
     }
 
-    const until = new Date(Date.now() + config.trading.expiryMinutes * 60_000);
     const trade = await store.createTrade({
       guildId: ctx.guildId,
       channelId: ctx.message.channelId,
@@ -112,24 +119,50 @@ export class Trades {
       want,
       expiresAt: until,
     });
+    const hint =
+      want.length === 0
+        ? copy.trade.answer(targetId, `${ctx.prefix}cards trade @${ctx.message.author.username}`)
+        : null;
+    await this.#post(ctx, trade, hint, targetId);
+  }
+
+  async #post(ctx: GuildContext, trade: Trade, hint: string | null, notify: string): Promise<void> {
+    const { platform, voice } = ctx.services;
     const emojis = confirmEmojis(voice.icons);
     const messageId = await ctx.reply({
       content: lines(
         await this.#offer(trade),
-        copy.trade.confirm(emojis.yesLabel, emojis.noLabel, until),
+        hint && subtext(hint),
+        copy.trade.confirm(emojis.yesLabel, emojis.noLabel, trade.expiresAt),
       ),
-      mentionUsers: [targetId],
+      mentionUsers: [notify],
     });
-    await store.setTradeMessage(trade.id, messageId);
+    await this.collection.store.setTradeMessage(trade.id, messageId);
     this.#track(messageId, trade.id);
     await this.schedule('tradeExpire', {
-      guildId: ctx.guildId,
-      runAt: until,
+      guildId: trade.guildId,
+      runAt: trade.expiresAt,
       payload: { tradeId: trade.id },
-      dedupeKey: `collection.trade:${trade.id}`,
+      dedupeKey: `collection.trade:${trade.id}:${trade.expiresAt.getTime()}`,
     });
     await platform.react(ctx.message.channelId, messageId, emojis.yes);
     await platform.react(ctx.message.channelId, messageId, emojis.no);
+  }
+
+  async #counter(ctx: GuildContext, pending: Trade, give: string[], until: Date): Promise<void> {
+    const store = this.collection.store;
+    const countered = await store.counterTrade(pending.id, pending.toUser, give, until);
+    if (!countered) {
+      await ctx.reply({ content: copy.trade.busy, deleteAfter: USAGE });
+      return;
+    }
+    await this.#finish(pending, copy.trade.countered(pending.toUser));
+    await this.#post(
+      ctx,
+      { ...countered, channelId: ctx.message.channelId },
+      null,
+      pending.fromUser,
+    );
   }
 
   async onReaction(reaction: ReactionEvent): Promise<void> {
@@ -166,6 +199,8 @@ export class Trades {
   }
 
   async expire(guildId: string, tradeId: string): Promise<void> {
+    const open = await this.collection.store.trade(tradeId);
+    if (open && open.expiresAt.getTime() > Date.now() + 1_000) return;
     const closed = await this.collection.store.closeTrade(tradeId, 'expired', guildId);
     if (closed) await this.#finish(closed, copy.trade.expired);
   }

@@ -138,6 +138,26 @@ describe.skipIf(!url)('CollectionStore', () => {
     expect((await store.ownedCounts(guild, b, [lena.id])).get(lena.id)).toBeUndefined();
   });
 
+  it('lets the receiver answer a one-sided offer with cards of their own', async () => {
+    const [dragon] = await store.findCards(guild, 'Dragon');
+    if (!dragon) throw new Error('missing card');
+    const trade = await store.createTrade({
+      guildId: guild,
+      channelId: channel,
+      fromUser: a,
+      toUser: b,
+      give: [dragon.id],
+      want: [],
+      expiresAt: later(),
+    });
+    await store.confirmTrade(trade.id, b);
+    expect(await store.counterTrade(trade.id, a, [dragon.id], later())).toBeNull();
+    const countered = await store.counterTrade(trade.id, b, [dragon.id], later());
+    expect(countered).toMatchObject({ want: [dragon.id], fromOk: false, toOk: false });
+    expect(await store.counterTrade(trade.id, b, [dragon.id], later())).toBeNull();
+    await store.closeTrade(trade.id, 'cancelled');
+  });
+
   it('fails a trade when cards are gone', async () => {
     const [dragon] = await store.findCards(guild, 'Dragon');
     if (!dragon) throw new Error('missing card');
