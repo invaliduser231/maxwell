@@ -8,7 +8,8 @@
     "sets": "Die Sets hier und wie weit du bist.",
     "optin": "Bring deine eigene Karte ins Community-Deck.",
     "optout": "Nimm deine Karte aus dem Community-Deck. Jede Kopie verschwindet.",
-    "claim": "Schnapp dir die Karte, die hier gerade gedroppt ist."
+    "claim": "Schnapp dir die Karte, die hier gerade gedroppt ist.",
+    "packs": "Die Packs hier, was sie kosten und wie viele du hast."
   },
   "communityDeck": "Community",
   "unknownMember": "Dieses Mitglied finde ich nicht.",
@@ -35,14 +36,25 @@
   },
   "pack": {
     "none": "Hier gibt es noch keine Packs. Ein Admin kann im Dashboard welche anlegen.",
-    "unknown": "Kein Pack namens {query}. `{prefix}shop` oder das Dashboard zeigt, was es gibt.",
+    "unknown": "Kein Pack namens {query}. `{prefix}cards packs` zeigt, was es gibt.",
     "pick": "Welches? {names}",
     "economyOff": "Packs kosten Geld, und Economy ist hier aus.",
     "funds": "Das Pack kostet {price}. Du hast {balance}.",
     "empty": "Es gibt noch keine Karten zum Ziehen.",
     "opened": "**{name}**, {size, plural, one {# Karte} other {# Karten}}:",
     "fromInventory": "Im Shop bezahlt",
-    "isNew": "neu"
+    "isNew": "neu",
+    "paid": "{price} bezahlt, noch {balance} übrig"
+  },
+  "packs": {
+    "title": "Kartenpacks",
+    "free": "kostenlos",
+    "size": "{size, plural, one {# Karte} other {# Karten}}",
+    "deck": "aus {deck}",
+    "allDecks": "aus allen Decks",
+    "guaranteed": "mindestens eine {rarity}",
+    "owned": "{count, plural, one {# ungeöffnetes bei dir} other {# ungeöffnete bei dir}}",
+    "hint": "Öffnen mit {command}"
   },
   "claim": {
     "nothing": "Hier gibt es nichts zu holen.",

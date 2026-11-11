@@ -21,6 +21,14 @@ export const copy = catalog('collection', en, (m) => ({
     pick: (names: string) => m.pack.pick({ names }),
     funds: (price: string, balance: string) => m.pack.funds({ price, balance }),
     opened: (name: string, size: number) => m.pack.opened({ name, size }),
+    paid: (price: string, balance: string) => m.pack.paid({ price, balance }),
+  },
+  packs: {
+    size: (size: number) => m.packs.size({ size }),
+    deck: (deck: string) => m.packs.deck({ deck }),
+    guaranteed: (rarity: string) => m.packs.guaranteed({ rarity }),
+    owned: (count: number) => m.packs.owned({ count }),
+    hint: (command: string) => m.packs.hint({ command: code(command) }),
   },
   claim: {
     got: (name: string, rarity: string) => m.claim.got({ name, rarity }),

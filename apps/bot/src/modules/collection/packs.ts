@@ -7,6 +7,7 @@ import { money } from '../economy/wallets.js';
 import { copy } from './copy.js';
 import { drawCards, tierOf } from './draw.js';
 import { hexColor } from './drops.js';
+import { deckName } from './faces.js';
 import { renderCards } from './render.js';
 import type { Collection } from './service.js';
 
@@ -55,17 +56,19 @@ export async function openPack(
   if (pool.length === 0) return void (await noise(copy.pack.empty));
 
   const prepaid = await wallets.store.takeItem(guildId, userId, 'pack', pack.id);
+  let receipt: string | null = null;
   if (!prepaid && pack.price > 0) {
     if (!(await wallets.active(guildId))) return void (await noise(copy.pack.economyOff));
     const economy = await wallets.config(guildId);
     await wallets.ensure(guildId, userId, economy);
     const paid = await wallets.store.debit(guildId, userId, pack.price, 'pack', { ref: pack.id });
+    const balance = await wallets.store.balance(guildId, userId);
     if (!paid) {
-      const balance = await wallets.store.balance(guildId, userId);
       return void (await noise(
         copy.pack.funds(money(pack.price, economy.currency), money(balance, economy.currency)),
       ));
     }
+    receipt = copy.pack.paid(money(pack.price, economy.currency), money(balance, economy.currency));
   }
 
   const drawn = drawCards(pool, config.tiers, pack.size, pack.guaranteed);
@@ -102,6 +105,7 @@ export async function openPack(
       sets.length > 0 && '',
       ...sets.map((set) => copy.sets.completed(set.name, set.rewards)),
       prepaid && subtext(copy.pack.fromInventory),
+      receipt && subtext(receipt),
     ),
   };
 
@@ -120,5 +124,43 @@ export async function openPack(
   await ctx.reply({
     embeds: [canAttach ? { ...embed, imageUrl: 'attachment://pack.png' } : embed],
     files: canAttach && file ? [file] : undefined,
+  });
+}
+
+export async function listPacks(ctx: GuildContext, collection: Collection): Promise<void> {
+  const { wallets } = collection;
+  const guildId = ctx.guildId;
+  const config = await collection.config(guildId);
+  const packs = config.packs.filter((pack) => pack.enabled);
+  if (packs.length === 0) {
+    await ctx.reply({ content: copy.pack.none, deleteAfter: USAGE });
+    return;
+  }
+  const held = await wallets.store.inventory(guildId, ctx.message.author.id);
+  const currency = (await wallets.config(guildId)).currency;
+  const owned = (pack: CardPack) =>
+    held.find((item) => item.kind === 'pack' && item.ref === pack.id)?.quantity ?? 0;
+  await ctx.reply({
+    embeds: [
+      {
+        title: copy.packs.title,
+        description: lines(
+          ...packs.flatMap((pack) => [
+            `**${pack.name}**  ${code(pack.id)}`,
+            [
+              pack.price > 0 ? money(pack.price, currency) : copy.packs.free,
+              copy.packs.size(pack.size),
+              pack.deckId ? copy.packs.deck(deckName(config, pack.deckId)) : copy.packs.allDecks,
+              pack.guaranteed && copy.packs.guaranteed(tierOf(config.tiers, pack.guaranteed).name),
+              owned(pack) > 0 && copy.packs.owned(owned(pack)),
+            ]
+              .filter(Boolean)
+              .join(', '),
+            '',
+          ]),
+          subtext(copy.packs.hint(`${ctx.prefix}cards pack ${packs[0]?.id ?? ''}`)),
+        ),
+      },
+    ],
   });
 }

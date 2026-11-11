@@ -9,7 +9,7 @@ import type { Activity } from './activity.js';
 import { copy } from './copy.js';
 import { setCards, setProgress, tierOf } from './draw.js';
 import { cardFile, dropEmbed, hexColor } from './drops.js';
-import { openPack } from './packs.js';
+import { listPacks, openPack } from './packs.js';
 import { renderCard } from './render.js';
 import type { Collection } from './service.js';
 import type { Trades } from './trades.js';
@@ -129,6 +129,16 @@ export function collectionCommands(deps: CollectionDeps): Command[] {
     args: [{ name: 'pack', type: 'text', optional: true }],
     examples: ['cards pack', 'cards pack standard'],
     run: (ctx) => openPack(ctx, collection, ctx.args.string('pack')),
+  };
+
+  const packs: Command = {
+    name: 'packs',
+    description: copy.commands.packs,
+    guildOnly: true,
+    cooldown: 3_000,
+    botPermissions: ['EmbedLinks'],
+    examples: ['cards packs'],
+    run: (ctx) => listPacks(ctx, collection),
   };
 
   const trade: Command = {
@@ -322,7 +332,7 @@ export function collectionCommands(deps: CollectionDeps): Command[] {
     guildOnly: true,
     args: [{ name: 'member', type: 'user', optional: true }],
     examples: ['cards', 'cards @Lena'],
-    subcommands: [view, pack, trade, wishlist, sets, optin, optout],
+    subcommands: [view, pack, packs, trade, wishlist, sets, optin, optout],
     async run(ctx) {
       const { voice } = ctx.services;
       const userId = ctx.args.string('member') ?? ctx.message.author.id;

@@ -8,7 +8,8 @@
     "sets": "The sets here and how far along you are.",
     "optin": "Put your own card into the community deck.",
     "optout": "Take your card out of the community deck. Every copy disappears.",
-    "claim": "Grab the card that just dropped here."
+    "claim": "Grab the card that just dropped here.",
+    "packs": "The packs here, what they cost and how many you have."
   },
   "communityDeck": "Community",
   "unknownMember": "That's not a member I can find.",
@@ -35,14 +36,25 @@
   },
   "pack": {
     "none": "No packs here yet. An admin can add some in the dashboard.",
-    "unknown": "No pack called {query}. `{prefix}shop` or the dashboard shows what exists.",
+    "unknown": "No pack called {query}. `{prefix}cards packs` shows what exists.",
     "pick": "Which one? {names}",
     "economyOff": "Packs cost money, and Economy is off here.",
     "funds": "That pack costs {price}. You have {balance}.",
     "empty": "There are no cards to draw yet.",
     "opened": "**{name}**, {size, plural, one {# card} other {# cards}}:",
     "fromInventory": "Paid for in the shop",
-    "isNew": "new"
+    "isNew": "new",
+    "paid": "Paid {price}, {balance} left"
+  },
+  "packs": {
+    "title": "Card packs",
+    "free": "free",
+    "size": "{size, plural, one {# card} other {# cards}}",
+    "deck": "from {deck}",
+    "allDecks": "from every deck",
+    "guaranteed": "at least one {rarity}",
+    "owned": "{count, plural, one {you have # unopened} other {you have # unopened}}",
+    "hint": "Open one with {command}"
   },
   "claim": {
     "nothing": "Nothing to claim here.",

@@ -8,7 +8,8 @@
     "sets": "Los sets de aquí y cuánto llevas.",
     "optin": "Pon tu propia carta en el mazo de la comunidad.",
     "optout": "Saca tu carta del mazo de la comunidad. Todas las copias desaparecen.",
-    "claim": "Llévate la carta que acaba de salir aquí."
+    "claim": "Llévate la carta que acaba de salir aquí.",
+    "packs": "Los sobres de aquí, cuánto cuestan y cuántos tienes."
   },
   "communityDeck": "Comunidad",
   "unknownMember": "No encuentro a ese miembro.",
@@ -35,14 +36,25 @@
   },
   "pack": {
     "none": "Todavía no hay sobres aquí. Un admin puede añadir algunos en el panel.",
-    "unknown": "No hay ningún sobre llamado {query}. `{prefix}shop` o el panel muestran los que existen.",
+    "unknown": "No hay ningún sobre llamado {query}. `{prefix}cards packs` muestra los que existen.",
     "pick": "¿Cuál? {names}",
     "economyOff": "Los sobres cuestan dinero, y Economy está desactivado aquí.",
     "funds": "Ese sobre cuesta {price}. Tienes {balance}.",
     "empty": "Todavía no hay cartas que sacar.",
     "opened": "**{name}**, {size, plural, one {# carta} other {# cartas}}:",
     "fromInventory": "Pagado en la tienda",
-    "isNew": "nueva"
+    "isNew": "nueva",
+    "paid": "Pagaste {price}, te quedan {balance}"
+  },
+  "packs": {
+    "title": "Sobres de cartas",
+    "free": "gratis",
+    "size": "{size, plural, one {# carta} other {# cartas}}",
+    "deck": "de {deck}",
+    "allDecks": "de todos los mazos",
+    "guaranteed": "al menos una {rarity}",
+    "owned": "{count, plural, one {tienes # sin abrir} other {tienes # sin abrir}}",
+    "hint": "Ábrelo con {command}"
   },
   "claim": {
     "nothing": "Aquí no hay nada que reclamar.",
