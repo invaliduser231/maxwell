@@ -86,6 +86,11 @@ export class Dispatcher {
         await noise(voice.unknownCommand(`${prefix}${typed}`, `${prefix}${guess}`), SUGGEST_TTL);
       return;
     }
+    const first = tokens[0]?.value.toLowerCase() ?? '';
+    const alias = first !== resolved.path[0]?.toLowerCase();
+    if (alias && viaPrefix && message.guildId && (await registry.claimed(message.guildId, first))) {
+      return;
+    }
     const { command, path, rest } = resolved;
 
     if (command.ownerOnly && !config.OWNER_IDS.includes(message.author.id)) return;

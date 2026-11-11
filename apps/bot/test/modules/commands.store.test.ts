@@ -32,7 +32,7 @@ describe.skipIf(!url)('custom commands with storage', () => {
     services: {
       log: silentLogger,
       guilds: { prefix: async () => 'm!' },
-      registry: { has: (name: string) => ['help', 'h'].includes(name.toLowerCase()) },
+      registry: { primary: (name: string) => ['help'].includes(name.toLowerCase()) },
       settings: { config: async () => generalConfig.parse({}) },
       voice: { cooldown: () => 'Easy.' },
       platform: {
@@ -194,7 +194,7 @@ describe.skipIf(!url)('custom commands with storage', () => {
       command: { id: 'alias', trigger: 'command', pattern: 'H', responses: ['x'] },
       content: 'm!h',
     });
-    expect(alias.problem).toBe('builtin');
+    expect(alias).toMatchObject({ matched: true, problem: null });
   });
 
   it('claims its own command names so the dispatcher stays quiet', async () => {

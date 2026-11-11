@@ -29,6 +29,10 @@ export class Registry {
     return this.#lookup.has(name.toLowerCase());
   }
 
+  primary(name: string): boolean {
+    return this.#lookup.get(name.toLowerCase())?.command.name.toLowerCase() === name.toLowerCase();
+  }
+
   add(module: Module): void {
     const entries = module.commands.flatMap((command) =>
       [command.name, ...(command.aliases ?? [])].map(

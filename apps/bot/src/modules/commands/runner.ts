@@ -120,7 +120,7 @@ export class CommandRunner {
   ) {}
 
   builtin(name: string): boolean {
-    return this.ctx.services.registry.has(name.trim());
+    return this.ctx.services.registry.primary(name.trim());
   }
 
   async #invocation(guildId: string, content: string): Promise<Invocation | null> {

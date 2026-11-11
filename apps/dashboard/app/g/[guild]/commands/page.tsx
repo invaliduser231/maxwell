@@ -25,13 +25,7 @@ export default async function CommandsPage({ params }: { params: Promise<{ guild
         prefix={prefix}
         me={{ id: loaded.access.user.id, name: loaded.access.user.displayName }}
         usage={usageMap}
-        builtins={[
-          ...new Set(
-            builtins
-              .flatMap((command) => [command.name, ...command.aliases])
-              .map((name) => name.toLowerCase()),
-          ),
-        ]}
+        builtins={[...new Set(builtins.map((command) => command.name.toLowerCase()))]}
       />
     </CommandsShell>
   );
