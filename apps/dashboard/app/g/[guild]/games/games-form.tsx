@@ -517,7 +517,7 @@ function CountingEditor({
         </Tiles>
       ) : null}
       <Fields>
-        <Field label={t('Channel')}>
+        <Field label={t('Channel')} hint={t('Math counts too, like sqrt(16) or 2*3.')}>
           <ChannelSelect
             value={counting.channelId}
             none={t('Pick a channel')}

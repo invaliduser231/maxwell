@@ -79,5 +79,6 @@
   "{n, plural, one {# question added. Save to keep it.} other {# questions added. Save to keep them.}}": "{n, plural, one {# pregunta añadida. Guarda para conservarla.} other {# preguntas añadidas. Guarda para conservarlas.}}",
   "{n, plural, one {# win} other {# wins}}": "{n, plural, one {# victoria} other {# victorias}}",
   "{n, plural, one {# number} other {# numbers}}": "{n, plural, one {# número} other {# números}}",
-  "{n, plural, one {# word} other {# words}}": "{n, plural, one {# palabra} other {# palabras}}"
+  "{n, plural, one {# word} other {# words}}": "{n, plural, one {# palabra} other {# palabras}}",
+  "Math counts too, like sqrt(16) or 2*3.": "También valen cuentas, como sqrt(16) o 2*3."
 }

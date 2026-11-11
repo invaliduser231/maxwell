@@ -1,4 +1,5 @@
 import type { TriviaQuestion } from '@maxwell/core/modules/games';
+import { evaluateCount } from './math.js';
 
 export type Random = () => number;
 
@@ -39,8 +40,7 @@ export function pickQuestion(
 }
 
 export function parseCount(content: string): number | null {
-  const match = /^\s*(\d{1,9})(?!\d)/.exec(content);
-  return match?.[1] ? Number(match[1]) : null;
+  return evaluateCount(content);
 }
 
 export function parseWord(content: string): string | null {
