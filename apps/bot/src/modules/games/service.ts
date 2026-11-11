@@ -4,6 +4,7 @@ import type { GuildContext } from '../../commands/types.js';
 import type { Services } from '../../services.js';
 import { type Currency, money, type Wallets } from '../economy/wallets.js';
 import { copy } from './copy.js';
+import { parseStake } from './logic.js';
 
 export const MODULE = 'games';
 const USAGE = 15_000;
@@ -61,6 +62,20 @@ export class Games {
       }
     }
     return { ok: true, currency };
+  }
+
+  async stake(ctx: GuildContext, raw: string | undefined): Promise<number | null | undefined> {
+    if (raw === undefined || raw.trim() === '') return undefined;
+    const input = parseStake(raw);
+    if (!input) {
+      await ctx.reply({ content: copy.stakeInvalid(ctx.prefix), deleteAfter: USAGE });
+      return null;
+    }
+    if (input.kind === 'amount') return input.value;
+    const config = await this.config(ctx.guildId);
+    const balance = await this.wallets.store.balance(ctx.guildId, ctx.message.author.id);
+    const max = Math.max(config.stakes.min, config.stakes.max);
+    return Math.max(1, Math.min(Math.floor(balance * input.part), max));
   }
 
   async allowed(ctx: GuildContext, enabled: boolean, name: string): Promise<boolean> {

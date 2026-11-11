@@ -17,6 +17,7 @@
   "wrongChannel": "Aquí los juegos van en otros canales.",
   "economyOff": "Las apuestas necesitan Economy, y está desactivado aquí.",
   "stakeRange": "Las apuestas van de {min} a {max}.",
+  "stakeInvalid": "Apuesta un número, `todo`, `mitad` o una parte como `25%`. Por ejemplo `{prefix}bj 100`.",
   "broke": "Solo tienes {balance}.",
   "unknownMember": "No encuentro a ese miembro.",
   "names": {

@@ -103,3 +103,39 @@ export function flip(random: Random = Math.random): 'heads' | 'tails' {
 export function inChannels(channelIds: readonly string[], channelId: string): boolean {
   return channelIds.length === 0 || channelIds.includes(channelId);
 }
+
+export type StakeInput = { kind: 'amount'; value: number } | { kind: 'share'; part: number };
+
+const allWords = new Set([
+  'all',
+  'allin',
+  'all in',
+  'all-in',
+  'max',
+  'everything',
+  'alles',
+  'todo',
+  'a todo',
+  'todo dentro',
+  'va todo',
+]);
+const halfWords = new Set(['half', 'hälfte', 'haelfte', 'halb', 'mitad', 'la mitad']);
+
+export function parseStake(raw: string): StakeInput | null {
+  const text = raw.trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!text) return null;
+  if (allWords.has(text)) return { kind: 'share', part: 1 };
+  if (halfWords.has(text)) return { kind: 'share', part: 0.5 };
+  const percent = /^(\d{1,3}(?:[.,]\d+)?) ?%$/.exec(text);
+  if (percent?.[1]) {
+    const part = Number(percent[1].replace(',', '.')) / 100;
+    return part > 0 && part <= 1 ? { kind: 'share', part } : null;
+  }
+  const amount = /^(\d{1,3}(?:[.,']\d{3})+|\d+(?:[.,]\d+)?) ?([km])?$/.exec(text);
+  if (!amount?.[1]) return null;
+  const grouped = /[.,']\d{3}(?:\D|$)/.test(amount[1]) && !amount[2];
+  const number = Number(grouped ? amount[1].replace(/[.,']/g, '') : amount[1].replace(',', '.'));
+  const scale = amount[2] === 'k' ? 1_000 : amount[2] === 'm' ? 1_000_000 : 1;
+  const value = Math.floor(number * scale);
+  return Number.isFinite(value) && value > 0 ? { kind: 'amount', value } : null;
+}

@@ -17,6 +17,7 @@
   "wrongChannel": "Games run in other channels here.",
   "economyOff": "Stakes need Economy, and it is off here.",
   "stakeRange": "Stakes go from {min} to {max}.",
+  "stakeInvalid": "Stake a number, `all`, `half` or a share like `25%`. For example `{prefix}bj 100`.",
   "broke": "You only have {balance}.",
   "unknownMember": "That's not a member I can find.",
   "names": {

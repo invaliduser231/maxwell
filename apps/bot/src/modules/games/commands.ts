@@ -82,11 +82,14 @@ export function gamesCommands(
     cooldown: 3_000,
     args: [
       { name: 'member', type: 'user', optional: true },
-      { name: 'stake', type: 'integer', min: 1, max: 1_000_000_000, optional: true },
+      { name: 'stake', type: 'text', optional: true },
     ],
     subcommands: [boardCommand(games, 'coinflip', 'wins')],
     examples: ['coinflip', 'coinflip @Lena 100', 'coinflip top'],
-    run: (ctx) => coinflip.run(ctx, ctx.args.string('member'), ctx.args.number('stake')),
+    async run(ctx) {
+      const stake = await games.stake(ctx, ctx.args.string('stake'));
+      if (stake !== null) await coinflip.run(ctx, ctx.args.string('member'), stake);
+    },
   };
 
   const higherlower: Command = {
@@ -95,10 +98,13 @@ export function gamesCommands(
     description: copy.commands.higherlower,
     guildOnly: true,
     cooldown: 3_000,
-    args: [{ name: 'stake', type: 'integer', min: 1, max: 1_000_000_000, optional: true }],
+    args: [{ name: 'stake', type: 'text', optional: true }],
     subcommands: [boardCommand(games, 'higherlower', 'best')],
     examples: ['higherlower', 'higherlower 50', 'higherlower top'],
-    run: (ctx) => hilo.start(ctx, ctx.args.number('stake')),
+    async run(ctx) {
+      const stake = await games.stake(ctx, ctx.args.string('stake'));
+      if (stake !== null) await hilo.start(ctx, stake);
+    },
   };
 
   const blackjackCommand: Command = {
@@ -108,10 +114,13 @@ export function gamesCommands(
     guildOnly: true,
     cooldown: 3_000,
     botPermissions: ['EmbedLinks'],
-    args: [{ name: 'stake', type: 'integer', min: 1, max: 1_000_000_000, optional: true }],
+    args: [{ name: 'stake', type: 'text', optional: true }],
     subcommands: [boardCommand(games, 'blackjack', 'wins')],
-    examples: ['blackjack', 'blackjack 100', 'blackjack top'],
-    run: (ctx) => blackjack.start(ctx, ctx.args.number('stake')),
+    examples: ['blackjack', 'blackjack 100', 'blackjack all', 'blackjack top'],
+    async run(ctx) {
+      const stake = await games.stake(ctx, ctx.args.string('stake'));
+      if (stake !== null) await blackjack.start(ctx, stake);
+    },
   };
 
   return [triviaCommand, coinflipCommand, higherlower, blackjackCommand];

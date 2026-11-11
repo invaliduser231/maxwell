@@ -17,6 +17,7 @@
   "wrongChannel": "Spiele laufen hier in anderen Kanälen.",
   "economyOff": "Einsätze brauchen Economy, und das ist hier aus.",
   "stakeRange": "Einsätze gehen von {min} bis {max}.",
+  "stakeInvalid": "Setz eine Zahl, `alles`, `hälfte` oder einen Anteil wie `25%`. Zum Beispiel `{prefix}bj 100`.",
   "broke": "Du hast nur {balance}.",
   "unknownMember": "Dieses Mitglied finde ich nicht.",
   "names": {

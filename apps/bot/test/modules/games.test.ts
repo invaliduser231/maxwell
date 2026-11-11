@@ -12,6 +12,7 @@ import {
   normalize,
   parseCount,
   parseGuess,
+  parseStake,
   parseWord,
   payout,
   pickQuestion,
@@ -138,5 +139,24 @@ describe('higher or lower', () => {
     expect(flip(() => 0.9)).toBe('tails');
     expect(inChannels([], '1')).toBe(true);
     expect(inChannels(['2'], '1')).toBe(false);
+  });
+});
+
+describe('stake words', () => {
+  it('reads amounts, shares and all-in in three languages', () => {
+    expect(parseStake('100')).toEqual({ kind: 'amount', value: 100 });
+    expect(parseStake('1k')).toEqual({ kind: 'amount', value: 1000 });
+    expect(parseStake('2.5k')).toEqual({ kind: 'amount', value: 2500 });
+    expect(parseStake('1,000')).toEqual({ kind: 'amount', value: 1000 });
+    expect(parseStake('1.000')).toEqual({ kind: 'amount', value: 1000 });
+    expect(parseStake('all in')).toEqual({ kind: 'share', part: 1 });
+    expect(parseStake('ALL')).toEqual({ kind: 'share', part: 1 });
+    expect(parseStake('alles')).toEqual({ kind: 'share', part: 1 });
+    expect(parseStake('todo')).toEqual({ kind: 'share', part: 1 });
+    expect(parseStake('mitad')).toEqual({ kind: 'share', part: 0.5 });
+    expect(parseStake('25%')).toEqual({ kind: 'share', part: 0.25 });
+    expect(parseStake('0')).toBeNull();
+    expect(parseStake('150%')).toBeNull();
+    expect(parseStake('lots')).toBeNull();
   });
 });

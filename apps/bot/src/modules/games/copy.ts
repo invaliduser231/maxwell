@@ -6,6 +6,7 @@ import { timestamp } from '../../ui/format.js';
 export const copy = catalog('games', en, (m) => ({
   off: (game: string) => m.off({ game }),
   stakeRange: (min: string, max: string) => m.stakeRange({ min, max }),
+  stakeInvalid: (prefix: string) => m.stakeInvalid({ prefix }),
   broke: (balance: string) => m.broke({ balance }),
   reward: (amount: string) => m.reward({ amount }),
   trivia: {
