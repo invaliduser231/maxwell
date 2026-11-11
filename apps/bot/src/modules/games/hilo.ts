@@ -6,29 +6,15 @@ import type { Schedule } from '../economy/shop.js';
 import { type Currency, money } from '../economy/wallets.js';
 import { copy } from './copy.js';
 import { type Guess, nextMultiplier, nextNumber, parseGuess, payout } from './logic.js';
+import { key, pressed, Seats } from './seats.js';
 import type { Games } from './service.js';
 
 const ACTIVE_LIMIT = 10_000;
 const REWARD_STREAK = 3;
 
-const key = (code: number) => String.fromCodePoint(code, 0xfe0f);
 const keys = { up: key(0x2b06), down: key(0x2b07), stop: key(0x23f9) };
-
-const bare = (emoji: string) => emoji.replaceAll(String.fromCodePoint(0xfe0f), '');
-
-function keyGuess(emoji: string): Guess | null {
-  const pressed = bare(emoji);
-  if (pressed === bare(keys.up)) return 'higher';
-  if (pressed === bare(keys.down)) return 'lower';
-  if (pressed === bare(keys.stop)) return 'stop';
-  return null;
-}
-
-interface Board {
-  guildId: string;
-  userId: string;
-  tidy: boolean;
-}
+const guesses = { up: 'higher', down: 'lower', stop: 'stop' } as const;
+const all = Object.values(keys);
 
 interface Turn {
   text: string;
@@ -38,17 +24,25 @@ interface Turn {
 
 export class HigherLower {
   readonly #active = new Map<string, string>();
-  readonly #boards = new Map<string, Board>();
+  readonly #seats: Seats;
 
   constructor(
     private readonly games: Games,
     private readonly schedule: Schedule,
-  ) {}
+  ) {
+    this.#seats = new Seats(() => games.services.platform);
+  }
 
   async load(): Promise<void> {
     for (const session of await this.games.store.activeHilo()) {
       this.#track(session.guildId, session.userId, session.channelId);
-      if (session.messageId) this.#board(session.messageId, session.guildId, session.userId, false);
+      if (session.messageId) {
+        this.#seats.sit(session.messageId, {
+          guildId: session.guildId,
+          userId: session.userId,
+          tidy: false,
+        });
+      }
     }
   }
 
@@ -60,17 +54,9 @@ export class HigherLower {
     this.#active.set(`${guildId}:${userId}`, channelId);
   }
 
-  #board(messageId: string, guildId: string, userId: string, tidy: boolean): void {
-    if (this.#boards.size >= ACTIVE_LIMIT) {
-      const oldest = this.#boards.keys().next().value;
-      if (oldest !== undefined) this.#boards.delete(oldest);
-    }
-    this.#boards.set(messageId, { guildId, userId, tidy });
-  }
-
   #forget(guildId: string, userId: string, messageId: string | null | undefined): void {
     this.#active.delete(`${guildId}:${userId}`);
-    if (messageId) this.#boards.delete(messageId);
+    this.#seats.leave(messageId);
   }
 
   async #expireAt(session: Pick<HiloSession, 'guildId' | 'userId'>, at: Date): Promise<void> {
@@ -140,7 +126,6 @@ export class HigherLower {
     }
     this.#track(ctx.guildId, userId, ctx.message.channelId);
     await this.#expireAt(session, until);
-    const { platform } = this.games.services;
     const channelId = ctx.message.channelId;
     const messageId = await ctx.reply(
       lines(
@@ -149,14 +134,7 @@ export class HigherLower {
       ),
     );
     await store.setHiloMessage(ctx.guildId, userId, messageId);
-    const missing = await platform
-      .missingBotPermissions(ctx.guildId, channelId, ['AddReactions', 'ManageMessages'])
-      .catch(() => ['AddReactions']);
-    if (missing.includes('AddReactions')) return;
-    this.#board(messageId, ctx.guildId, userId, !missing.includes('ManageMessages'));
-    for (const emoji of [keys.up, keys.down, keys.stop]) {
-      await platform.react(channelId, messageId, emoji).catch(() => {});
-    }
+    await this.#seats.open(ctx.guildId, channelId, messageId, userId, all);
   }
 
   async onMessage(message: IncomingMessage): Promise<void> {
@@ -173,18 +151,11 @@ export class HigherLower {
   }
 
   async onReaction(reaction: ReactionEvent, added: boolean): Promise<void> {
-    if (reaction.bot) return;
-    const board = this.#boards.get(reaction.messageId);
-    if (!board || reaction.userId !== board.userId) return;
-    if (!added && board.tidy) return;
-    const guess = keyGuess(reaction.emoji);
-    if (!guess) return;
-    if (added && board.tidy) {
-      await this.games.services.platform
-        .unreact(reaction.channelId, reaction.messageId, reaction.emoji, reaction.userId)
-        .catch(() => {});
-    }
-    const turn = await this.#play(board.guildId, board.userId, guess);
+    const name = pressed(reaction.emoji, keys);
+    if (!name) return;
+    const seat = await this.#seats.press(reaction, added);
+    if (!seat) return;
+    const turn = await this.#play(seat.guildId, seat.userId, guesses[name]);
     if (turn) await this.#show(turn);
   }
 
@@ -193,10 +164,7 @@ export class HigherLower {
     if (!messageId) return;
     const { platform } = this.games.services;
     await platform.edit(channelId, messageId, turn.text).catch(() => {});
-    if (!turn.done) return;
-    for (const emoji of [keys.up, keys.down, keys.stop]) {
-      await platform.unreact(channelId, messageId, emoji).catch(() => {});
-    }
+    if (turn.done) await this.#seats.close(channelId, messageId, all);
   }
 
   async #play(guildId: string, userId: string, guess: Guess): Promise<Turn | null> {
