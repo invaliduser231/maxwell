@@ -17,7 +17,7 @@ interface Hit {
   score: number;
 }
 
-const LIMIT = 12;
+const LIMIT = 40;
 const FIND_TIMEOUT = 5_000;
 
 function fold(text: string): string {
@@ -39,7 +39,7 @@ function score(query: string, candidates: string[]): number {
   return best;
 }
 
-function search(t: Translator, pages: PageInfo[], input: string): Hit[] {
+function search(t: Translator, pages: PageInfo[], current: string, input: string): Hit[] {
   const query = fold(input.trim());
   if (query.length < 2) return [];
   const byKey = new Map(pages.map((page) => [page.key, page]));
@@ -54,9 +54,12 @@ function search(t: Translator, pages: PageInfo[], input: string): Hit[] {
     if (!page) continue;
     const text = t.raw(entry.label);
     const value = score(query, t.lang === 'en' ? [text] : [text, entry.label]);
-    if (value > 0) hits.push({ page, label: entry.label, text, score: value });
+    if (value > 0) {
+      hits.push({ page, label: entry.label, text, score: value + (page.key === current ? 1 : 0) });
+    }
   }
-  return hits.sort((a, b) => b.score - a.score).slice(0, LIMIT);
+  const here = (hit: Hit) => (hit.page.key === current ? 1 : 0);
+  return hits.sort((a, b) => b.score - a.score || here(b) - here(a)).slice(0, LIMIT);
 }
 
 function locate(root: Element, text: string): HTMLElement | null {
@@ -132,7 +135,9 @@ export function SettingsSearch({
 }) {
   const t = useT();
   const input = useRef<HTMLInputElement>(null);
-  const hits = useMemo(() => search(t, pages, query), [t, pages, query]);
+  const pathname = usePathname();
+  const current = pathname.slice(base.length + 1).split('/')[0] ?? '';
+  const hits = useMemo(() => search(t, pages, current, query), [t, pages, current, query]);
   const find = useSettingFinder();
 
   useEffect(() => {
