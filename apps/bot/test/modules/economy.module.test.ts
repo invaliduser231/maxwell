@@ -10,6 +10,7 @@ import definition from '@maxwell/core/modules/economy';
 import { EconomyStore } from '@maxwell/core/stores/economy';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { z } from 'zod';
+import type { Command, GuildContext } from '../../src/commands/types.js';
 import { createLogger } from '../../src/log.js';
 import economy from '../../src/modules/economy/index.js';
 import { createContext } from '../../src/runtime/module.js';
@@ -31,6 +32,7 @@ describe.skipIf(!url)('economy module', () => {
   const undos = new Map<string, UndoHandler>();
   const records: AuditInput[] = [];
   const privacy = new PrivacyRegistry();
+  let commands: Command[] = [];
 
   const job = (kind: string, payload: Record<string, unknown>): Job => ({
     id: '1',
@@ -83,7 +85,8 @@ describe.skipIf(!url)('economy module', () => {
         },
       },
     } as unknown as Services;
-    await economy.setup?.(createContext(economy.definition, services));
+    commands = ((await economy.setup?.(createContext(economy.definition, services))) ??
+      []) as Command[];
   });
 
   afterAll(async () => {
@@ -106,6 +109,41 @@ describe.skipIf(!url)('economy module', () => {
     expect(privacy.modules()).toEqual(['economy']);
     expect([...jobs.keys()]).toContain('economy.reset');
     expect([...undos.keys()]).toContain('economy.reset');
+  });
+
+  it('lets staff give and take coins with an audit entry that undoes it', async () => {
+    const coins = commands.find((command) => command.name === 'coins');
+    const [add, remove] = coins?.subcommands ?? [];
+    const replies: string[] = [];
+    const run = (command: Command | undefined, amount: number) =>
+      command?.run?.({
+        guildId: guild,
+        seed: 1,
+        message: { author: { id: a } },
+        args: {
+          string: (name: string) =>
+            name === 'member' ? c : name === 'reason' ? 'voted' : undefined,
+          number: () => amount,
+        },
+        services: { voice: { done: (text: string) => text } },
+        reply: async (out: { content: string }) => {
+          replies.push(out.content);
+          return '1';
+        },
+      } as unknown as GuildContext);
+    expect(add?.permissions).toEqual(['ManageGuild']);
+    await run(add, 500);
+    expect(await store.balance(guild, c)).toBe(500);
+    expect(replies.at(-1)).toContain('500');
+    const record = records.at(-1);
+    expect(record?.action).toBe('economy.adjust');
+    await run(remove, 800);
+    expect(await store.balance(guild, c)).toBe(0);
+    await run(remove, 10);
+    expect(replies.at(-1)).toContain('nothing to take');
+    if (!record) throw new Error('no record');
+    await undos.get('economy.adjust')?.(entry(record), record.undo?.payload ?? {}, { id: a });
+    expect(await store.balance(guild, c)).toBe(0);
   });
 
   it('resets balances and undoes it on top of what was earned since', async () => {

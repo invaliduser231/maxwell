@@ -5,7 +5,10 @@
     "pay": "Envía dinero a otro miembro. Una parte se va en impuestos.",
     "shop": "Lo que puedes comprar aquí.",
     "buy": "Compra algo en la tienda.",
-    "rich": "Quién tiene más."
+    "rich": "Quién tiene más.",
+    "coins": "Dar o quitar monedas como staff. Queda en el registro de cambios y se puede deshacer.",
+    "coinsAdd": "Darle monedas a un miembro.",
+    "coinsRemove": "Quitarle monedas a un miembro."
   },
   "balance": {
     "self": "Tienes {amount}.",
@@ -76,5 +79,10 @@
     "bought": "Compró {name} en la tienda",
     "refunded": "Compra en la tienda reembolsada",
     "expired": "Rol de la tienda vencido"
+  },
+  "coins": {
+    "added": "{user} recibió {amount} y ahora tiene {balance}.",
+    "removed": "A {user} se le quitaron {amount}, le quedan {balance}.",
+    "nothing": "{user} no tiene nada que quitar."
   }
 }

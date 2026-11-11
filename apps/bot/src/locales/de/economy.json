@@ -5,7 +5,10 @@
     "pay": "Schick einem anderen Mitglied Geld. Ein Teil geht als Steuer weg.",
     "shop": "Was du hier kaufen kannst.",
     "buy": "Kauf etwas im Shop.",
-    "rich": "Wer am meisten hat."
+    "rich": "Wer am meisten hat.",
+    "coins": "Münzen als Team vergeben oder abziehen. Steht im Änderungsprotokoll und lässt sich rückgängig machen.",
+    "coinsAdd": "Einem Mitglied Münzen geben.",
+    "coinsRemove": "Einem Mitglied Münzen abziehen."
   },
   "balance": {
     "self": "Du hast {amount}.",
@@ -76,5 +79,10 @@
     "bought": "{name} im Shop gekauft",
     "refunded": "Shop-Kauf erstattet",
     "expired": "Shop-Rolle abgelaufen"
+  },
+  "coins": {
+    "added": "{user} hat {amount} bekommen und jetzt {balance}.",
+    "removed": "{user} wurden {amount} abgezogen, bleiben {balance}.",
+    "nothing": "Bei {user} gibt es nichts abzuziehen."
   }
 }

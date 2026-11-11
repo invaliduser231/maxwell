@@ -5,6 +5,13 @@ import { code, timestamp } from '../../ui/format.js';
 import { type Currency, money } from './wallets.js';
 
 export const copy = catalog('economy', en, (m) => ({
+  coins: {
+    added: (amount: string, userId: string, balance: string) =>
+      m.coins.added({ amount, user: mention.user(userId), balance }),
+    removed: (amount: string, userId: string, balance: string) =>
+      m.coins.removed({ amount, user: mention.user(userId), balance }),
+    nothing: (userId: string) => m.coins.nothing({ user: mention.user(userId) }),
+  },
   balance: {
     self: (amount: number, c: Currency) => m.balance.self({ amount: money(amount, c) }),
     other: (userId: string, amount: number, c: Currency) =>

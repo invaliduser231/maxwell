@@ -5,7 +5,10 @@
     "pay": "Send money to another member. Part of it goes to tax.",
     "shop": "What you can buy here.",
     "buy": "Buy something from the shop.",
-    "rich": "Who has the most."
+    "rich": "Who has the most.",
+    "coins": "Give or take coins as staff. Shows up in the audit log and can be undone.",
+    "coinsAdd": "Give a member coins.",
+    "coinsRemove": "Take coins from a member."
   },
   "balance": {
     "self": "You have {amount}.",
@@ -72,5 +75,10 @@
     "bought": "Bought {name} in the shop",
     "refunded": "Shop purchase refunded",
     "expired": "Shop role expired"
+  },
+  "coins": {
+    "added": "Gave {amount} to {user}. They have {balance} now.",
+    "removed": "Took {amount} from {user}. They have {balance} now.",
+    "nothing": "{user} has nothing to take."
   }
 }

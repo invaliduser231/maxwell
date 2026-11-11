@@ -1,5 +1,5 @@
 import { mention } from '../../commands/mentions.js';
-import type { Command, GuildContext } from '../../commands/types.js';
+import type { Command, GuildCommand, GuildContext } from '../../commands/types.js';
 import type { Embed } from '../../platform/types.js';
 import { code, lines, subtext } from '../../ui/format.js';
 import { chunk } from '../../ui/paginator.js';
@@ -7,8 +7,9 @@ import { palette } from '../../ui/palette.js';
 import type { Confirmations } from '../moderation/confirm.js';
 import { confirmEmojis } from './confirm.js';
 import { copy } from './copy.js';
+import type { Adjust } from './jobs.js';
 import { findItem, type Shop, visibleItems } from './shop.js';
-import { short, type Wallets } from './wallets.js';
+import { money, short, type Wallets } from './wallets.js';
 
 const PAGE_SIZE = 10;
 const SHOP_PAGE = 8;
@@ -19,6 +20,7 @@ export function economyCommands(
   wallets: Wallets,
   shop: Shop,
   confirmations: Confirmations,
+  adjust: Adjust,
 ): Command[] {
   const store = wallets.store;
 
@@ -260,5 +262,54 @@ export function economyCommands(
     },
   };
 
-  return [balance, daily, pay, shopCommand, buy, rich];
+  const grant = (sign: 1 | -1): GuildCommand => ({
+    name: sign > 0 ? 'add' : 'remove',
+    aliases: sign > 0 ? ['give'] : ['take'],
+    description: sign > 0 ? copy.commands.coinsAdd : copy.commands.coinsRemove,
+    guildOnly: true,
+    permissions: ['ManageGuild'],
+    args: [
+      { name: 'member', type: 'user' },
+      { name: 'amount', type: 'integer', min: 1, max: 1_000_000_000 },
+      { name: 'reason', type: 'text', optional: true },
+    ],
+    examples: sign > 0 ? ['coins add @Lena 500 voted on FluxerList'] : ['coins remove @Lena 100'],
+    async run(ctx) {
+      const userId = ctx.args.string('member') as string;
+      const amount = ctx.args.number('amount') ?? 0;
+      const config = await wallets.config(ctx.guildId);
+      const { applied, balance } = await adjust(ctx.guildId, {
+        userId,
+        amount: sign * amount,
+        by: ctx.message.author.id,
+        note: ctx.args.string('reason')?.trim() || null,
+      });
+      const text =
+        applied > 0
+          ? copy.coins.added(
+              money(applied, config.currency),
+              userId,
+              money(balance, config.currency),
+            )
+          : applied < 0
+            ? copy.coins.removed(
+                money(-applied, config.currency),
+                userId,
+                money(balance, config.currency),
+              )
+            : copy.coins.nothing(userId);
+      await ctx.reply({ content: ctx.services.voice.done(text, ctx.seed), mentionUsers: [] });
+    },
+  });
+
+  const coins: Command = {
+    name: 'coins',
+    description: copy.commands.coins,
+    guildOnly: true,
+    permissions: ['ManageGuild'],
+    subcommands: [grant(1), grant(-1)],
+    examples: ['coins add @Lena 500 voted on FluxerList', 'coins remove @Lena 100'],
+  };
+
+  return [balance, daily, pay, shopCommand, buy, rich, coins];
 }

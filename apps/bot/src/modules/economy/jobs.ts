@@ -61,33 +61,56 @@ function parse<T extends z.ZodType>(
   return { guildId: job.guildId, data: parsed.data };
 }
 
-export function registerEconomyJobs(ctx: ModuleContext, wallets: Wallets): void {
+export interface Adjustment {
+  userId: string;
+  amount: number;
+  by: string | null;
+  note: string | null;
+}
+
+export type Adjust = (
+  guildId: string,
+  input: Adjustment,
+) => Promise<{ applied: number; balance: number }>;
+
+export function adjuster(ctx: ModuleContext, wallets: Wallets): Adjust {
+  return async (guildId, input) => {
+    const config = await wallets.config(guildId);
+    await wallets.ensure(guildId, input.userId, config);
+    const result = await wallets.store.adjust(guildId, input.userId, input.amount, 'admin', {
+      note: input.note,
+      counterpartId: input.by,
+    });
+    if (result.applied === 0) return result;
+    await ctx.record(
+      guildId,
+      { id: input.by },
+      'economy.adjust',
+      result.applied > 0
+        ? auditText.gave(result.applied, input.userId, config.currency)
+        : auditText.took(-result.applied, input.userId, config.currency),
+      {
+        after: { userId: input.userId, amount: result.applied },
+        undo: { kind: 'adjust', payload: { userId: input.userId, amount: -result.applied } },
+      },
+    );
+    return result;
+  };
+}
+
+export function registerEconomyJobs(ctx: ModuleContext, wallets: Wallets, adjust: Adjust): void {
   const store = wallets.store;
   const { platform, log } = ctx.services;
 
   ctx.job('adjust', async (job) => {
     const input = parse(ctx, adjustPayload, job);
     if (!input) return;
-    const { guildId, data } = input;
-    const config = await wallets.config(guildId);
-    await wallets.ensure(guildId, data.userId, config);
-    const { applied } = await store.adjust(guildId, data.userId, data.amount, 'admin', {
-      note: data.note ?? null,
-      counterpartId: data.by ?? null,
+    await adjust(input.guildId, {
+      userId: input.data.userId,
+      amount: input.data.amount,
+      by: input.data.by ?? null,
+      note: input.data.note ?? null,
     });
-    if (applied === 0) return;
-    await ctx.record(
-      guildId,
-      { id: data.by ?? null },
-      'economy.adjust',
-      applied > 0
-        ? auditText.gave(applied, data.userId, config.currency)
-        : auditText.took(-applied, data.userId, config.currency),
-      {
-        after: { userId: data.userId, amount: applied },
-        undo: { kind: 'adjust', payload: { userId: data.userId, amount: -applied } },
-      },
-    );
   });
 
   ctx.job('reward', async (job) => {

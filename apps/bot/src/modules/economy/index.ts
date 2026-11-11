@@ -3,7 +3,7 @@ import { defineBotModule } from '../../runtime/module.js';
 import { Confirmations } from '../moderation/confirm.js';
 import { economyCommands } from './commands.js';
 import { Earnings } from './earnings.js';
-import { registerEconomyJobs } from './jobs.js';
+import { adjuster, registerEconomyJobs } from './jobs.js';
 import { Shop } from './shop.js';
 import { Wallets } from './wallets.js';
 
@@ -18,12 +18,13 @@ export default defineBotModule({
     const confirmations = new Confirmations();
     ctx.on('reaction', (reaction) => void confirmations.handle(reaction));
     ctx.onShutdown(() => confirmations.stop());
-    registerEconomyJobs(ctx, wallets);
+    const adjust = adjuster(ctx, wallets);
+    registerEconomyJobs(ctx, wallets, adjust);
     ctx.privacy({
       export: (guildId, userId) => wallets.store.memberData(guildId, userId),
       forget: (guildId, userId) => wallets.store.forget(guildId, userId),
     });
 
-    return economyCommands(wallets, shop, confirmations);
+    return economyCommands(wallets, shop, confirmations, adjust);
   },
 });
