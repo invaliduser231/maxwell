@@ -1109,13 +1109,14 @@ function RarityPanel() {
       actions={<span className="mx-sub">{t('Member cards follow activity')}</span>}
     >
       {value.tiers.map((tier, i) => (
-        <div key={tier.id} className="mx-row">
+        <div key={tier.id} className="mx-row mx-tier">
           <span className="mx-dot" style={{ background: tier.color }} />
           <label style={{ width: 96, fontWeight: 600 }} htmlFor={`tier-${tier.id}`}>
             {tier.name}
           </label>
           <input
             id={`tier-${tier.id}`}
+            className="mx-tier-range"
             type="range"
             min={1}
             max={100}
@@ -1130,17 +1131,13 @@ function RarityPanel() {
               })
             }
             style={{
-              flex: 1,
-              minWidth: 0,
               background: `linear-gradient(to right, ${tier.color} ${Math.min(100, Math.max(1, Math.round(tier.weight)))}%, var(--mx-field) 0)`,
             }}
           />
           <span className="mx-mono" style={{ width: 44, textAlign: 'right' }}>
             {`${(shares[i]?.share ?? 0) < 1 ? (shares[i]?.share ?? 0).toLocaleString(t.locale, { maximumFractionDigits: 1, minimumFractionDigits: 1 }) : Math.round(shares[i]?.share ?? 0)}%`}
           </span>
-          <span className="mx-sub" style={{ width: 150 }}>
-            {shares[i]?.who}
-          </span>
+          <span className="mx-sub mx-tier-who">{shares[i]?.who}</span>
         </div>
       ))}
       <div className="mx-panel-body" style={line}>
