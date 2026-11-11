@@ -41,13 +41,15 @@
     ],
     "soldOut": "ausverkauft",
     "left": "noch {n}",
-    "hint": "{prefix}buy <item>",
+    "hint": "{prefix}buy <Artikel>, oder reagiere mit der Nummer",
     "kinds": {
       "role": "Rolle",
       "pack": "Kartenpack",
       "background": "Profilhintergrund",
       "giveaway": "Giveaway-Los"
-    }
+    },
+    "confirm": "**{name}** für {price} kaufen? Reagiere mit {yes}.",
+    "skipped": "**{name}** nicht gekauft."
   },
   "buy": {
     "unknown": "Im Shop gibt es nichts namens {query}. `{prefix}shop` zeigt, was da ist.",

@@ -41,13 +41,15 @@
     ],
     "soldOut": "agotado",
     "left": "quedan {n}",
-    "hint": "{prefix}buy <item>",
+    "hint": "{prefix}buy <artículo>, o reacciona con el número",
     "kinds": {
       "role": "Rol",
       "pack": "Sobre de cartas",
       "background": "Fondo de perfil",
       "giveaway": "Participación en sorteo"
-    }
+    },
+    "confirm": "¿Comprar **{name}** por {price}? Reacciona con {yes}.",
+    "skipped": "No compraste **{name}**."
   },
   "buy": {
     "unknown": "No hay nada llamado {query} en la tienda. `{prefix}shop` muestra lo que hay.",

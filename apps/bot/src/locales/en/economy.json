@@ -37,13 +37,15 @@
     ],
     "soldOut": "sold out",
     "left": "{n} left",
-    "hint": "{prefix}buy <item>",
+    "hint": "{prefix}buy <item>, or react with the number",
     "kinds": {
       "role": "Role",
       "pack": "Card pack",
       "background": "Profile background",
       "giveaway": "Giveaway entry"
-    }
+    },
+    "confirm": "Buy **{name}** for {price}? React with {yes}.",
+    "skipped": "Did not buy **{name}**."
   },
   "buy": {
     "unknown": "Nothing called {query} in the shop. `{prefix}shop` lists what's there.",

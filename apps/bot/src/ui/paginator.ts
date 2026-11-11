@@ -6,6 +6,14 @@ import type { IconSet } from './icons.js';
 
 const IDLE = 60_000;
 const fallback = { prev: '◀️', next: '▶️' };
+const MAX_PICKS = 9;
+const digit = (n: number) => String.fromCodePoint(0x30 + n, 0xfe0f, 0x20e3);
+const bare = (emoji: string) => emoji.replaceAll(String.fromCodePoint(0xfe0f), '');
+
+export interface PickOptions {
+  picks: number;
+  onPick: (page: number, slot: number) => void | Promise<void>;
+}
 
 interface Session {
   channelId: string;
@@ -16,6 +24,8 @@ interface Session {
   timer: NodeJS.Timeout;
   manageMessages: boolean;
   language: Language;
+  picks: string[];
+  onPick: PickOptions['onPick'] | null;
 }
 
 export function withPageFooter(page: Embed, index: number, total: number): Embed {
@@ -42,14 +52,22 @@ export class Paginator {
     });
   }
 
-  async send(ctx: CommandContext, pages: Embed[], start = 0): Promise<void> {
+  async send(
+    ctx: CommandContext,
+    pages: Embed[],
+    start = 0,
+    pick: PickOptions | null = null,
+  ): Promise<void> {
     const total = pages.length;
     const index = Math.min(Math.max(start, 0), Math.max(total - 1, 0));
     const first = pages[index];
     if (!first) return;
 
     const messageId = await ctx.reply({ embeds: [withPageFooter(first, index, total)] });
-    if (total <= 1 || !ctx.guildId) return;
+    const picks = Array.from({ length: Math.min(pick?.picks ?? 0, MAX_PICKS) }, (_, i) =>
+      digit(i + 1),
+    );
+    if ((total <= 1 && picks.length === 0) || !ctx.guildId) return;
 
     const missing = await this.platform.missingBotPermissions(ctx.guildId, ctx.message.channelId, [
       'AddReactions',
@@ -66,10 +84,12 @@ export class Paginator {
       timer: this.#expire(messageId),
       manageMessages: !missing.includes('ManageMessages'),
       language: language(),
+      picks,
+      onPick: pick?.onPick ?? null,
     };
     this.#sessions.set(messageId, session);
-    await this.platform.react(session.channelId, messageId, this.#prev);
-    await this.platform.react(session.channelId, messageId, this.#next);
+    const keys = total > 1 ? [this.#prev, this.#next, ...picks] : picks;
+    for (const emoji of keys) await this.platform.react(session.channelId, messageId, emoji);
   }
 
   #expire(messageId: string): NodeJS.Timeout {
@@ -77,7 +97,7 @@ export class Paginator {
       const session = this.#sessions.get(messageId);
       this.#sessions.delete(messageId);
       if (!session) return;
-      for (const emoji of [this.#prev, this.#next]) {
+      for (const emoji of [this.#prev, this.#next, ...session.picks]) {
         this.platform.unreact(session.channelId, messageId, emoji).catch(() => {});
       }
     }, IDLE);
@@ -88,6 +108,16 @@ export class Paginator {
   async #onReaction(reaction: ReactionEvent): Promise<void> {
     const session = this.#sessions.get(reaction.messageId);
     if (!session || reaction.userId !== session.userId) return;
+    const slot = session.picks.findIndex((emoji) => bare(emoji) === bare(reaction.emoji));
+    if (slot >= 0 && session.onPick) {
+      if (session.manageMessages) {
+        await this.platform
+          .unreact(session.channelId, session.messageId, reaction.emoji, reaction.userId)
+          .catch(() => {});
+      }
+      await session.onPick(session.index, slot);
+      return;
+    }
     const step = reaction.emoji === this.#next ? 1 : reaction.emoji === this.#prev ? -1 : 0;
     if (step === 0) return;
 

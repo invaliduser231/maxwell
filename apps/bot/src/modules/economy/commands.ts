@@ -4,6 +4,8 @@ import type { Embed } from '../../platform/types.js';
 import { code, lines, subtext } from '../../ui/format.js';
 import { chunk } from '../../ui/paginator.js';
 import { palette } from '../../ui/palette.js';
+import type { Confirmations } from '../moderation/confirm.js';
+import { confirmEmojis } from './confirm.js';
 import { copy } from './copy.js';
 import { findItem, type Shop, visibleItems } from './shop.js';
 import { short, type Wallets } from './wallets.js';
@@ -13,7 +15,11 @@ const SHOP_PAGE = 8;
 const NOISE = 8_000;
 const USAGE = 15_000;
 
-export function economyCommands(wallets: Wallets, shop: Shop): Command[] {
+export function economyCommands(
+  wallets: Wallets,
+  shop: Shop,
+  confirmations: Confirmations,
+): Command[] {
   const store = wallets.store;
 
   const balance: Command = {
@@ -169,7 +175,31 @@ export function economyCommands(wallets: Wallets, shop: Shop): Command[] {
           subtext(copy.shop.hint(ctx.prefix)),
         ),
       }));
-      await ctx.services.pages.send(ctx, pages, (ctx.args.number('page') ?? 1) - 1);
+      const pick = async (page: number, slot: number) => {
+        const item = items[page * SHOP_PAGE + slot];
+        if (!item) return;
+        const { platform, voice } = ctx.services;
+        const emojis = confirmEmojis(voice.icons);
+        const channelId = ctx.message.channelId;
+        const prompt = await ctx.reply(
+          copy.shop.confirm(item.name, short(item.price, config.currency), emojis.yesLabel),
+        );
+        await platform.react(channelId, prompt, emojis.yes).catch(() => {});
+        const ok = await confirmations.wait(prompt, ctx.message.author.id, emojis.yes);
+        await platform.unreact(channelId, prompt, emojis.yes).catch(() => {});
+        if (!ok) {
+          await platform.edit(channelId, prompt, copy.shop.skipped(item.name)).catch(() => {});
+          return;
+        }
+        const result = await shop.buy(ctx.guildId, ctx.message.author.id, item, ctx.prefix);
+        await platform
+          .edit(channelId, prompt, result.ok ? voice.done(result.text, ctx.seed) : result.text)
+          .catch(() => {});
+      };
+      await ctx.services.pages.send(ctx, pages, (ctx.args.number('page') ?? 1) - 1, {
+        picks: Math.min(SHOP_PAGE, items.length),
+        onPick: pick,
+      });
     },
   };
 

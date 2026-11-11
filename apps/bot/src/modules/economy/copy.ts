@@ -32,6 +32,8 @@ export const copy = catalog('economy', en, (m) => ({
   shop: {
     left: (n: number) => m.shop.left({ n }),
     hint: (prefix: string) => m.shop.hint({ prefix }),
+    confirm: (name: string, price: string, yes: string) => m.shop.confirm({ name, price, yes }),
+    skipped: (name: string) => m.shop.skipped({ name }),
   },
   buy: {
     unknown: (query: string, prefix: string) => m.buy.unknown({ query: code(query), prefix }),

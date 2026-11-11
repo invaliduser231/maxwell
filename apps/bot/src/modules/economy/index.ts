@@ -1,5 +1,6 @@
 import definition from '@maxwell/core/modules/economy';
 import { defineBotModule } from '../../runtime/module.js';
+import { Confirmations } from '../moderation/confirm.js';
 import { economyCommands } from './commands.js';
 import { Earnings } from './earnings.js';
 import { registerEconomyJobs } from './jobs.js';
@@ -14,12 +15,15 @@ export default defineBotModule({
     const shop = new Shop(ctx.services, wallets, (kind, input) => ctx.schedule(kind, input));
 
     ctx.on('message', (message) => earnings.onMessage(message));
+    const confirmations = new Confirmations();
+    ctx.on('reaction', (reaction) => void confirmations.handle(reaction));
+    ctx.onShutdown(() => confirmations.stop());
     registerEconomyJobs(ctx, wallets);
     ctx.privacy({
       export: (guildId, userId) => wallets.store.memberData(guildId, userId),
       forget: (guildId, userId) => wallets.store.forget(guildId, userId),
     });
 
-    return economyCommands(wallets, shop);
+    return economyCommands(wallets, shop, confirmations);
   },
 });
