@@ -24,6 +24,7 @@ export const ticketPanel = z.object({
   channelName: z.string().min(1).max(90).default('{panel}-{number}'),
   maxOpenPerMember: z.number().int().min(1).max(10).default(1),
   verifyRoleId: z.string().nullable().default(null),
+  teamOnlyClose: z.boolean().default(false),
 });
 
 export const ticketCannedReply = z.object({

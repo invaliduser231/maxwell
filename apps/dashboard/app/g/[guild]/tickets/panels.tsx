@@ -107,6 +107,7 @@ function newPanel(name: string, panels: TicketPanel[]): TicketPanel {
     channelName: '{panel}-{number}',
     maxOpenPerMember: 1,
     verifyRoleId: null,
+    teamOnlyClose: false,
   };
 }
 
@@ -354,6 +355,11 @@ function PanelSetup({
           sub={t('When a ticket opens')}
           checked={panel.pingTeam}
           onChange={(pingTeam) => patch({ pingTeam })}
+        />
+        <ToggleRow
+          title={t('Only the team can close')}
+          checked={panel.teamOnlyClose}
+          onChange={(teamOnlyClose) => patch({ teamOnlyClose })}
         />
         <div className="mx-field">
           <span className="mx-label">{t('Role after verification')}</span>

@@ -1909,6 +1909,10 @@
   },
   {
     "page": "tickets",
+    "label": "Only the team can close"
+  },
+  {
+    "page": "tickets",
     "label": "Text"
   },
   {

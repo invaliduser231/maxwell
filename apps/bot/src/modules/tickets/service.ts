@@ -150,7 +150,8 @@ export class TicketService {
   async canClose(ticket: Ticket, userId: string): Promise<boolean> {
     if (ticket.openerId === userId && ticket.source !== 'modmail') {
       const config = await this.ctx.config(ticket.guildId);
-      if (config.openerCanClose) return true;
+      const panel = config.panels.find((candidate) => candidate.id === ticket.panelId);
+      if (config.openerCanClose && !panel?.teamOnlyClose) return true;
     }
     return this.isTeam(ticket.guildId, userId, ticket.panelId);
   }
