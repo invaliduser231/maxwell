@@ -249,6 +249,10 @@
   },
   {
     "page": "collection",
+    "label": "Claim by reaction"
+  },
+  {
+    "page": "collection",
     "label": "Packs"
   },
   {

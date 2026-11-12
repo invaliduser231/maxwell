@@ -19,6 +19,7 @@ import {
   Switch,
   Tabs,
   TextInput,
+  ToggleRow,
 } from '@/components/controls';
 import { useGuild } from '@/components/guild';
 import { useT } from '@/components/i18n';
@@ -1168,6 +1169,7 @@ function DropsPanel({ prefix }: { prefix: string }) {
   const t = useT();
   const { value, set } = useDraft<CollectionConfig>();
   const drops = value.drops;
+  const span = t('{n, plural, one {# minute} other {# minutes}}', { n: drops.claimMinutes });
 
   return (
     <Panel
@@ -1228,16 +1230,26 @@ function DropsPanel({ prefix }: { prefix: string }) {
             />
           </Field>
         </Fields>
+        <ToggleRow
+          title={t('Claim by reaction')}
+          sub={t('Off means only {command} works', { command: `${prefix}claim` })}
+          checked={drops.react}
+          onChange={(react) => set({ drops: { ...drops, react } })}
+        />
         <div className="mx-preview">
           <MessagePreview
             avatarSize={30}
-            content={t(
-              '**A card dropped**\n-# First to type `{command}` gets it. Gone in {span}.',
-              {
-                command: `${prefix}claim`,
-                span: t('{n, plural, one {# minute} other {# minutes}}', { n: drops.claimMinutes }),
-              },
-            )}
+            content={
+              drops.react
+                ? t(
+                    '**A card dropped**\n-# First to react with {emoji} or type `{command}` gets it. Gone in {span}.',
+                    { emoji: '\u{1F590}\u{FE0F}', command: `${prefix}claim`, span },
+                  )
+                : t('**A card dropped**\n-# First to type `{command}` gets it. Gone in {span}.', {
+                    command: `${prefix}claim`,
+                    span,
+                  })
+            }
           />
         </div>
       </PanelBody>

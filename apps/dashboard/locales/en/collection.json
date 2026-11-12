@@ -119,5 +119,8 @@
   "Without image": "Without image",
   "No cards match.": "No cards match.",
   "Change image of {name}": "Change image of {name}",
-  "Rarity of {name}": "Rarity of {name}"
+  "Rarity of {name}": "Rarity of {name}",
+  "Claim by reaction": "Claim by reaction",
+  "Off means only {command} works": "Off means only {command} works",
+  "**A card dropped**\n-# First to react with {emoji} or type `{command}` gets it. Gone in {span}.": "**A card dropped**\n-# First to react with {emoji} or type `{command}` gets it. Gone in {span}."
 }

@@ -36,6 +36,8 @@ export const copy = catalog('collection', en, (m) => ({
   drop: {
     hint: (emoji: string, command: string, until: Date) =>
       m.drop.hint({ emoji, command: code(command), until: timestamp(until, 'R') }),
+    hintCommand: (command: string, until: Date) =>
+      m.drop.hintCommand({ command: code(command), until: timestamp(until, 'R') }),
     wished: (users: string[]) =>
       m.drop.wished({ users: users.map((id) => mention.user(id)).join(' ') }),
     claimed: (userId: string) => m.drop.claimed({ user: mention.user(userId) }),

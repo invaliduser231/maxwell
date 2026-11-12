@@ -75,6 +75,7 @@ export const collectionConfig = z.object({
       everyMessages: z.number().int().min(5).max(10_000).default(50),
       minMinutes: z.number().int().min(1).max(1_440).default(15),
       claimMinutes: z.number().int().min(1).max(120).default(10),
+      react: z.boolean().default(true),
     })
     .prefault({}),
   packs: z

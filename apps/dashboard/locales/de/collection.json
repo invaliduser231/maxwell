@@ -119,5 +119,8 @@
   "Without image": "Ohne Bild",
   "No cards match.": "Keine Karte passt.",
   "Change image of {name}": "Bild von {name} ändern",
-  "Rarity of {name}": "Seltenheit von {name}"
+  "Rarity of {name}": "Seltenheit von {name}",
+  "Claim by reaction": "Per Reaktion einsammeln",
+  "Off means only {command} works": "Aus heißt, nur {command} zählt",
+  "**A card dropped**\n-# First to react with {emoji} or type `{command}` gets it. Gone in {span}.": "**Eine Karte ist gedroppt**\n-# Wer zuerst mit {emoji} reagiert oder `{command}` tippt, bekommt sie. Weg in {span}."
 }

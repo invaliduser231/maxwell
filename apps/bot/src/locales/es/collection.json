@@ -63,6 +63,7 @@
   "drop": {
     "title": "Salió una carta",
     "hint": "Se la lleva quien primero reaccione con {emoji} o escriba {command}. Desaparece {until}.",
+    "hintCommand": "Se la lleva quien primero escriba {command}. Desaparece {until}.",
     "wished": "La quieren {users}",
     "claimed": "Se la llevó {user}.",
     "expired": "Nadie la reclamó.",

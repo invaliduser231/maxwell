@@ -32,14 +32,16 @@ export function dropEmbed(
   card: Card,
   config: CollectionConfig,
   state:
-    | { kind: 'open'; command: string; until: Date }
+    | { kind: 'open'; command: string; until: Date; react: boolean }
     | { kind: 'claimed'; userId: string }
     | { kind: 'expired' },
 ): Embed {
   const tier = tierOf(config.tiers, card.rarity);
   const status =
     state.kind === 'open'
-      ? copy.drop.hint(GRAB, state.command, state.until)
+      ? state.react
+        ? copy.drop.hint(GRAB, state.command, state.until)
+        : copy.drop.hintCommand(state.command, state.until)
       : state.kind === 'claimed'
         ? copy.drop.claimed(state.userId)
         : copy.drop.expired;
@@ -126,11 +128,18 @@ export class Drops {
       const messageId = await platform.send(channelId, {
         content: wishers.length > 0 ? copy.drop.wished(wishers) : undefined,
         mentionUsers: wishers,
-        embeds: [dropEmbed(card, config, { kind: 'open', command: `${prefix}claim`, until })],
+        embeds: [
+          dropEmbed(card, config, {
+            kind: 'open',
+            command: `${prefix}claim`,
+            until,
+            react: config.drops.react,
+          }),
+        ],
         files: [{ name: cardFile(card), data: image }],
       });
       await store.setDropMessage(drop.id, messageId);
-      await platform.react(channelId, messageId, GRAB).catch(() => {});
+      if (config.drops.react) await platform.react(channelId, messageId, GRAB).catch(() => {});
       await this.schedule('dropExpire', {
         guildId,
         runAt: until,
@@ -195,6 +204,7 @@ export class Drops {
 
   async onReaction(reaction: ReactionEvent): Promise<void> {
     if (reaction.bot || !reaction.guildId || bare(reaction.emoji) !== bare(GRAB)) return;
+    if (!(await this.collection.config(reaction.guildId)).drops.react) return;
     const claimed = await this.claim(
       reaction.guildId,
       reaction.channelId,
